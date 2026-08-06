@@ -243,7 +243,7 @@ export default function EventDetail({ tournaments, registrations, users = [], cu
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '200px', overflowY: 'auto' }}>
                 {regs.map((reg, idx) => {
-                  const matchedUser = users.find(u => u.id === reg.userId) || { name: `Katılımcı #${idx + 1}`, chessUsername: '' };
+                  const matchedUser = users.find(u => parseInt(u.id) === parseInt(reg.userId)) || { name: `Katılımcı #${idx + 1}`, chessUsername: '' };
                   return (
                     <div key={idx} style={{
                       display: 'flex',
