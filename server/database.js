@@ -4,15 +4,15 @@ const path = require('path');
 const DATA_DIR = path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 
-// Yeni Veritabanı Şablonu (ELO, Mesajlar ve Eşleştirmeler Dahil)
+// Sıfırdan başlayacak temiz veritabanı şablonu (özder satranç topluluğu)
 const defaultData = {
   stats: {
     organizedTournaments: 1,
     gamesPlayed: 0,
     registeredPlayers: 0
   },
-  users: [],       // { id, name, email, password, phone, chessUsername, verified, elo }
-  messages: [],    // { id, name, email, message, date }
+  users: [],
+  messages: [],
   leaders: {
     champions: [],
     activePlayers: [],
@@ -30,11 +30,11 @@ const defaultData = {
       champion: "Bekleniyor...",
       status: "active",
       maxQuota: 20,
-      rounds: [], // { roundNumber, pairings: [ { whiteId, blackId, result: 'pending'|'white'|'black'|'draw' } ] }
+      rounds: [],
       totalRounds: 5
     }
   ],
-  registrations: [] // { tournamentId, userId, registrationDate }
+  registrations: [] // { tournamentId, userId, name, chessUsername, registrationDate }
 };
 
 function initDB() {
@@ -68,47 +68,39 @@ function writeDB(data) {
   }
 }
 
-// Lichess ELO Puanlama Formülü (K-Faktörü: 32)
 function calculateEloChange(ratingA, ratingB, scoreA) {
   const K = 32;
   const expectedA = 1 / (1 + Math.pow(10, (ratingB - ratingA) / 400));
   const newRatingA = Math.round(ratingA + K * (scoreA - expectedA));
-  // ELO limitleri: Minimum 100, Maksimum 3000
   return Math.max(100, Math.min(3000, newRatingA));
 }
 
-// Oyuncu Liderlik Sıralamalarını ELO'ya göre güncelleme
 function updateLeaderboards(db) {
-  // Aktif kullanıcıları ELO derecelerine göre sırala
   const sortedByElo = [...db.users]
     .filter(u => u.verified)
     .sort((a, b) => (b.elo || 1500) - (a.elo || 1500));
 
-  // Top Şampiyonlar için mock/gerçek kupa verisi
   db.leaders.champions = sortedByElo.slice(0, 5).map(u => ({
     name: u.name,
-    titles: Math.max(1, Math.round((u.elo - 1400) / 100)), // ELO'suna göre kupa simülasyonu
+    titles: Math.max(1, Math.round((u.elo - 1400) / 100)),
     points: u.elo || 1500
   }));
 
-  // En aktif oyuncular (kayıtlı olduğu turnuva sayısına göre)
   db.leaders.activePlayers = db.users.slice(0, 5).map(u => {
     const count = db.registrations.filter(r => r.userId === u.id).length;
     return {
       name: u.name,
-      matches: count * 5, // Ortalama turnuva maçı
+      matches: count * 5,
       winRate: `%${Math.min(95, Math.max(40, Math.round((u.elo / 3000) * 100)))}`
     };
   });
 
-  // En yüksek ELO oranları
   db.leaders.highestWinRates = sortedByElo.slice(0, 5).map(u => ({
     name: u.name,
     rate: u.elo || 1500,
     matches: db.registrations.filter(r => r.userId === u.id).length * 5
   }));
 
-  // Galibiyet Serileri (ELO gücüne göre simülasyon)
   db.leaders.winStreaks = sortedByElo.slice(0, 5).map((u, idx) => ({
     name: u.name,
     streak: Math.max(1, Math.round((u.elo - 1300) / 80))
@@ -118,7 +110,6 @@ function updateLeaderboards(db) {
 module.exports = {
   getData: () => readDB(),
 
-  // İletişim Mesajı Kaydetme
   saveMessage: (newMessage) => {
     const db = readDB();
     const message = {
@@ -131,7 +122,6 @@ module.exports = {
     return db.messages;
   },
 
-  // Mesaj Silme
   deleteMessage: (id) => {
     const db = readDB();
     db.messages = db.messages.filter(m => m.id !== parseInt(id));
@@ -139,7 +129,6 @@ module.exports = {
     return db.messages;
   },
   
-  // Kullanıcı işlemleri
   registerUser: (newUser) => {
     const db = readDB();
     const emailExists = db.users.some(u => u.email === newUser.email);
@@ -149,7 +138,7 @@ module.exports = {
     const user = {
       id: db.users.length + 1,
       ...newUser,
-      elo: newUser.elo ? parseInt(newUser.elo) : 1500, // Başlangıç ELO: 1500
+      elo: newUser.elo ? parseInt(newUser.elo) : 1500,
       verified: false,
       verificationCode
     };
@@ -179,8 +168,8 @@ module.exports = {
     return { success: true, user: { id: user.id, name: user.name, email: user.email, chessUsername: user.chessUsername, phone: user.phone, elo: user.elo || 1500 } };
   },
 
-  // Turnuva Kayıt İşlemleri
-  registerForTournament: (tournamentId, userId) => {
+  // Turnuvaya Özel Kayıt İşlemleri (İsim ve kullanıcı adını da kayıt satırına yazıyoruz)
+  registerForTournament: (tournamentId, userId, name, chessUsername) => {
     const db = readDB();
     const tournament = db.tournaments.find(t => t.id === parseInt(tournamentId));
     if (!tournament) return { error: "Turnuva bulunamadı." };
@@ -194,6 +183,8 @@ module.exports = {
     db.registrations.push({
       tournamentId: parseInt(tournamentId),
       userId: parseInt(userId),
+      name: name,
+      chessUsername: chessUsername,
       registrationDate: new Date().toISOString()
     });
     
@@ -227,7 +218,6 @@ module.exports = {
     return db.tournaments;
   },
 
-  // İsviçre Sistemi Eşleştirme ve ELO Puan Güncelleme İşlemleri
   submitRoundResults: (tournamentId, roundNumber, matchResults) => {
     const db = readDB();
     const tournament = db.tournaments.find(t => t.id === parseInt(tournamentId));
@@ -236,13 +226,11 @@ module.exports = {
     const round = tournament.rounds.find(r => r.roundNumber === parseInt(roundNumber));
     if (!round) return { error: "Tur bulunamadı." };
 
-    // Maç sonuçlarını kaydet ve ELO puanlarını güncelle
     matchResults.forEach(match => {
       const dbMatch = round.pairings.find(p => p.whiteId === match.whiteId && p.blackId === match.blackId);
       if (dbMatch) {
-        dbMatch.result = match.result; // 'white' | 'black' | 'draw'
+        dbMatch.result = match.result;
 
-        // ELO Hesaplama (Eğer ELO zaten güncellenmediyse)
         const whiteUser = db.users.find(u => u.id === match.whiteId);
         const blackUser = db.users.find(u => u.id === match.blackId);
 
@@ -280,7 +268,6 @@ module.exports = {
 
     const nextRoundNumber = tournament.rounds.length + 1;
     if (nextRoundNumber > tournament.totalRounds) {
-      // Turnuva bitti, şampiyonu bul
       const standings = {};
       players.forEach(p => { standings[p.id] = 0; });
 
@@ -311,9 +298,8 @@ module.exports = {
       return { success: true, message: "Turnuva tamamlandı!", tournaments: db.tournaments };
     }
 
-    // Oyuncuların güncel puanlarını hesapla (İsviçre Sistemi için)
     const playerScores = {};
-    const colorHistory = {}; // { playerId: [colors] }
+    const colorHistory = {};
 
     players.forEach(p => {
       playerScores[p.id] = 0;
@@ -334,24 +320,19 @@ module.exports = {
       });
     });
 
-    // Oyuncuları puanlarına göre sırala
     const sortedPlayers = [...players].sort((a, b) => playerScores[b.id] - playerScores[a.id]);
-
     const pairings = [];
     const paired = new Set();
 
-    // İsviçre Eşleştirme algoritması (Kısıtlamalara uyarak)
     for (let i = 0; i < sortedPlayers.length; i++) {
       const p1 = sortedPlayers[i];
       if (paired.has(p1.id)) continue;
 
       let p2 = null;
-      // Puanları yakın olan en uygun rakibi ara
       for (let j = i + 1; j < sortedPlayers.length; j++) {
         const potentialPartner = sortedPlayers[j];
         if (paired.has(potentialPartner.id)) continue;
 
-        // Geçmişte oynamışlar mı kontrolü (Aynı oyuncuyla tekrar oynamama kuralı)
         const alreadyPlayed = tournament.rounds.some(r => 
           r.pairings.some(p => 
             (p.whiteId === p1.id && p.blackId === potentialPartner.id) ||
@@ -365,7 +346,6 @@ module.exports = {
         }
       }
 
-      // Eş bulunamadıysa (tek kalan oyuncu durumunda veya mükemmel eşleşme yapılamadığında), en yakın boştakini seç
       if (!p2) {
         for (let j = i + 1; j < sortedPlayers.length; j++) {
           if (!paired.has(sortedPlayers[j].id)) {
@@ -376,7 +356,6 @@ module.exports = {
       }
 
       if (p2) {
-        // Renk Belirleme (Beyaz/Siyah dengesi ve 3 kez arka arkaya aynı renk olmama kuralı)
         const hist1 = colorHistory[p1.id] || [];
         const hist2 = colorHistory[p2.id] || [];
         
@@ -387,7 +366,6 @@ module.exports = {
         if (last3_1 === 'WWW') p1Color = 'B';
         else if (last3_2 === 'BBB') p1Color = 'W';
         else {
-          // Beyaz ve Siyah sayılarını karşılaştır
           const w1 = hist1.filter(c => c === 'W').length;
           const b1 = hist1.filter(c => c === 'B').length;
           p1Color = w1 > b1 ? 'B' : 'W';
@@ -402,8 +380,7 @@ module.exports = {
         paired.add(p1.id);
         paired.add(p2.id);
       } else {
-        // Tek sayıda oyuncu kalırsa Bay geçer (Maç yapmadan 1 puan alır)
-        pairings.push({ whiteId: p1.id, blackId: null, result: 'white', eloUpdated: true }); // Otomatik Beyaz galibiyeti (Bay)
+        pairings.push({ whiteId: p1.id, blackId: null, result: 'white', eloUpdated: true });
         paired.add(p1.id);
       }
     }

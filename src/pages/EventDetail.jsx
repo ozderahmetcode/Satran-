@@ -21,7 +21,9 @@ export default function EventDetail({ tournaments, registrations, users = [], cu
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tournamentId: parseInt(tourId),
-          userId: currentUser.id
+          userId: currentUser.id,
+          name: currentUser.name,
+          chessUsername: currentUser.chessUsername
         })
       });
       const result = await response.json();
@@ -78,7 +80,6 @@ export default function EventDetail({ tournaments, registrations, users = [], cu
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
           {tournaments.map((tour) => {
             const regs = getTournamentRegistrations(tour.id);
-            const isFull = regs.length >= tour.maxQuota;
 
             return (
               <div key={tour.id} className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '16px', justifyContent: 'space-between' }}>
@@ -239,11 +240,13 @@ export default function EventDetail({ tournaments, registrations, users = [], cu
               Katılımcı Listesi ({regs.length})
             </h3>
             {regs.length === 0 ? (
-              <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Henüz kayıtlı katılımcı bulunmmaktadır.</p>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Henüz kayıtlı katılımcı bulunmamaktadır.</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '200px', overflowY: 'auto' }}>
                 {regs.map((reg, idx) => {
-                  const matchedUser = users.find(u => parseInt(u.id) === parseInt(reg.userId)) || { name: `Katılımcı #${idx + 1}`, chessUsername: '' };
+                  const displayName = reg.name || "Katılımcı";
+                  const displayUsername = reg.chessUsername || "";
+
                   return (
                     <div key={idx} style={{
                       display: 'flex',
@@ -255,9 +258,9 @@ export default function EventDetail({ tournaments, registrations, users = [], cu
                       border: '1px solid rgba(255,255,255,0.03)'
                     }}>
                       <div>
-                        <span style={{ fontSize: '14px', fontWeight: 600 }}>{idx + 1}. {matchedUser.name}</span>
-                        {matchedUser.chessUsername && (
-                          <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>@{matchedUser.chessUsername}</div>
+                        <span style={{ fontSize: '14px', fontWeight: 600 }}>{idx + 1}. {displayName}</span>
+                        {displayUsername && (
+                          <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>@{displayUsername}</div>
                         )}
                       </div>
                       <span style={{ fontSize: '12px', color: 'var(--accent-primary)', fontWeight: 600 }}>Aktif</span>

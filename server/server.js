@@ -147,11 +147,15 @@ app.post('/api/auth/login', (req, res) => {
   }
 });
 
-// Turnuvaya Özel Kayıt Rotaları
+// Turnuvaya Özel Kayıt Rotaları (Ad Soyad ve chessUsername artık parametredir)
 app.post('/api/register', (req, res) => {
   try {
-    const { tournamentId, userId } = req.body;
-    const result = db.registerForTournament(tournamentId, userId);
+    const { tournamentId, userId, name, chessUsername } = req.body;
+    if (!tournamentId || !userId || !name || !chessUsername) {
+      return res.status(400).json({ error: "Turnuva ID, Kullanıcı ID, İsim ve Satranç Adı zorunludur." });
+    }
+
+    const result = db.registerForTournament(tournamentId, userId, name, chessUsername);
     if (result.error) {
       return res.status(400).json({ error: result.error });
     }
@@ -206,7 +210,7 @@ app.post('/api/tournaments/:id/pairings', (req, res) => {
 app.post('/api/tournaments/:id/rounds/:round/results', (req, res) => {
   try {
     const { id, round } = req.params;
-    const { results } = req.body; // Array of match results
+    const { results } = req.body;
     const result = db.submitRoundResults(id, round, results);
     if (result.error) {
       return res.status(400).json({ error: result.error });
