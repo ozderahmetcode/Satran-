@@ -34,6 +34,21 @@ app.post('/api/register', (req, res) => {
   }
 });
 
+app.post('/api/tournaments', (req, res) => {
+  try {
+    const { title, date, time, location, fee, maxQuota } = req.body;
+
+    if (!title || !date || !time || !location || !maxQuota) {
+      return res.status(400).json({ error: "Lütfen zorunlu alanları doldurun." });
+    }
+
+    const tournaments = db.createTournament({ title, date, time, location, fee: fee || "Ücretsiz", maxQuota: parseInt(maxQuota) });
+    res.status(201).json({ success: true, tournaments });
+  } catch (error) {
+    res.status(500).json({ error: "Turnuva oluşturulurken hata oluştu." });
+  }
+});
+
 // React Build Statik Dosyalarını Sunma
 app.use(express.static(path.join(__dirname, '../dist')));
 

@@ -4,6 +4,8 @@ import Footer from './components/Footer';
 import Home from './pages/Home';
 import EventDetail from './pages/EventDetail';
 import Database from './pages/Database';
+import CreateEvent from './pages/CreateEvent';
+import Contact from './pages/Contact';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState('home');
@@ -40,7 +42,18 @@ export default function App() {
       registrations: updatedRegistrations,
       stats: {
         ...prev.stats,
-        registeredPlayers: prev.stats.registeredPlayers + 1
+        registeredPlayers: updatedRegistrations.length
+      }
+    }));
+  };
+
+  const handleAddTournament = (updatedTournaments) => {
+    setData(prev => ({
+      ...prev,
+      tournaments: updatedTournaments,
+      stats: {
+        ...prev.stats,
+        organizedTournaments: updatedTournaments.length
       }
     }));
   };
@@ -69,6 +82,15 @@ export default function App() {
             tournaments={data.tournaments} 
           />
         );
+      case 'create':
+        return (
+          <CreateEvent 
+            onAddTournament={handleAddTournament} 
+            setCurrentPage={setCurrentPage} 
+          />
+        );
+      case 'contact':
+        return <Contact />;
       default:
         return <Home stats={data.stats} leaders={data.leaders} setCurrentPage={setCurrentPage} />;
     }
@@ -83,16 +105,17 @@ export default function App() {
         height: '100vh',
         fontFamily: 'var(--font-title)',
         fontSize: '20px',
-        color: 'var(--accent-primary)',
+        color: 'var(--accent-secondary)',
         flexDirection: 'column',
-        gap: '16px'
+        gap: '16px',
+        background: '#07090e'
       }}>
-        <div>Loading...</div>
+        <div>Yükleniyor...</div>
         <div style={{
           width: '40px',
           height: '40px',
           border: '4px solid rgba(255,255,255,0.1)',
-          borderTopColor: 'var(--accent-primary)',
+          borderTopColor: 'var(--accent-secondary)',
           borderRadius: '50%',
           animation: 'spin 1s linear infinite'
         }} />
@@ -106,7 +129,7 @@ export default function App() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#07090e' }}>
       <Navbar currentPage={currentPage} setCurrentPage={setCurrentPage} />
       
       <main className="container" style={{ flex: 1, marginTop: '20px' }}>

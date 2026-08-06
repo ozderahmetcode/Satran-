@@ -1,14 +1,15 @@
 :root {
-  --bg-color: #0b0c10;
-  --panel-bg: rgba(22, 24, 30, 0.7);
-  --panel-border: rgba(255, 255, 255, 0.08);
-  --accent-primary: #10b981; /* Neon Yeşil */
-  --accent-secondary: #8b5cf6; /* Canlı Mor */
-  --text-primary: #f3f4f6;
-  --text-secondary: #9ca3af;
+  --bg-color: #07090e;
+  --panel-bg: rgba(13, 18, 30, 0.7);
+  --panel-border: rgba(255, 255, 255, 0.05);
+  --accent-primary: #0ea5e9; /* Elektrik Mavisi */
+  --accent-secondary: #f59e0b; /* Altın Sarısı */
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
   --font-title: 'Outfit', 'Inter', sans-serif;
   --font-body: 'Inter', sans-serif;
-  --gradient-glow: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+  --gradient-glow: linear-gradient(135deg, var(--accent-primary) 0%, #10b981 100%);
+  --gradient-gold: linear-gradient(135deg, var(--accent-secondary) 0%, #d97706 100%);
 }
 
 * {
@@ -24,8 +25,8 @@ body {
   line-height: 1.6;
   overflow-x: hidden;
   background-image: 
-    radial-gradient(circle at 10% 20%, rgba(139, 92, 246, 0.08) 0%, transparent 40%),
-    radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.08) 0%, transparent 40%);
+    radial-gradient(circle at 10% 20%, rgba(14, 165, 233, 0.06) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(245, 158, 11, 0.04) 0%, transparent 40%);
 }
 
 /* Scrollbar */
@@ -46,23 +47,29 @@ body {
 /* Glassmorphism Panel */
 .glass-panel {
   background: var(--panel-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--panel-border);
   border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  padding: 28px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .glass-panel:hover {
-  border-color: rgba(16, 185, 129, 0.2);
-  box-shadow: 0 8px 32px 0 rgba(16, 185, 129, 0.05);
+  border-color: rgba(14, 165, 233, 0.15);
+  box-shadow: 0 8px 32px 0 rgba(14, 165, 233, 0.03);
 }
 
 /* Gradients */
 .text-gradient {
   background: var(--gradient-glow);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-gold {
+  background: var(--gradient-gold);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -75,39 +82,39 @@ body {
   padding: 12px 24px;
   font-family: var(--font-title);
   font-weight: 600;
-  border-radius: 12px;
+  border-radius: 10px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 15px rgba(14, 165, 233, 0.2);
   text-decoration: none;
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.03);
   color: var(--text-primary);
   border: 1px solid var(--panel-border);
   padding: 12px 24px;
   font-family: var(--font-title);
   font-weight: 600;
-  border-radius: 12px;
+  border-radius: 10px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  transition: background 0.2s ease, border-color 0.2s ease;
+  transition: all 0.2s ease;
   text-decoration: none;
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.07);
   border-color: var(--accent-primary);
 }
 
@@ -120,10 +127,19 @@ body {
 
 /* Animations */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.6s ease forwards;
+  animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Form Styles */
+input, select, textarea {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15) !important;
 }
