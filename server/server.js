@@ -14,10 +14,10 @@ app.use(express.json());
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
+  secure: process.env.SMTP_SECURE === 'true',
   auth: {
-    user: process.env.SMTP_USER || '', // Gönderici e-posta adresi
-    pass: process.env.SMTP_PASS || ''  // SMTP şifresi veya uygulama şifresi
+    user: process.env.SMTP_USER || '',
+    pass: process.env.SMTP_PASS || ''
   }
 });
 
@@ -31,29 +31,50 @@ app.get('/api/data', (req, res) => {
   }
 });
 
+// Mesaj Rotaları
+app.post('/api/messages', (req, res) => {
+  try {
+    const { name, email, message } = req.body;
+    if (!name || !email || !message) {
+      return res.status(400).json({ error: "Tüm alanlar zorunludur." });
+    }
+    const messages = db.saveMessage({ name, email, message });
+    res.status(201).json({ success: true, messages });
+  } catch (error) {
+    res.status(500).json({ error: "Mesaj gönderilirken hata oluştu." });
+  }
+});
+
+app.delete('/api/messages/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const messages = db.deleteMessage(id);
+    res.json({ success: true, messages });
+  } catch (error) {
+    res.status(500).json({ error: "Mesaj silinirken hata oluştu." });
+  }
+});
+
 // E-posta Doğrulama ve Kimlik Doğrulama API Rotaları
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { name, email, password, phone, chessUsername } = req.body;
+    const { name, email, password, phone, chessUsername, elo } = req.body;
     if (!name || !email || !password || !phone || !chessUsername) {
       return res.status(400).json({ error: "Lütfen tüm zorunlu alanları doldurun." });
     }
 
-    // Telefon Numarası Sayısal Karakter Kontrolü ve 10/11 Hane Kontrolü
-    const cleanPhone = phone.replace(/\D/g, ''); // Sadece rakamları al
+    const cleanPhone = phone.replace(/\D/g, '');
     if (cleanPhone.length !== 10 && cleanPhone.length !== 11) {
-      return res.status(400).json({ error: "Telefon numarası formatı geçersizdir. Örn: 05554443322 veya 5554443322" });
+      return res.status(400).json({ error: "Telefon numarası formatı geçersizdir." });
     }
 
-    const result = db.registerUser({ name, email, password, phone: cleanPhone, chessUsername });
+    const result = db.registerUser({ name, email, password, phone: cleanPhone, chessUsername, elo });
     if (result.error) {
       return res.status(400).json({ error: result.error });
     }
 
-    // Konsola doğrulama kodunu yazalım (testler için)
     console.log(`[E-Posta Doğrulama Kodu] Kime: ${email} -> Kod: ${result.code}`);
 
-    // E-postayı resmi olarak gönderme denemesi
     if (process.env.SMTP_USER && process.env.SMTP_PASS) {
       const mailOptions = {
         from: `"özder Satranç Topluluğu" <${process.env.SMTP_USER}>`,
@@ -84,7 +105,6 @@ app.post('/api/auth/register', async (req, res) => {
 
       try {
         await transporter.sendMail(mailOptions);
-        console.log(`E-posta başarıyla gönderildi: ${email}`);
       } catch (err) {
         console.error("Nodemailer e-posta gönderme hatası:", err);
       }
@@ -94,7 +114,7 @@ app.post('/api/auth/register', async (req, res) => {
       success: true, 
       message: "Doğrulama kodu gönderildi.", 
       email, 
-      testCode: process.env.SMTP_USER ? undefined : result.code // SMTP kuruluysa güvenlik için kodu gizliyoruz, kurulu değilse kolay test için gönderiyoruz
+      testCode: process.env.SMTP_USER ? undefined : result.code
     });
   } catch (error) {
     res.status(500).json({ error: "Kayıt sırasında bir hata oluştu." });
@@ -104,16 +124,11 @@ app.post('/api/auth/register', async (req, res) => {
 app.post('/api/auth/verify', (req, res) => {
   try {
     const { email, code } = req.body;
-    if (!email || !code) {
-      return res.status(400).json({ error: "E-posta ve doğrulama kodu zorunludur." });
-    }
-
     const result = db.verifyUser(email, code);
     if (result.error) {
       return res.status(400).json({ error: result.error });
     }
-
-    res.json({ success: true, message: "E-posta doğrulandı! Giriş yapabilirsiniz." });
+    res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: "Doğrulama sırasında bir hata oluştu." });
   }
@@ -122,15 +137,10 @@ app.post('/api/auth/verify', (req, res) => {
 app.post('/api/auth/login', (req, res) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({ error: "E-posta ve şifre zorunludur." });
-    }
-
     const result = db.loginUser(email, password);
     if (result.error) {
       return res.status(400).json({ error: result.error, requiresVerification: result.requiresVerification });
     }
-
     res.json({ success: true, user: result.user });
   } catch (error) {
     res.status(500).json({ error: "Giriş yapılırken bir hata oluştu." });
@@ -141,15 +151,10 @@ app.post('/api/auth/login', (req, res) => {
 app.post('/api/register', (req, res) => {
   try {
     const { tournamentId, userId } = req.body;
-    if (!tournamentId || !userId) {
-      return res.status(400).json({ error: "Turnuva ID ve Kullanıcı ID zorunludur." });
-    }
-
     const result = db.registerForTournament(tournamentId, userId);
     if (result.error) {
       return res.status(400).json({ error: result.error });
     }
-
     res.status(201).json({ success: true, registrations: result.registrations });
   } catch (error) {
     res.status(500).json({ error: "Turnuvaya kayıt sırasında hata oluştu." });
@@ -171,16 +176,44 @@ app.delete('/api/register/:tournamentId/:userId', (req, res) => {
 
 app.post('/api/tournaments', (req, res) => {
   try {
-    const { title, date, time, location, fee, maxQuota } = req.body;
+    const { title, date, time, location, fee, maxQuota, totalRounds } = req.body;
 
     if (!title || !date || !time || !location || !maxQuota) {
       return res.status(400).json({ error: "Lütfen zorunlu alanları doldurun." });
     }
 
-    const tournaments = db.createTournament({ title, date, time, location, fee: fee || "Ücretsiz", maxQuota: parseInt(maxQuota) });
+    const tournaments = db.createTournament({ title, date, time, location, fee: fee || "Ücretsiz", maxQuota: parseInt(maxQuota), totalRounds: totalRounds || 5 });
     res.status(201).json({ success: true, tournaments });
   } catch (error) {
     res.status(500).json({ error: "Turnuva oluşturulurken hata oluştu." });
+  }
+});
+
+// Eşleştirme ve Tur Sonuç API Rotaları
+app.post('/api/tournaments/:id/pairings', (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = db.generateNextRound(id);
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
+    }
+    res.json({ success: true, tournaments: result.tournaments });
+  } catch (error) {
+    res.status(500).json({ error: "Eşleştirme oluşturulurken hata oluştu." });
+  }
+});
+
+app.post('/api/tournaments/:id/rounds/:round/results', (req, res) => {
+  try {
+    const { id, round } = req.params;
+    const { results } = req.body; // Array of match results
+    const result = db.submitRoundResults(id, round, results);
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
+    }
+    res.json({ success: true, tournaments: result.tournaments, users: result.users });
+  } catch (error) {
+    res.status(500).json({ error: "Sonuçlar girilirken hata oluştu." });
   }
 });
 

@@ -3,12 +3,30 @@ import React, { useState } from 'react';
 export default function Contact() {
   const [formData, setFormData] = useState({ name: '', email: '', message: '' });
   const [success, setSuccess] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSuccess(true);
-    setFormData({ name: '', email: '', message: '' });
-    setTimeout(() => setSuccess(false), 3000);
+    setSuccess(false);
+    setErrorMsg('');
+
+    try {
+      const response = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      if (response.ok) {
+        setSuccess(true);
+        setFormData({ name: '', email: '', message: '' });
+      } else {
+        const result = await response.json();
+        setErrorMsg(result.error || 'Mesaj gönderilemedi.');
+      }
+    } catch (error) {
+      setErrorMsg('Sunucu bağlantı hatası.');
+    }
   };
 
   return (
@@ -71,6 +89,21 @@ export default function Contact() {
               fontWeight: 500
             }}>
               Mesajınız başarıyla iletildi! En kısa sürede dönüş yapacağız.
+            </div>
+          )}
+
+          {errorMsg && (
+            <div style={{
+              background: 'rgba(239, 68, 68, 0.15)',
+              border: '1px solid #ef4444',
+              color: '#ef4444',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              fontSize: '14px',
+              marginBottom: '20px',
+              fontWeight: 500
+            }}>
+              {errorMsg}
             </div>
           )}
 

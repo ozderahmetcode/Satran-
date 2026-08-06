@@ -14,6 +14,7 @@ export default function App() {
   const [data, setData] = useState({
     stats: {},
     users: [],
+    messages: [],
     leaders: {},
     tournaments: [],
     registrations: []
@@ -68,6 +69,13 @@ export default function App() {
     }));
   };
 
+  const handleMessagesUpdate = (updatedMessages) => {
+    setData(prev => ({
+      ...prev,
+      messages: updatedMessages
+    }));
+  };
+
   const handleAddTournament = (updatedTournaments) => {
     setData(prev => ({
       ...prev,
@@ -114,6 +122,8 @@ export default function App() {
             onRegisterUpdate={handleRegisterUpdate}
             tournaments={data.tournaments}
             onAddTournament={handleAddTournament}
+            messages={data.messages}
+            onMessagesUpdate={handleMessagesUpdate}
           />
         );
       case 'auth':
@@ -164,7 +174,7 @@ export default function App() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#07090e' }}>
       
-      {/* Navbar çekmece oturum parametreleri ile */}
+      {/* Navbar ve Profil çekmecesi */}
       <Navbar 
         currentPage={currentPage} 
         setCurrentPage={setCurrentPage} 

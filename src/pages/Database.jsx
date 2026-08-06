@@ -10,6 +10,11 @@ export default function Database({ leaders, tournaments }) {
     );
   };
 
+  const hasChampions = leaders?.champions && leaders.champions.length > 0;
+  const hasActive = leaders?.activePlayers && leaders.activePlayers.length > 0;
+  const hasRates = leaders?.highestWinRates && leaders.highestWinRates.length > 0;
+  const hasStreaks = leaders?.winStreaks && leaders.winStreaks.length > 0;
+
   return (
     <div className="animate-fade-in" style={{ padding: '40px 0', display: 'flex', flexDirection: 'column', gap: '48px' }}>
       
@@ -58,12 +63,16 @@ export default function Database({ leaders, tournaments }) {
             🏆 En Çok Şampiyon Olanlar
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {filterLeaders(leaders?.champions).map((player, idx) => (
-              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', borderBottom: '1px solid rgba(255,255,255,0.02)', paddingBottom: '8px' }}>
-                <span style={{ fontWeight: 500 }}>{idx + 1}. {player.name}</span>
-                <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>{player.titles} Kupa</span>
-              </div>
-            ))}
+            {!hasChampions ? (
+              <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Henüz şampiyonluk kaydı bulunmuyor.</p>
+            ) : (
+              filterLeaders(leaders.champions).map((player, idx) => (
+                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', borderBottom: '1px solid rgba(255,255,255,0.02)', paddingBottom: '8px' }}>
+                  <span style={{ fontWeight: 500 }}>{idx + 1}. {player.name}</span>
+                  <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>{player.points} ELO ({player.titles} Kupa)</span>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -73,27 +82,35 @@ export default function Database({ leaders, tournaments }) {
             ⚡ En Aktif Oyuncular
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {filterLeaders(leaders?.activePlayers).map((player, idx) => (
-              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', borderBottom: '1px solid rgba(255,255,255,0.02)', paddingBottom: '8px' }}>
-                <span style={{ fontWeight: 500 }}>{idx + 1}. {player.name}</span>
-                <span style={{ color: 'var(--accent-primary)', fontWeight: 'bold' }}>{player.matches} Maç</span>
-              </div>
-            ))}
+            {!hasActive ? (
+              <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Aktif oyuncu kaydı bulunmuyor.</p>
+            ) : (
+              filterLeaders(leaders.activePlayers).map((player, idx) => (
+                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', borderBottom: '1px solid rgba(255,255,255,0.02)', paddingBottom: '8px' }}>
+                  <span style={{ fontWeight: 500 }}>{idx + 1}. {player.name}</span>
+                  <span style={{ color: 'var(--accent-primary)', fontWeight: 'bold' }}>{player.matches} Maç</span>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
-        {/* Card: Highest Win Rates */}
+        {/* Card: Highest Win Rates / ELO Rankings */}
         <div className="glass-panel">
           <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '18px', fontWeight: 700, color: 'var(--accent-secondary)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            🚀 En Yüksek Kazanma Oranı
+            🚀 En Yüksek ELO Puanı
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {filterLeaders(leaders?.highestWinRates).map((player, idx) => (
-              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', borderBottom: '1px solid rgba(255,255,255,0.02)', paddingBottom: '8px' }}>
-                <span style={{ fontWeight: 500 }}>{idx + 1}. {player.name}</span>
-                <span style={{ color: 'var(--accent-secondary)', fontWeight: 'bold' }}>{player.rate}</span>
-              </div>
-            ))}
+            {!hasRates ? (
+              <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Puan kaydı bulunmuyor.</p>
+            ) : (
+              filterLeaders(leaders.highestWinRates).map((player, idx) => (
+                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', borderBottom: '1px solid rgba(255,255,255,0.02)', paddingBottom: '8px' }}>
+                  <span style={{ fontWeight: 500 }}>{idx + 1}. {player.name}</span>
+                  <span style={{ color: 'var(--accent-secondary)', fontWeight: 'bold' }}>{player.rate} ELO</span>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -103,12 +120,16 @@ export default function Database({ leaders, tournaments }) {
             🔥 En Uzun Galibiyet Serisi
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {filterLeaders(leaders?.winStreaks).map((player, idx) => (
-              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', borderBottom: '1px solid rgba(255,255,255,0.02)', paddingBottom: '8px' }}>
-                <span style={{ fontWeight: 500 }}>{idx + 1}. {player.name}</span>
-                <span style={{ color: '#ec4899', fontWeight: 'bold' }}>{player.streak} Galibiyet</span>
-              </div>
-            ))}
+            {!hasStreaks ? (
+              <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Seri kaydı bulunmuyor.</p>
+            ) : (
+              filterLeaders(leaders.winStreaks).map((player, idx) => (
+                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', borderBottom: '1px solid rgba(255,255,255,0.02)', paddingBottom: '8px' }}>
+                  <span style={{ fontWeight: 500 }}>{idx + 1}. {player.name}</span>
+                  <span style={{ color: '#ec4899', fontWeight: 'bold' }}>{player.streak} Galibiyet</span>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -135,10 +156,10 @@ export default function Database({ leaders, tournaments }) {
             }}>
               <div>
                 <h4 style={{ fontFamily: 'var(--font-title)', fontSize: '16px', fontWeight: 600 }}>
-                  {tour.title || `${tour.id}. Buluşma`}
+                  {tour.title}
                 </h4>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '4px' }}>
-                  📅 Tarih: {tour.date} {tour.location && `• 📍 Mekan: ${tour.location}`}
+                  📅 Tarih: {tour.date} • 🕒 {tour.time} • 📍 Mekan: {tour.location}
                 </p>
               </div>
 
@@ -151,7 +172,7 @@ export default function Database({ leaders, tournaments }) {
                     borderRadius: '6px',
                     fontSize: '12px',
                     fontWeight: 700
-                  }}>Kayıtlar Açık</span>
+                  }}>Kayıtlar Açık ({tour.totalRounds} Tur)</span>
                 ) : (
                   <>
                     <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
@@ -163,7 +184,7 @@ export default function Database({ leaders, tournaments }) {
                       borderRadius: '6px',
                       fontSize: '12px',
                       color: 'var(--text-secondary)'
-                    }}>{tour.players} Katılımcı</span>
+                    }}>{tour.totalRounds} Tur</span>
                   </>
                 )}
               </div>
