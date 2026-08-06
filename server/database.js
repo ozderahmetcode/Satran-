@@ -76,8 +76,8 @@ function calculateEloChange(ratingA, ratingB, scoreA) {
 }
 
 function updateLeaderboards(db) {
+  // Tüm doğrulanmış veya otomatik geri yüklenmiş üyeleri ELO'ya göre sırala
   const sortedByElo = [...db.users]
-    .filter(u => u.verified)
     .sort((a, b) => (b.elo || 1500) - (a.elo || 1500));
 
   db.leaders.champions = sortedByElo.slice(0, 5).map(u => ({
@@ -87,7 +87,7 @@ function updateLeaderboards(db) {
   }));
 
   db.leaders.activePlayers = db.users.slice(0, 5).map(u => {
-    const count = db.registrations.filter(r => r.userId === u.id).length;
+    const count = db.registrations.filter(r => String(r.userId) === String(u.id)).length;
     return {
       name: u.name,
       matches: count * 5,
@@ -98,7 +98,7 @@ function updateLeaderboards(db) {
   db.leaders.highestWinRates = sortedByElo.slice(0, 5).map(u => ({
     name: u.name,
     rate: u.elo || 1500,
-    matches: db.registrations.filter(r => r.userId === u.id).length * 5
+    matches: db.registrations.filter(r => String(r.userId) === String(u.id)).length * 5
   }));
 
   db.leaders.winStreaks = sortedByElo.slice(0, 5).map((u, idx) => ({
@@ -170,7 +170,7 @@ module.exports = {
     return { success: true, user: { id: user.id, name: user.name, email: user.email, chessUsername: user.chessUsername, phone: user.phone, elo: user.elo || 1500 } };
   },
 
-  // Turnuvaya Özel Kayıt İşlemleri
+  // Turnuvaya Özel Kayıt İşlemleri (Otomatik üye geri kurtarma entegre edildi)
   registerForTournament: (tournamentId, userId, name, chessUsername) => {
     const db = readDB();
     const tournament = db.tournaments.find(t => t.id === parseInt(tournamentId));
@@ -182,6 +182,21 @@ module.exports = {
     const currentRegs = db.registrations.filter(r => r.tournamentId === parseInt(tournamentId)).length;
     if (currentRegs >= tournament.maxQuota) return { error: "Kontenjan dolu." };
 
+    // Otomatik Üye Kurtarma: Eğer sunucu sıfırlanmışsa üyeyi veri tabanına otomatik geri ekle
+    let userExists = db.users.some(u => String(u.id) === String(userId));
+    if (!userExists) {
+      db.users.push({
+        id: userId,
+        name: name,
+        email: `${userId}@ozderchess.com`,
+        password: 'password_auto',
+        phone: '05555555555',
+        chessUsername: chessUsername,
+        elo: 1500,
+        verified: true
+      });
+    }
+
     db.registrations.push({
       tournamentId: parseInt(tournamentId),
       userId: userId,
@@ -191,6 +206,7 @@ module.exports = {
     });
     
     db.stats.registeredPlayers = db.registrations.length;
+    updateLeaderboards(db); // Liderlik tablosunu hemen güncelle
     writeDB(db);
     return { success: true, registrations: db.registrations };
   },
@@ -199,6 +215,7 @@ module.exports = {
     const db = readDB();
     db.registrations = db.registrations.filter(r => !(r.tournamentId === parseInt(tournamentId) && String(r.userId) === String(userId)));
     db.stats.registeredPlayers = db.registrations.length;
+    updateLeaderboards(db);
     writeDB(db);
     return { success: true, registrations: db.registrations };
   },
@@ -229,7 +246,7 @@ module.exports = {
     if (!round) return { error: "Tur bulunamadı." };
 
     matchResults.forEach(match => {
-      const dbMatch = round.pairings.find(p => p.whiteId === match.whiteId && p.blackId === match.blackId);
+      const dbMatch = round.pairings.find(p => String(p.whiteId) === String(match.whiteId) && String(p.blackId) === String(match.blackId));
       if (dbMatch) {
         dbMatch.result = match.result;
 
@@ -265,11 +282,9 @@ module.exports = {
 
     const registrations = db.registrations.filter(r => r.tournamentId === parseInt(tournamentId));
     
-    // Benzersiz ve Güvenli Oyuncu Çekme (Veritabanı sıfırlansa bile kayıt bilgisine fallback yapar)
     const players = registrations.map(r => {
       const user = db.users.find(u => String(u.id) === String(r.userId));
       if (user) return user;
-      // Fallback
       return {
         id: r.userId,
         name: r.name || "Bilinmeyen Oyuncu",
