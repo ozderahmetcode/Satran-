@@ -135,8 +135,6 @@ module.exports = {
     if (emailExists) return { error: "Bu e-posta adresi zaten kayıtlı." };
 
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-    
-    // Benzersiz Rastgele Metin ID Üretimi (Asla çakışmaz)
     const uniqueUserId = 'usr_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     
     const user = {
@@ -178,7 +176,6 @@ module.exports = {
     const tournament = db.tournaments.find(t => t.id === parseInt(tournamentId));
     if (!tournament) return { error: "Turnuva bulunamadı." };
 
-    // ID'leri metin olarak karşılaştırıyoruz (UUID olduğu için)
     const alreadyRegistered = db.registrations.some(r => r.tournamentId === parseInt(tournamentId) && String(r.userId) === String(userId));
     if (alreadyRegistered) return { error: "Bu turnuvaya zaten kayıtlısınız." };
 
@@ -187,7 +184,7 @@ module.exports = {
 
     db.registrations.push({
       tournamentId: parseInt(tournamentId),
-      userId: userId, // Metin kimlik
+      userId: userId,
       name: name,
       chessUsername: chessUsername,
       registrationDate: new Date().toISOString()
@@ -236,8 +233,8 @@ module.exports = {
       if (dbMatch) {
         dbMatch.result = match.result;
 
-        const whiteUser = db.users.find(u => u.id === match.whiteId);
-        const blackUser = db.users.find(u => u.id === match.blackId);
+        const whiteUser = db.users.find(u => String(u.id) === String(match.whiteId));
+        const blackUser = db.users.find(u => String(u.id) === String(match.blackId));
 
         if (whiteUser && blackUser && !dbMatch.eloUpdated) {
           const eloW = whiteUser.elo || 1500;
@@ -267,7 +264,19 @@ module.exports = {
     if (!tournament) return { error: "Turnuva bulunamadı." };
 
     const registrations = db.registrations.filter(r => r.tournamentId === parseInt(tournamentId));
-    const players = registrations.map(r => db.users.find(u => u.id === r.userId)).filter(Boolean);
+    
+    // Benzersiz ve Güvenli Oyuncu Çekme (Veritabanı sıfırlansa bile kayıt bilgisine fallback yapar)
+    const players = registrations.map(r => {
+      const user = db.users.find(u => String(u.id) === String(r.userId));
+      if (user) return user;
+      // Fallback
+      return {
+        id: r.userId,
+        name: r.name || "Bilinmeyen Oyuncu",
+        elo: 1500,
+        chessUsername: r.chessUsername || ""
+      };
+    }).filter(Boolean);
 
     if (players.length < 2) return { error: "Eşleştirme yapmak için en az 2 oyuncu olmalıdır." };
 
@@ -296,7 +305,7 @@ module.exports = {
         }
       });
 
-      const winnerUser = db.users.find(u => u.id === winnerId);
+      const winnerUser = db.users.find(u => String(u.id) === String(winnerId)) || players.find(p => String(p.id) === String(winnerId));
       tournament.champion = winnerUser ? winnerUser.name : "Belirsiz";
       tournament.status = "completed";
       writeDB(db);
@@ -313,14 +322,14 @@ module.exports = {
 
     tournament.rounds.forEach(r => {
       r.pairings.forEach(p => {
-        colorHistory[p.whiteId]?.push('W');
-        colorHistory[p.blackId]?.push('B');
+        if (p.whiteId) colorHistory[p.whiteId]?.push('W');
+        if (p.blackId) colorHistory[p.blackId]?.push('B');
         
-        if (p.result === 'white') playerScores[p.whiteId] += 1;
-        else if (p.result === 'black') playerScores[p.blackId] += 1;
+        if (p.result === 'white' && p.whiteId) playerScores[p.whiteId] += 1;
+        else if (p.result === 'black' && p.blackId) playerScores[p.blackId] += 1;
         else if (p.result === 'draw') {
-          playerScores[p.whiteId] += 0.5;
-          playerScores[p.blackId] += 0.5;
+          if (p.whiteId) playerScores[p.whiteId] += 0.5;
+          if (p.blackId) playerScores[p.blackId] += 0.5;
         }
       });
     });
