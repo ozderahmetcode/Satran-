@@ -98,7 +98,7 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
       </section>
 
       {/* Sub Tabs Navigation */}
-      <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--panel-border)', paddingBottom: '12px' }}>
+      <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--panel-border)', paddingBottom: '12px', flexWrap: 'wrap' }}>
         {[
           { id: 'stats', label: '📊 İstatistikler' },
           { id: 'history', label: '🕰️ Turnuva Geçmişi' },

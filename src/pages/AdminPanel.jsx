@@ -210,7 +210,7 @@ export default function AdminPanel({ registrations, users = [], onRegisterUpdate
       </section>
 
       {/* Admin Tabs */}
-      <div style={{ display: 'flex', gap: '12px', borderBottom: '1px solid var(--panel-border)', paddingBottom: '16px' }}>
+      <div style={{ display: 'flex', gap: '12px', borderBottom: '1px solid var(--panel-border)', paddingBottom: '16px', flexWrap: 'wrap' }}>
         {[
           { id: 'registrations', label: 'Katılımcı Kayıtları 👥' },
           { id: 'tournaments', label: 'Eşleştirme & Turnuva Yönetimi ♟️' },
