@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 // Paylaştığınız logoyu temsil eden özgün SVG Logo Bileşeni
 export function Logo() {
@@ -33,7 +33,9 @@ export function Logo() {
   );
 }
 
-export default function Navbar({ currentPage, setCurrentPage }) {
+export default function Navbar({ currentPage, setCurrentPage, currentUser, onLogout }) {
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
   return (
     <nav style={{
       background: 'rgba(7, 9, 14, 0.85)',
@@ -49,12 +51,12 @@ export default function Navbar({ currentPage, setCurrentPage }) {
         justifyContent: 'space-between',
         alignItems: 'center'
       }}>
-        {/* Logo Bölümü */}
-        <div onClick={() => setCurrentPage('home')} style={{ cursor: 'pointer' }}>
+        {/* Logo */}
+        <div onClick={() => { setCurrentPage('home'); setIsDrawerOpen(false); }} style={{ cursor: 'pointer' }}>
           <Logo />
         </div>
 
-        {/* Linkler */}
+        {/* Links */}
         <div style={{
           display: 'flex',
           gap: '24px',
@@ -64,12 +66,11 @@ export default function Navbar({ currentPage, setCurrentPage }) {
             { id: 'home', label: 'Ana Sayfa' },
             { id: 'event', label: 'Buluşmalar 🏆' },
             { id: 'database', label: 'İstatistikler' },
-            { id: 'admin', label: 'Yönetim Paneli 🔐' },
             { id: 'contact', label: 'İletişim' }
           ].map((item) => (
             <button
               key={item.id}
-              onClick={() => setCurrentPage(item.id)}
+              onClick={() => { setCurrentPage(item.id); setIsDrawerOpen(false); }}
               style={{
                 background: 'none',
                 border: 'none',
@@ -97,8 +98,141 @@ export default function Navbar({ currentPage, setCurrentPage }) {
               )}
             </button>
           ))}
+
+          {/* Profil / Çekmece Butonu */}
+          <button
+            onClick={() => setIsDrawerOpen(!isDrawerOpen)}
+            style={{
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid var(--panel-border)',
+              borderRadius: '50%',
+              width: '40px',
+              height: '40px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: '#fff',
+              fontSize: '18px',
+              marginLeft: '8px',
+              transition: 'border-color 0.2s'
+            }}
+          >
+            {currentUser ? currentUser.name.charAt(0).toUpperCase() : '👤'}
+          </button>
         </div>
       </div>
+
+      {/* Sağdan Açılan Çekmece Arayüzü (Sliding Drawer) */}
+      {isDrawerOpen && (
+        <>
+          {/* Backdrop (Arka Plan Kapatıcı) */}
+          <div 
+            onClick={() => setIsDrawerOpen(false)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.5)',
+              zIndex: 998,
+              backdropFilter: 'blur(4px)'
+            }}
+          />
+
+          {/* Drawer Panel */}
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            right: 0,
+            bottom: 0,
+            width: '320px',
+            background: '#0c0f17',
+            borderLeft: '1px solid var(--panel-border)',
+            boxShadow: '-8px 0 32px rgba(0,0,0,0.5)',
+            zIndex: 999,
+            padding: '32px 24px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            animation: 'slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+          }}>
+            <style>{`
+              @keyframes slideIn {
+                from { transform: translateX(100%); }
+                to { transform: translateX(0); }
+              }
+            `}</style>
+
+            <div>
+              {/* Kapatma Butonu */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                <span style={{ fontFamily: 'var(--font-title)', fontWeight: 700, fontSize: '18px' }}>Hesap & Yönetim</span>
+                <button 
+                  onClick={() => setIsDrawerOpen(false)}
+                  style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '20px', cursor: 'pointer' }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Kullanıcı Bilgisi veya Giriş Yönlendirmesi */}
+              {currentUser ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderBottom: '1px solid var(--panel-border)', paddingBottom: '24px', marginBottom: '24px' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Giriş Yapılan Hesap</div>
+                  <div style={{ fontSize: '18px', fontWeight: 700 }}>{currentUser.name}</div>
+                  <div style={{ fontSize: '13px', color: 'var(--accent-primary)' }}>@{currentUser.chessUsername}</div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderBottom: '1px solid var(--panel-border)', paddingBottom: '24px', marginBottom: '24px' }}>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Turnuvalara kaydolmak için giriş yapın.</p>
+                  <button 
+                    onClick={() => { setCurrentPage('auth'); setIsDrawerOpen(false); }}
+                    className="btn-primary" 
+                    style={{ justifyContent: 'center' }}
+                  >
+                    Giriş Yap / Üye Ol
+                  </button>
+                </div>
+              )}
+
+              {/* Menü Bağlantıları */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <button
+                  onClick={() => { setCurrentPage('admin'); setIsDrawerOpen(false); }}
+                  style={{
+                    background: 'rgba(255,255,255,0.02)',
+                    border: '1px solid var(--panel-border)',
+                    borderRadius: '8px',
+                    padding: '12px 16px',
+                    color: '#fff',
+                    textAlign: 'left',
+                    fontFamily: 'inherit',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}
+                >
+                  <span>Yönetici Paneli 👑</span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Giriş Şifreli</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Çıkış Yap Butonu */}
+            {currentUser && (
+              <button 
+                onClick={() => { onLogout(); setIsDrawerOpen(false); }}
+                className="btn-secondary" 
+                style={{ justifyContent: 'center', borderColor: '#ef4444', color: '#ef4444' }}
+              >
+                Oturumu Kapat (Profilden Çık)
+              </button>
+            )}
+          </div>
+        </>
+      )}
     </nav>
   );
 }

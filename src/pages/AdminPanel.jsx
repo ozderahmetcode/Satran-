@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 
 export default function AdminPanel({ registrations, users = [], onRegisterUpdate, tournaments, onAddTournament }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
 
@@ -19,11 +20,12 @@ export default function AdminPanel({ registrations, users = [], onRegisterUpdate
 
   const handleLogin = (e) => {
     e.preventDefault();
-    if (password.toLowerCase() === 'özder123' || password === 'admin') {
+    // Özder'in belirlediği özel yönetici giriş bilgileri
+    if (username === 'ozder' && password === 'Ozderahmet123.') {
       setIsAuthenticated(true);
       setAuthError('');
     } else {
-      setAuthError('Hatalı şifre! Lütfen tekrar deneyin.');
+      setAuthError('Hatalı kullanıcı adı veya şifre! Lütfen tekrar deneyin.');
     }
   };
 
@@ -86,7 +88,7 @@ export default function AdminPanel({ registrations, users = [], onRegisterUpdate
           🔐 Yönetici Girişi
         </h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px' }}>
-          Yönetici paneline erişmek için lütfen şifrenizi girin.
+          Yönetici paneline erişmek için bilgilerinizi girin.
         </p>
 
         {authError && (
@@ -97,9 +99,26 @@ export default function AdminPanel({ registrations, users = [], onRegisterUpdate
 
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <input
+            type="text"
+            required
+            placeholder="Yönetici Kullanıcı Adı"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            style={{
+              width: '100%',
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid var(--panel-border)',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              color: '#fff',
+              outline: 'none',
+              textAlign: 'center'
+            }}
+          />
+          <input
             type="password"
             required
-            placeholder="Giriş Şifresi"
+            placeholder="Yönetici Giriş Şifresi"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             style={{

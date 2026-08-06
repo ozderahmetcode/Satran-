@@ -219,9 +219,14 @@ export default function Auth({ onLoginSuccess }) {
             <input
               type="tel"
               required
-              placeholder="0555 555 55 55"
+              placeholder="Örn: 05554443322 veya 5554443322"
               value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              onChange={(e) => {
+                const onlyNums = e.target.value.replace(/\D/g, ''); // Sadece rakamları al
+                if (onlyNums.length <= 11) {
+                  setFormData({ ...formData, phone: onlyNums });
+                }
+              }}
               style={{ width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: '#fff', outline: 'none' }}
             />
           </div>

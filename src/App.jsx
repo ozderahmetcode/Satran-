@@ -164,36 +164,14 @@ export default function App() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#07090e' }}>
       
-      {/* Navbar ve Üye Oturum Göstergesi */}
-      <Navbar currentPage={currentPage} setCurrentPage={setCurrentPage} />
+      {/* Navbar çekmece oturum parametreleri ile */}
+      <Navbar 
+        currentPage={currentPage} 
+        setCurrentPage={setCurrentPage} 
+        currentUser={currentUser}
+        onLogout={handleLogout}
+      />
       
-      {currentUser && (
-        <div style={{
-          background: 'rgba(245, 158, 11, 0.05)',
-          borderBottom: '1px solid rgba(245, 158, 11, 0.1)',
-          padding: '8px 0',
-          fontSize: '13px',
-          color: 'var(--accent-secondary)',
-          textAlign: 'center'
-        }}>
-          Giriş yapılan hesap: <strong>{currentUser.name} (@{currentUser.chessUsername})</strong> • 
-          <button 
-            onClick={handleLogout}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#ef4444',
-              cursor: 'pointer',
-              marginLeft: '8px',
-              textDecoration: 'underline',
-              fontWeight: 600
-            }}
-          >
-            Çıkış Yap
-          </button>
-        </div>
-      )}
-
       <main className="container" style={{ flex: 1, marginTop: '20px' }}>
         {renderPage()}
       </main>
