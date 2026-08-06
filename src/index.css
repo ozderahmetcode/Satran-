@@ -143,3 +143,61 @@ input:focus, select:focus, textarea:focus {
   border-color: var(--accent-primary) !important;
   box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15) !important;
 }
+
+/* ==========================================================================
+   MOBILE & TABLET RESPONSIVE MEDIA QUERIES (Mobil Optimizasyonları)
+   ========================================================================== */
+
+/* Tablet & Telefon (768px ve altı) */
+@media (max-width: 768px) {
+  .desktop-nav {
+    display: none !important; /* Üst menü yatay linkleri gizle */
+  }
+
+  .navbar-container {
+    grid-template-columns: 1fr auto !important; /* Logoyu sola, butonu sağa dayar */
+  }
+
+  /* Gridleri 1 kolona çevir */
+  div[style*="display: grid"],
+  div[style*="display:grid"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Flexbox yapılarını dikey yap */
+  div[style*="display: flex"][style*="grid-template-columns"],
+  section[style*="display: grid"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Hero metin boyutunu küçült */
+  h1 {
+    font-size: 32px !important;
+  }
+
+  /* Kürsü hizalamalarını dikey yap */
+  div[style*="align-items: flex-end"] {
+    align-items: center !important;
+    flex-direction: column !important;
+    gap: 32px !important;
+  }
+
+  /* Profil başlığı dikey sıralama */
+  section[style*="align-items: center"] {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+  }
+
+  /* Mobil çekmece menü linkleri */
+  .mobile-nav-links {
+    display: flex !important;
+  }
+}
+
+/* Sadece Masaüstü (769px ve üzeri) */
+@media (min-width: 769px) {
+  .mobile-nav-links {
+    display: none !important; /* Masaüstü çekmecesinde hızlı menüyü gizle */
+  }
+}
