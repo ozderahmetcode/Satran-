@@ -4,7 +4,7 @@ import Footer from './components/Footer';
 import Home from './pages/Home';
 import EventDetail from './pages/EventDetail';
 import Database from './pages/Database';
-import CreateEvent from './pages/CreateEvent';
+import AdminPanel from './pages/AdminPanel';
 import Contact from './pages/Contact';
 
 export default function App() {
@@ -36,7 +36,7 @@ export default function App() {
     loadData();
   }, []);
 
-  const handleRegister = (updatedRegistrations) => {
+  const handleRegisterUpdate = (updatedRegistrations) => {
     setData(prev => ({
       ...prev,
       registrations: updatedRegistrations,
@@ -72,7 +72,7 @@ export default function App() {
         return (
           <EventDetail 
             registrations={data.registrations} 
-            onRegister={handleRegister} 
+            onRegister={handleRegisterUpdate} 
           />
         );
       case 'database':
@@ -82,11 +82,13 @@ export default function App() {
             tournaments={data.tournaments} 
           />
         );
-      case 'create':
+      case 'admin':
         return (
-          <CreateEvent 
-            onAddTournament={handleAddTournament} 
-            setCurrentPage={setCurrentPage} 
+          <AdminPanel 
+            registrations={data.registrations} 
+            onRegisterUpdate={handleRegisterUpdate}
+            tournaments={data.tournaments}
+            onAddTournament={handleAddTournament}
           />
         );
       case 'contact':

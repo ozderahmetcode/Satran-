@@ -34,6 +34,16 @@ app.post('/api/register', (req, res) => {
   }
 });
 
+app.delete('/api/register/:phone', (req, res) => {
+  try {
+    const { phone } = req.params;
+    const registrations = db.deleteRegistration(phone);
+    res.json({ success: true, registrations });
+  } catch (error) {
+    res.status(500).json({ error: "Kayıt silinirken hata oluştu." });
+  }
+});
+
 app.post('/api/tournaments', (req, res) => {
   try {
     const { title, date, time, location, fee, maxQuota } = req.body;

@@ -76,6 +76,13 @@ module.exports = {
     writeDB(db);
     return db.registrations;
   },
+  deleteRegistration: (phone) => {
+    const db = readDB();
+    db.registrations = db.registrations.filter(reg => reg.phone !== phone);
+    db.stats.registeredPlayers = db.registrations.length;
+    writeDB(db);
+    return db.registrations;
+  },
   createTournament: (newTour) => {
     const db = readDB();
     const nextId = db.tournaments.length > 0 ? Math.max(...db.tournaments.map(t => t.id)) + 1 : 1;
