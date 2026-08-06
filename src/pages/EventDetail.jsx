@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function EventDetail({ tournaments, registrations, currentUser, onRegisterUpdate, onGoToAuth }) {
+export default function EventDetail({ tournaments, registrations, users = [], currentUser, onRegisterUpdate, onGoToAuth }) {
   const [selectedTournamentId, setSelectedTournamentId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -239,10 +239,11 @@ export default function EventDetail({ tournaments, registrations, currentUser, o
               Katılımcı Listesi ({regs.length})
             </h3>
             {regs.length === 0 ? (
-              <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Henüz kayıtlı katılımcı bulunmamaktadır.</p>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Henüz kayıtlı katılımcı bulunmmaktadır.</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '200px', overflowY: 'auto' }}>
                 {regs.map((reg, idx) => {
+                  const matchedUser = users.find(u => u.id === reg.userId) || { name: `Katılımcı #${idx + 1}`, chessUsername: '' };
                   return (
                     <div key={idx} style={{
                       display: 'flex',
@@ -253,8 +254,13 @@ export default function EventDetail({ tournaments, registrations, currentUser, o
                       borderRadius: '8px',
                       border: '1px solid rgba(255,255,255,0.03)'
                     }}>
-                      <span style={{ fontSize: '14px', fontWeight: 500 }}>{idx + 1}. Katılımcı</span>
-                      <span style={{ fontSize: '12px', color: 'var(--accent-primary)', fontWeight: 600 }}>Lichess/Chess.com Aktif</span>
+                      <div>
+                        <span style={{ fontSize: '14px', fontWeight: 600 }}>{idx + 1}. {matchedUser.name}</span>
+                        {matchedUser.chessUsername && (
+                          <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>@{matchedUser.chessUsername}</div>
+                        )}
+                      </div>
+                      <span style={{ fontSize: '12px', color: 'var(--accent-primary)', fontWeight: 600 }}>Aktif</span>
                     </div>
                   );
                 })}

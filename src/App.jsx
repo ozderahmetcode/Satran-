@@ -102,6 +102,7 @@ export default function App() {
           <EventDetail 
             tournaments={data.tournaments}
             registrations={data.registrations} 
+            users={data.users}
             currentUser={currentUser}
             onRegisterUpdate={handleRegisterUpdate}
             onGoToAuth={() => setCurrentPage('auth')}
