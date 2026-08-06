@@ -1,301 +1,263 @@
 import React, { useState } from 'react';
 
-export default function EventDetail({ registrations, onRegister }) {
-  const [formData, setFormData] = useState({
-    name: '',
-    chessUsername: '',
-    phone: '',
-    elo: ''
-  });
+export default function EventDetail({ tournaments, registrations, currentUser, onRegisterUpdate, onGoToAuth }) {
+  const [selectedTournamentId, setSelectedTournamentId] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [statusMsg, setStatusMsg] = useState({ type: '', text: '' });
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const maxQuota = 20;
-  const currentCount = registrations?.length || 0;
-  const spotsLeft = Math.max(0, maxQuota - currentCount);
-  const fillPercentage = Math.min(100, (currentCount / maxQuota) * 100);
+  // Belirli turnuvaya ait kayıtları filtrele
+  const getTournamentRegistrations = (tourId) => {
+    return registrations?.filter(r => r.tournamentId === parseInt(tourId)) || [];
+  };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleRegister = async (tourId) => {
+    if (!currentUser) return;
     setLoading(true);
-    setStatusMsg({ type: '', text: '' });
-
-    if (!formData.name || !formData.chessUsername || !formData.phone) {
-      setStatusMsg({ type: 'error', text: 'Lütfen zorunlu alanları (*) doldurun.' });
-      setLoading(false);
-      return;
-    }
+    setErrorMsg('');
 
     try {
       const response = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          tournamentId: parseInt(tourId),
+          userId: currentUser.id
+        })
       });
-
       const result = await response.json();
 
       if (response.ok) {
-        setStatusMsg({ type: 'success', text: 'Tebrikler! Kaydınız başarıyla tamamlandı.' });
-        onRegister(result.registrations);
-        setFormData({ name: '', chessUsername: '', phone: '', elo: '' });
+        onRegisterUpdate(result.registrations);
       } else {
-        setStatusMsg({ type: 'error', text: result.error || 'Kayıt sırasında bir hata oluştu.' });
+        setErrorMsg(result.error || 'Kayıt sırasında hata oluştu.');
       }
     } catch (error) {
-      setStatusMsg({ type: 'error', text: 'Sunucuya bağlanılamadı. Lütfen tekrar deneyin.' });
+      setErrorMsg('Sunucuya bağlanılamadı.');
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="animate-fade-in" style={{ padding: '40px 0', display: 'flex', flexDirection: 'column', gap: '48px' }}>
-      
-      {/* Event Header Banner */}
-      <section className="glass-panel" style={{
-        background: 'linear-gradient(135deg, rgba(22, 24, 30, 0.9) 0%, rgba(139, 92, 246, 0.15) 100%)',
-        padding: '48px',
-        textAlign: 'center',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
-        <div style={{ position: 'relative', zIndex: 2 }}>
-          <span style={{
-            background: 'var(--gradient-glow)',
-            color: '#fff',
-            padding: '6px 14px',
-            borderRadius: '20px',
-            fontSize: '13px',
-            fontWeight: 700,
-            letterSpacing: '1px'
-          }}>YAKLAŞAN SOSYAL BULUŞMA</span>
-          
-          <h1 style={{ fontFamily: 'var(--font-title)', fontSize: '42px', fontWeight: 800, marginTop: '20px' }}>
-            114. Tilda Cafe Satranç Buluşması (15+3)
+  const handleCancelRegistration = async (tourId) => {
+    if (!currentUser) return;
+    if (!window.confirm("Kaydınızı iptal etmek istediğinize emin misiniz?")) return;
+    setLoading(true);
+    setErrorMsg('');
+
+    try {
+      const response = await fetch(`/api/register/${tourId}/${currentUser.id}`, {
+        method: 'DELETE'
+      });
+      const result = await response.json();
+
+      if (response.ok) {
+        onRegisterUpdate(result.registrations);
+      } else {
+        setErrorMsg(result.error || 'İptal edilemedi.');
+      }
+    } catch (error) {
+      setErrorMsg('Sunucu hatası.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Turnuva Seçilmediyse: Liste Görünümü
+  if (!selectedTournamentId) {
+    return (
+      <div className="animate-fade-in" style={{ padding: '40px 0', display: 'flex', flexDirection: 'column', gap: '32px' }}>
+        <div style={{ textAlign: 'center' }}>
+          <h1 style={{ fontFamily: 'var(--font-title)', fontSize: '36px', fontWeight: 800 }}>
+            🏆 Satranç Buluşmalarımız
           </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '16px', marginTop: '12px', maxWidth: '600px', margin: '12px auto 0 auto' }}>
-            Ümraniye'nin gözde mekanı Tilda Cafe'de sıcacık kahve eşliğinde yeni insanlarla tanışın, satranç oynayın ve sosyalleşin.
+          <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>
+            Katılmak istediğiniz etkinliği seçerek detayları görüntüleyin ve kaydolun.
           </p>
         </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+          {tournaments.map((tour) => {
+            const regs = getTournamentRegistrations(tour.id);
+            const isFull = regs.length >= tour.maxQuota;
+
+            return (
+              <div key={tour.id} className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '16px', justifyContent: 'space-between' }}>
+                <div>
+                  <span style={{
+                    background: tour.status === 'active' ? 'var(--accent-primary)' : 'rgba(255,255,255,0.1)',
+                    color: '#fff',
+                    padding: '4px 8px',
+                    borderRadius: '6px',
+                    fontSize: '11px',
+                    fontWeight: 700
+                  }}>
+                    {tour.status === 'active' ? 'KAYITLAR AÇIK' : 'TAMAMLANDI'}
+                  </span>
+                  <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', marginTop: '12px', fontWeight: 700 }}>
+                    {tour.title}
+                  </h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '8px' }}>
+                    📅 {tour.date} • 🕒 {tour.time} <br />
+                    📍 {tour.location}
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.03)', paddingTop: '16px' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                    Kontenjan: <strong>{regs.length} / {tour.maxQuota}</strong>
+                  </span>
+                  <button onClick={() => setSelectedTournamentId(tour.id)} className="btn-secondary" style={{ padding: '8px 16px', fontSize: '13px' }}>
+                    Detayları Gör
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // Turnuva Seçildiyse: Detay ve Kayıt Görünümü
+  const tour = tournaments.find(t => t.id === selectedTournamentId);
+  const regs = getTournamentRegistrations(tour.id);
+  const isRegistered = currentUser && regs.some(r => r.userId === currentUser.id);
+  const isFull = regs.length >= tour.maxQuota;
+
+  return (
+    <div className="animate-fade-in" style={{ padding: '40px 0', display: 'flex', flexDirection: 'column', gap: '32px' }}>
+      <button onClick={() => { setSelectedTournamentId(null); setErrorMsg(''); }} className="btn-secondary" style={{ alignSelf: 'flex-start', padding: '8px 16px', fontSize: '13px' }}>
+        ← Tüm Buluşmalara Dön
+      </button>
+
+      <section className="glass-panel" style={{
+        background: 'linear-gradient(135deg, rgba(13, 18, 30, 0.9) 0%, rgba(245, 158, 11, 0.08) 100%)',
+        padding: '36px',
+        position: 'relative'
+      }}>
+        <span style={{ background: 'var(--gradient-gold)', color: '#fff', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 700 }}>
+          ETKİNLİK DETAYLARI
+        </span>
+        <h1 style={{ fontFamily: 'var(--font-title)', fontSize: '32px', fontWeight: 800, marginTop: '16px' }}>
+          {tour.title}
+        </h1>
+        <p style={{ color: 'var(--text-secondary)', marginTop: '8px', fontSize: '15px' }}>
+          📍 {tour.location} • 📅 {tour.date} • 🕒 {tour.time}
+        </p>
       </section>
 
-      {/* Main Grid: Details vs Form */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-        gap: '32px'
-      }}>
+      {errorMsg && (
+        <div style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid #ef4444', color: '#ef4444', padding: '12px', borderRadius: '8px', textAlign: 'center' }}>
+          {errorMsg}
+        </div>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '32px' }}>
         
-        {/* Info Column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-          
-          {/* Card: Quota Status */}
+        {/* Left Column: Info & Status */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div className="glass-panel">
-            <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 700, marginBottom: '16px' }}>
-              Kontenjan Durumu
-            </h3>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', fontWeight: 600 }}>
-              <span>Kayıtlı: {currentCount} Oyuncu</span>
-              <span>Kalan Yer: {spotsLeft} / {maxQuota}</span>
+            <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '18px', fontWeight: 700, marginBottom: '12px' }}>Kontenjan Bilgisi</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px' }}>
+              <span>Kayıtlı Oyuncu: {regs.length}</span>
+              <span>Kalan Yer: {Math.max(0, tour.maxQuota - regs.length)} / {tour.maxQuota}</span>
             </div>
-            {/* Progress Bar */}
-            <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '10px', height: '12px', overflow: 'hidden' }}>
+            <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '10px', height: '10px', overflow: 'hidden' }}>
               <div style={{
-                background: 'var(--gradient-glow)',
-                width: `${fillPercentage}%`,
+                background: 'var(--gradient-gold)',
+                width: `${Math.min(100, (regs.length / tour.maxQuota) * 100)}%`,
                 height: '100%',
-                borderRadius: '10px',
-                transition: 'width 0.5s ease'
+                borderRadius: '10px'
               }} />
             </div>
           </div>
 
-          {/* Card: Details Details */}
-          <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 700 }}>
-              Etkinlik Detayları
-            </h3>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {[
-                { label: "📍 Konum", val: "Ümraniye Tilda Cafe (İstiklal Mh. Anafartalar Cd.)" },
-                { label: "📅 Tarih", val: "08 Ağustos 2026, Cumartesi" },
-                { label: "🕒 Saat", val: "15:00 (Toplanma başlangıcı 14:30)" },
-                { label: "♟️ Format", val: "15 dakika + 3 saniye eklemeli (5 Tur Dostluk Maçı)" },
-                { label: "☕ Sosyalleşme", val: "Herkes davetlidir; ana amaç tanışmak, sohbet etmek ve satranç kültürünü paylaşmaktır." },
-                { label: "💳 Katılım Bedeli", val: "300 TL (Mekan ikramları dahildir)" }
-              ].map((info, idx) => (
-                <div key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', paddingBottom: '12px' }}>
-                  <div style={{ fontSize: '13px', color: 'var(--accent-primary)', fontWeight: 600 }}>{info.label}</div>
-                  <div style={{ fontSize: '15px', color: 'var(--text-primary)', marginTop: '4px' }}>{info.val}</div>
-                </div>
-              ))}
+          <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '18px', fontWeight: 700 }}>Buluşma Şartları</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '14px' }}>
+              <div>• 💳 Katılım Bedeli: {tour.fee}</div>
+              <div>• ♟️ Format: 15+3 Dostluk Maçı (5 Tur)</div>
+              <div>• ☕ Mekan ikramları katılım ücretine dahildir.</div>
             </div>
           </div>
-
         </div>
 
-        {/* Form Column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+        {/* Right Column: Register Action / Attendees */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
-          {/* Card: Register Form */}
-          <div className="glass-panel">
-            <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 700, marginBottom: '24px' }}>
-              Hemen Kaydol ve Yerini Garanti Altına Al
-            </h3>
-
-            {statusMsg.text && (
-              <div style={{
-                background: statusMsg.type === 'success' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                border: `1px solid ${statusMsg.type === 'success' ? 'var(--accent-primary)' : '#ef4444'}`,
-                color: statusMsg.type === 'success' ? 'var(--accent-primary)' : '#ef4444',
-                padding: '12px 16px',
-                borderRadius: '8px',
-                fontSize: '14px',
-                marginBottom: '20px',
-                fontWeight: 500
-              }}>
-                {statusMsg.text}
+          {/* Action Box */}
+          <div className="glass-panel" style={{ textAlign: 'center' }}>
+            <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '18px', fontWeight: 700, marginBottom: '16px' }}>Turnuva Katılımı</h3>
+            
+            {!currentUser ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
+                  Bu etkinliğe kayıt olmak için önce hesabınıza giriş yapmalısınız.
+                </p>
+                <button onClick={onGoToAuth} className="btn-primary" style={{ justifyContent: 'center' }}>
+                  Giriş Yap / Üye Ol
+                </button>
+              </div>
+            ) : isRegistered ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <p style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>
+                  ✓ Bu turnuvaya başarıyla kaydoldunuz!
+                </p>
+                <button 
+                  onClick={() => handleCancelRegistration(tour.id)} 
+                  disabled={loading}
+                  className="btn-secondary" 
+                  style={{ justifyContent: 'center', borderColor: '#ef4444', color: '#ef4444' }}
+                >
+                  {loading ? 'İşlem yapılıyor...' : 'Kaydımı İptal Et'}
+                </button>
+              </div>
+            ) : isFull ? (
+              <p style={{ color: '#ef4444', fontWeight: 600 }}>
+                Kontenjan Dolmuştur!
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
+                  Hesabınız açık: <strong>{currentUser.name}</strong> adına tek tıkla kaydınızı tamamlayın.
+                </p>
+                <button 
+                  onClick={() => handleRegister(tour.id)} 
+                  disabled={loading}
+                  className="btn-primary" 
+                  style={{ justifyContent: 'center' }}
+                >
+                  {loading ? 'Kaydediliyor...' : 'Turnuvaya Katıl'}
+                </button>
               </div>
             )}
-
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 500 }}>
-                  Ad Soyad *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Örn: Özder Gültekin"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  style={{
-                    width: '100%',
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid var(--panel-border)',
-                    borderRadius: '8px',
-                    padding: '12px 16px',
-                    color: '#fff',
-                    fontFamily: 'inherit',
-                    outline: 'none'
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 500 }}>
-                  Satranç Platformu Kullanıcı Adı (Lichess/Chess.com) *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Örn: ozder_chess"
-                  value={formData.chessUsername}
-                  onChange={(e) => setFormData({ ...formData, chessUsername: e.target.value })}
-                  style={{
-                    width: '100%',
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid var(--panel-border)',
-                    borderRadius: '8px',
-                    padding: '12px 16px',
-                    color: '#fff',
-                    fontFamily: 'inherit',
-                    outline: 'none'
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 500 }}>
-                  Telefon Numarası *
-                </label>
-                <input
-                  type="tel"
-                  required
-                  placeholder="Örn: 0555 555 5555"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  style={{
-                    width: '100%',
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid var(--panel-border)',
-                    borderRadius: '8px',
-                    padding: '12px 16px',
-                    color: '#fff',
-                    fontFamily: 'inherit',
-                    outline: 'none'
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 500 }}>
-                  Tahmini Elo Puanı / Seviye (Opsiyonel)
-                </label>
-                <input
-                  type="number"
-                  placeholder="Örn: 1500 (Bilinmiyorsa boş bırakın)"
-                  value={formData.elo}
-                  onChange={(e) => setFormData({ ...formData, elo: e.target.value })}
-                  style={{
-                    width: '100%',
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid var(--panel-border)',
-                    borderRadius: '8px',
-                    padding: '12px 16px',
-                    color: '#fff',
-                    fontFamily: 'inherit',
-                    outline: 'none'
-                  }}
-                />
-              </div>
-
-              <button type="submit" disabled={loading} className="btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: '10px' }}>
-                {loading ? 'Kayıt Yapılıyor...' : 'Kayıt Ol ve Katıl'}
-              </button>
-            </form>
           </div>
 
-          {/* List of Registered Players */}
+          {/* Attendees List */}
           <div className="glass-panel">
-            <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 700, marginBottom: '20px' }}>
-              👥 Katılımcılar ({currentCount})
+            <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '18px', fontWeight: 700, marginBottom: '16px' }}>
+              Katılımcı Listesi ({regs.length})
             </h3>
-            
-            {currentCount === 0 ? (
-              <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Henüz kayıt bulunmamaktadır. İlk siz kaydolun!</p>
+            {regs.length === 0 ? (
+              <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Henüz kayıtlı katılımcı bulunmamaktadır.</p>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '300px', overflowY: 'auto', paddingRight: '6px' }}>
-                {registrations.map((player, idx) => (
-                  <div key={idx} style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    background: 'rgba(255, 255, 255, 0.02)',
-                    padding: '12px 16px',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(255,255,255,0.03)'
-                  }}>
-                    <div>
-                      <span style={{ fontWeight: 600, fontSize: '15px' }}>{player.name}</span>
-                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>@{player.chessUsername}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '200px', overflowY: 'auto' }}>
+                {regs.map((reg, idx) => {
+                  return (
+                    <div key={idx} style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      background: 'rgba(255,255,255,0.02)',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255,255,255,0.03)'
+                    }}>
+                      <span style={{ fontSize: '14px', fontWeight: 500 }}>{idx + 1}. Katılımcı</span>
+                      <span style={{ fontSize: '12px', color: 'var(--accent-primary)', fontWeight: 600 }}>Lichess/Chess.com Aktif</span>
                     </div>
-                    {player.elo && (
-                      <span style={{
-                        background: 'rgba(139, 92, 246, 0.15)',
-                        color: 'var(--accent-secondary)',
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                        fontWeight: 700
-                      }}>
-                        Elo: {player.elo}
-                      </span>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

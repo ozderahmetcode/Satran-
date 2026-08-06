@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function AdminPanel({ registrations, onRegisterUpdate, tournaments, onAddTournament }) {
+export default function AdminPanel({ registrations, users = [], onRegisterUpdate, tournaments, onAddTournament }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
@@ -19,7 +19,6 @@ export default function AdminPanel({ registrations, onRegisterUpdate, tournament
 
   const handleLogin = (e) => {
     e.preventDefault();
-    // Özder için basit ve güvenli erişim şifresi
     if (password.toLowerCase() === 'özder123' || password === 'admin') {
       setIsAuthenticated(true);
       setAuthError('');
@@ -28,11 +27,11 @@ export default function AdminPanel({ registrations, onRegisterUpdate, tournament
     }
   };
 
-  const handleDeleteUser = async (phone) => {
-    if (!window.confirm("Bu katılımcı kaydını silmek istediğinize emin misiniz?")) return;
+  const handleDeleteUser = async (tournamentId, userId) => {
+    if (!window.confirm("Bu katılımcı kaydını turnuvadan silmek istediğinize emin misiniz?")) return;
 
     try {
-      const response = await fetch(`/api/register/${phone}`, {
+      const response = await fetch(`/api/register/${tournamentId}/${userId}`, {
         method: 'DELETE'
       });
       const result = await response.json();
@@ -147,7 +146,7 @@ export default function AdminPanel({ registrations, onRegisterUpdate, tournament
         {/* Left Column: Registered Users */}
         <div className="glass-panel" style={{ flex: 2, display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 700 }}>
-            👥 Kayıtlı Katılımcılar ({registrations.length})
+            👥 Etkinlik Katılımcı Kayıtları ({registrations.length})
           </h3>
 
           {registrations.length === 0 ? (
@@ -157,40 +156,45 @@ export default function AdminPanel({ registrations, onRegisterUpdate, tournament
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--panel-border)', color: 'var(--text-secondary)' }}>
-                    <th style={{ padding: '12px 8px' }}>Katılımcı</th>
+                    <th style={{ padding: '12px 8px' }}>Katılımcı / Hesap</th>
+                    <th style={{ padding: '12px 8px' }}>Turnuva</th>
                     <th style={{ padding: '12px 8px' }}>Telefon</th>
-                    <th style={{ padding: '12px 8px' }}>Elo</th>
                     <th style={{ padding: '12px 8px', textRight: 'true' }}>İşlem</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {registrations.map((user, idx) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
-                      <td style={{ padding: '12px 8px' }}>
-                        <div style={{ fontWeight: 600 }}>{user.name}</div>
-                        <div style={{ fontSize: '12px', color: 'var(--accent-primary)' }}>@{user.chessUsername}</div>
-                      </td>
-                      <td style={{ padding: '12px 8px', color: 'var(--text-secondary)' }}>{user.phone}</td>
-                      <td style={{ padding: '12px 8px' }}>{user.elo || '-'}</td>
-                      <td style={{ padding: '12px 8px' }}>
-                        <button 
-                          onClick={() => handleDeleteUser(user.phone)}
-                          style={{
-                            background: 'rgba(239, 68, 68, 0.15)',
-                            color: '#ef4444',
-                            border: '1px solid rgba(239, 68, 68, 0.2)',
-                            borderRadius: '6px',
-                            padding: '4px 8px',
-                            fontSize: '12px',
-                            cursor: 'pointer',
-                            transition: 'background 0.2s ease'
-                          }}
-                        >
-                          Sil
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {registrations.map((reg, idx) => {
+                    const matchedUser = users.find(u => u.id === reg.userId) || { name: "Bilinmeyen Üye", phone: "-", chessUsername: "-" };
+                    const matchedTour = tournaments.find(t => t.id === reg.tournamentId) || { title: `Turnuva #${reg.tournamentId}` };
+
+                    return (
+                      <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
+                        <td style={{ padding: '12px 8px' }}>
+                          <div style={{ fontWeight: 600 }}>{matchedUser.name}</div>
+                          <div style={{ fontSize: '12px', color: 'var(--accent-primary)' }}>@{matchedUser.chessUsername}</div>
+                        </td>
+                        <td style={{ padding: '12px 8px', color: 'var(--accent-secondary)', fontWeight: 500 }}>{matchedTour.title}</td>
+                        <td style={{ padding: '12px 8px', color: 'var(--text-secondary)' }}>{matchedUser.phone}</td>
+                        <td style={{ padding: '12px 8px' }}>
+                          <button 
+                            onClick={() => handleDeleteUser(reg.tournamentId, reg.userId)}
+                            style={{
+                              background: 'rgba(239, 68, 68, 0.15)',
+                              color: '#ef4444',
+                              border: '1px solid rgba(239, 68, 68, 0.2)',
+                              borderRadius: '6px',
+                              padding: '4px 8px',
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                              transition: 'background 0.2s ease'
+                            }}
+                          >
+                            Sil
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
