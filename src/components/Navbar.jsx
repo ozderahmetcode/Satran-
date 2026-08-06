@@ -47,19 +47,20 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
       padding: '14px 0'
     }}>
       <div className="container" style={{
-        display: 'flex',
-        justifyContent: 'space-between',
+        display: 'grid',
+        gridTemplateColumns: 'auto 1fr auto',
         alignItems: 'center'
       }}>
-        {/* Logo */}
-        <div onClick={() => { setCurrentPage('home'); setIsDrawerOpen(false); }} style={{ cursor: 'pointer' }}>
+        {/* Sol: Logo */}
+        <div onClick={() => { setCurrentPage('home'); setIsDrawerOpen(false); }} style={{ cursor: 'pointer', justifySelf: 'start' }}>
           <Logo />
         </div>
 
-        {/* Links */}
+        {/* Orta: Tam Ortalanmış Menü Linkleri */}
         <div style={{
           display: 'flex',
-          gap: '24px',
+          gap: '32px',
+          justifyContent: 'center',
           alignItems: 'center'
         }}>
           {[
@@ -76,7 +77,7 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
                 border: 'none',
                 color: currentPage === item.id ? 'var(--accent-secondary)' : 'var(--text-primary)',
                 fontFamily: 'var(--font-title)',
-                fontSize: '14px',
+                fontSize: '15px',
                 fontWeight: 600,
                 cursor: 'pointer',
                 transition: 'color 0.2s ease',
@@ -98,35 +99,34 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
               )}
             </button>
           ))}
-
-          {/* Profil / Çekmece Butonu */}
-          <button
-            onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-            style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid var(--panel-border)',
-              borderRadius: '50%',
-              width: '40px',
-              height: '40px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              color: '#fff',
-              fontSize: '18px',
-              marginLeft: '8px',
-              transition: 'border-color 0.2s'
-            }}
-          >
-            {currentUser ? currentUser.name.charAt(0).toUpperCase() : '👤'}
-          </button>
         </div>
+
+        {/* Sağ: Profil İkonu */}
+        <button
+          onClick={() => setIsDrawerOpen(!isDrawerOpen)}
+          style={{
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid var(--panel-border)',
+            borderRadius: '50%',
+            width: '42px',
+            height: '42px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            color: '#fff',
+            fontSize: '18px',
+            transition: 'border-color 0.2s',
+            justifySelf: 'end'
+          }}
+        >
+          {currentUser ? currentUser.name.charAt(0).toUpperCase() : '👤'}
+        </button>
       </div>
 
-      {/* Sağdan Açılan Çekmece Arayüzü (Sliding Drawer) */}
+      {/* Sağdan Açılan Çekmece Arayüzü */}
       {isDrawerOpen && (
         <>
-          {/* Backdrop (Arka Plan Kapatıcı) */}
           <div 
             onClick={() => setIsDrawerOpen(false)}
             style={{
@@ -138,7 +138,6 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
             }}
           />
 
-          {/* Drawer Panel */}
           <div style={{
             position: 'fixed',
             top: 0,
@@ -163,7 +162,6 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
             `}</style>
 
             <div>
-              {/* Kapatma Butonu */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                 <span style={{ fontFamily: 'var(--font-title)', fontWeight: 700, fontSize: '18px' }}>Hesap & Yönetim</span>
                 <button 
@@ -174,12 +172,20 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
                 </button>
               </div>
 
-              {/* Kullanıcı Bilgisi veya Giriş Yönlendirmesi */}
               {currentUser ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderBottom: '1px solid var(--panel-border)', paddingBottom: '24px', marginBottom: '24px' }}>
                   <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Giriş Yapılan Hesap</div>
                   <div style={{ fontSize: '18px', fontWeight: 700 }}>{currentUser.name}</div>
-                  <div style={{ fontSize: '13px', color: 'var(--accent-primary)' }}>@{currentUser.chessUsername}</div>
+                  <div style={{ fontSize: '13px', color: 'var(--accent-primary)', marginBottom: '16px' }}>@{currentUser.chessUsername}</div>
+                  
+                  {/* Profil Görüntüle Butonu */}
+                  <button
+                    onClick={() => { setCurrentPage('profile'); setIsDrawerOpen(false); }}
+                    className="btn-primary"
+                    style={{ fontSize: '13px', padding: '10px 14px', justifyContent: 'center' }}
+                  >
+                    Profilimi Görüntüle 👤
+                  </button>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderBottom: '1px solid var(--panel-border)', paddingBottom: '24px', marginBottom: '24px' }}>
@@ -220,7 +226,6 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
               </div>
             </div>
 
-            {/* Çıkış Yap Butonu */}
             {currentUser && (
               <button 
                 onClick={() => { onLogout(); setIsDrawerOpen(false); }}

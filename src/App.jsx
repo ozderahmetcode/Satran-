@@ -6,6 +6,7 @@ import EventDetail from './pages/EventDetail';
 import Database from './pages/Database';
 import AdminPanel from './pages/AdminPanel';
 import Auth from './pages/Auth';
+import Profile from './pages/Profile';
 import Contact from './pages/Contact';
 
 export default function App() {
@@ -28,6 +29,16 @@ export default function App() {
       if (response.ok) {
         const result = await response.json();
         setData(result);
+
+        // Giriş yapmış kullanıcının ELO veya ad bilgilerini de güncel tut
+        if (currentUser) {
+          const matchedUser = result.users.find(u => u.id === currentUser.id);
+          if (matchedUser) {
+            const updatedUser = { ...currentUser, ...matchedUser };
+            setCurrentUser(updatedUser);
+            localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+          }
+        }
       }
     } catch (error) {
       console.error("Veriler yüklenirken hata oluştu:", error);
@@ -43,12 +54,19 @@ export default function App() {
     if (savedUser) {
       setCurrentUser(JSON.parse(savedUser));
     }
+
+    // Tam Zamanlı Veri Güncelleme (Her 5 saniyede bir veritabanını yeniler)
+    const interval = setInterval(() => {
+      loadData();
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const handleLoginSuccess = (user) => {
     setCurrentUser(user);
     localStorage.setItem('currentUser', JSON.stringify(user));
-    loadData(); // Verileri yeniden çek (üyeler listesi güncellenmiş olabilir)
+    loadData(); // Verileri yeniden çek
     setCurrentPage('event'); // Başarıyla giriş yapınca direkt buluşma sayfasına at
   };
 
@@ -56,6 +74,14 @@ export default function App() {
     setCurrentUser(null);
     localStorage.removeItem('currentUser');
     setCurrentPage('home');
+  };
+
+  const handleUpdateProfile = (updatedProfile) => {
+    if (!currentUser) return;
+    const newUserData = { ...currentUser, ...updatedProfile };
+    setCurrentUser(newUserData);
+    localStorage.setItem('currentUser', JSON.stringify(newUserData));
+    // Not: Gerçek bir uygulamada bu veriler API'ye POST edilip DB'ye yazılmalıdır.
   };
 
   const handleRegisterUpdate = (updatedRegistrations) => {
@@ -131,6 +157,15 @@ export default function App() {
         return (
           <Auth 
             onLoginSuccess={handleLoginSuccess}
+          />
+        );
+      case 'profile':
+        return (
+          <Profile 
+            currentUser={currentUser}
+            registrations={data.registrations}
+            tournaments={data.tournaments}
+            onUpdateProfile={handleUpdateProfile}
           />
         );
       case 'contact':
