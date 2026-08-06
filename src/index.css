@@ -145,7 +145,7 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* ==========================================================================
-   MOBILE & TABLET RESPONSIVE MEDIA QUERIES (Mobil Optimizasyonları)
+   MOBILE & TABLET RESPONSIVE MEDIA QUERIES (Özel Mobil Optimizasyonları)
    ========================================================================== */
 
 /* Tablet & Telefon (768px ve altı) */
@@ -158,31 +158,27 @@ input:focus, select:focus, textarea:focus {
     grid-template-columns: 1fr auto !important; /* Logoyu sola, butonu sağa dayar */
   }
 
-  /* Gridleri 1 kolona çevir */
-  div[style*="display: grid"],
-  div[style*="display:grid"] {
-    grid-template-columns: 1fr !important;
-  }
-
-  /* Flexbox yapılarını dikey yap */
-  div[style*="display: flex"][style*="grid-template-columns"],
-  section[style*="display: grid"] {
-    grid-template-columns: 1fr !important;
-  }
-
-  /* Hero metin boyutunu küçült */
+  /* Hero başlık boyutu mobil ayarı */
   h1 {
     font-size: 32px !important;
+    line-height: 1.3 !important;
   }
 
-  /* Kürsü hizalamalarını dikey yap */
+  /* Kürsü yerleşim mobil ayarı */
   div[style*="align-items: flex-end"] {
     align-items: center !important;
     flex-direction: column !important;
     gap: 32px !important;
   }
+  
+  /* Kürsüdeki sütun yüksekliklerini sabitle veya küçült */
+  div[style*="height: 140px"], 
+  div[style*="height: 100px"], 
+  div[style*="height: 80px"] {
+    height: 80px !important;
+  }
 
-  /* Profil başlığı dikey sıralama */
+  /* Profil başlığı dikey hizalama */
   section[style*="align-items: center"] {
     flex-direction: column !important;
     align-items: center !important;
@@ -193,11 +189,16 @@ input:focus, select:focus, textarea:focus {
   .mobile-nav-links {
     display: flex !important;
   }
+
+  /* İçerik paddinglerini mobilde hafiflet */
+  .glass-panel {
+    padding: 18px !important;
+  }
 }
 
 /* Sadece Masaüstü (769px ve üzeri) */
 @media (min-width: 769px) {
   .mobile-nav-links {
-    display: none !important; /* Masaüstü çekmecesinde hızlı menüyü gizle */
+    display: none !important;
   }
 }
