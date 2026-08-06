@@ -34,7 +34,7 @@ const defaultData = {
       totalRounds: 5
     }
   ],
-  registrations: [] // { tournamentId, userId, name, chessUsername, registrationDate }
+  registrations: [] 
 };
 
 function initDB() {
@@ -135,8 +135,12 @@ module.exports = {
     if (emailExists) return { error: "Bu e-posta adresi zaten kayıtlı." };
 
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Benzersiz Rastgele Metin ID Üretimi (Asla çakışmaz)
+    const uniqueUserId = 'usr_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    
     const user = {
-      id: db.users.length + 1,
+      id: uniqueUserId,
       ...newUser,
       elo: newUser.elo ? parseInt(newUser.elo) : 1500,
       verified: false,
@@ -168,13 +172,14 @@ module.exports = {
     return { success: true, user: { id: user.id, name: user.name, email: user.email, chessUsername: user.chessUsername, phone: user.phone, elo: user.elo || 1500 } };
   },
 
-  // Turnuvaya Özel Kayıt İşlemleri (İsim ve kullanıcı adını da kayıt satırına yazıyoruz)
+  // Turnuvaya Özel Kayıt İşlemleri
   registerForTournament: (tournamentId, userId, name, chessUsername) => {
     const db = readDB();
     const tournament = db.tournaments.find(t => t.id === parseInt(tournamentId));
     if (!tournament) return { error: "Turnuva bulunamadı." };
 
-    const alreadyRegistered = db.registrations.some(r => r.tournamentId === parseInt(tournamentId) && r.userId === parseInt(userId));
+    // ID'leri metin olarak karşılaştırıyoruz (UUID olduğu için)
+    const alreadyRegistered = db.registrations.some(r => r.tournamentId === parseInt(tournamentId) && String(r.userId) === String(userId));
     if (alreadyRegistered) return { error: "Bu turnuvaya zaten kayıtlısınız." };
 
     const currentRegs = db.registrations.filter(r => r.tournamentId === parseInt(tournamentId)).length;
@@ -182,7 +187,7 @@ module.exports = {
 
     db.registrations.push({
       tournamentId: parseInt(tournamentId),
-      userId: parseInt(userId),
+      userId: userId, // Metin kimlik
       name: name,
       chessUsername: chessUsername,
       registrationDate: new Date().toISOString()
@@ -195,7 +200,7 @@ module.exports = {
 
   cancelTournamentRegistration: (tournamentId, userId) => {
     const db = readDB();
-    db.registrations = db.registrations.filter(r => !(r.tournamentId === parseInt(tournamentId) && r.userId === parseInt(userId)));
+    db.registrations = db.registrations.filter(r => !(r.tournamentId === parseInt(tournamentId) && String(r.userId) === String(userId)));
     db.stats.registeredPlayers = db.registrations.length;
     writeDB(db);
     return { success: true, registrations: db.registrations };
@@ -287,7 +292,7 @@ module.exports = {
       Object.keys(standings).forEach(id => {
         if (standings[id] > maxScore) {
           maxScore = standings[id];
-          winnerId = parseInt(id);
+          winnerId = id;
         }
       });
 
