@@ -153,33 +153,51 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
         background: 'var(--panel-bg)',
         border: '1px solid var(--accent-primary)'
       }}>
-        {/* Avatar */}
-        <div 
-          onClick={() => fileInputRef.current && fileInputRef.current.click()}
-          style={{
-          width: '100px',
-          height: '100px',
-          borderRadius: '50%',
-          background: (previewUrl || currentUser.avatar) ? 'transparent' : 'var(--gradient-gold)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '48px',
-          fontWeight: 'bold',
-          color: '#fff',
-          boxShadow: '0 4px 20px rgba(217, 119, 6, 0.2)',
-          overflow: 'hidden',
-          border: (previewUrl || currentUser.avatar) ? '2px solid var(--accent-primary)' : 'none',
-          cursor: 'pointer',
-          position: 'relative'
-        }}>
-          {(previewUrl || currentUser.avatar) ? (
-            <img src={previewUrl || currentUser.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          ) : (
-            currentUser.name.charAt(0).toUpperCase()
-          )}
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s', ':hover': { opacity: 1 } }}>
-             <span style={{ fontSize: '24px' }}>📷</span>
+        <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => fileInputRef.current && fileInputRef.current.click()}>
+          {/* Avatar Cemberi */}
+          <div style={{
+            width: '100px',
+            height: '100px',
+            borderRadius: '50%',
+            background: (previewUrl || currentUser.avatar) ? 'transparent' : 'var(--gradient-gold)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '48px',
+            fontWeight: 'bold',
+            color: '#fff',
+            boxShadow: '0 4px 20px rgba(217, 119, 6, 0.2)',
+            overflow: 'hidden',
+            border: (previewUrl || currentUser.avatar) ? '2px solid var(--accent-primary)' : 'none',
+            position: 'relative'
+          }}>
+            {(previewUrl || currentUser.avatar) ? (
+              <img src={previewUrl || currentUser.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              currentUser.name.charAt(0).toUpperCase()
+            )}
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s', ':hover': { opacity: 1 } }}>
+               <span style={{ fontSize: '24px' }}>📷</span>
+            </div>
+          </div>
+          
+          {/* Kucuk Kamera İkonu (Her Zaman Gorunur) */}
+          <div style={{
+            position: 'absolute',
+            bottom: '0',
+            right: '0',
+            background: 'var(--panel-bg)',
+            border: '2px solid var(--panel-border)',
+            borderRadius: '50%',
+            width: '32px',
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            zIndex: 10
+          }}>
+            <span style={{ fontSize: '14px' }}>📷</span>
           </div>
         </div>
         
