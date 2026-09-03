@@ -47,7 +47,7 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
 
   return (
     <nav style={{
-      background: 'rgba(7, 9, 14, 0.85)',
+      background: 'var(--panel-bg)',
       backdropFilter: 'blur(16px)',
       position: 'sticky',
       top: 0,

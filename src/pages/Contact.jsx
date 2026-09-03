@@ -117,11 +117,11 @@ export default function Contact() {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 style={{
                   width: '100%',
-                  background: 'rgba(255, 255, 255, 0.03)',
+                  background: '#fff',
                   border: '1px solid var(--panel-border)',
                   borderRadius: '8px',
                   padding: '12px',
-                  color: '#fff',
+                  color: 'var(--text-primary)',
                   outline: 'none'
                 }}
               />
@@ -136,11 +136,11 @@ export default function Contact() {
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 style={{
                   width: '100%',
-                  background: 'rgba(255, 255, 255, 0.03)',
+                  background: '#fff',
                   border: '1px solid var(--panel-border)',
                   borderRadius: '8px',
                   padding: '12px',
-                  color: '#fff',
+                  color: 'var(--text-primary)',
                   outline: 'none'
                 }}
               />

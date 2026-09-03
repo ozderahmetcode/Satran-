@@ -4,7 +4,7 @@ export default function Footer({ setCurrentPage }) {
   return (
     <footer style={{
       borderTop: '1px solid var(--panel-border)',
-      background: 'rgba(11, 12, 16, 0.95)',
+      background: 'var(--panel-bg)',
       padding: '48px 0 24px 0',
       marginTop: '80px'
     }}>

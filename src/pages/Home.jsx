@@ -14,7 +14,8 @@ export default function Home({ stats, leaders, setCurrentPage }) {
           fontSize: '56px',
           fontWeight: 800,
           lineHeight: 1.2,
-          marginBottom: '20px'
+          marginBottom: '20px',
+          color: 'var(--text-primary)'
         }}>
           Sosyal Satranç Kültürü <br />
           Şimdi <span className="text-gradient">ozder</span> ile Buluşuyor
@@ -28,10 +29,10 @@ export default function Home({ stats, leaders, setCurrentPage }) {
           Ümraniye Tilda Cafe'de düzenlenen, satrancın heyecanını kahve kokusu ve samimi sohbetlerle birleştiren özgün etkinliklerimize katılın.
         </p>
         <div style={{ display: 'flex', justifyContent: 'center', gap: '16px' }}>
-          <button onClick={() => setCurrentPage('event')} className="btn-primary">
+          <button onClick={() => setCurrentPage('event')} className="btn-primary" style={{ padding: '14px 28px', fontSize: '16px' }}>
             Etkinliğe Katıl ve Yerini Ayırt
           </button>
-          <button onClick={() => setCurrentPage('database')} className="btn-secondary">
+          <button onClick={() => setCurrentPage('database')} className="btn-secondary" style={{ padding: '14px 28px', fontSize: '16px', background: '#fff', border: '1px solid var(--panel-border)' }}>
             Sıralamayı İncele
           </button>
         </div>
@@ -43,25 +44,27 @@ export default function Home({ stats, leaders, setCurrentPage }) {
         gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
         gap: '40px',
         textAlign: 'center',
-        background: 'rgba(22, 24, 30, 0.4)'
+        background: '#ffffff',
+        border: '1px solid var(--panel-border)',
+        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01)'
       }}>
         <div>
           <h3 style={{ fontSize: '48px', fontFamily: 'var(--font-title)', fontWeight: 800, color: 'var(--accent-primary)' }}>
             {stats?.organizedTournaments || '0'}
           </h3>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '15px', fontWeight: 500 }}>Düzenlenen Turnuva & Buluşma</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '15px', fontWeight: 600 }}>Düzenlenen Turnuva & Buluşma</p>
+        </div>
+        <div>
+          <h3 style={{ fontSize: '48px', fontFamily: 'var(--font-title)', fontWeight: 800, color: '#10b981' }}>
+            {stats?.gamesPlayed || '0'}
+          </h3>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '15px', fontWeight: 600 }}>Oynanan Maç</p>
         </div>
         <div>
           <h3 style={{ fontSize: '48px', fontFamily: 'var(--font-title)', fontWeight: 800, color: 'var(--accent-secondary)' }}>
-            {stats?.gamesPlayed || '0'}
-          </h3>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '15px', fontWeight: 500 }}>Oynanan Maç</p>
-        </div>
-        <div>
-          <h3 style={{ fontSize: '48px', fontFamily: 'var(--font-title)', fontWeight: 800, color: '#f59e0b' }}>
             {stats?.registeredPlayers || '0'}
           </h3>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '15px', fontWeight: 500 }}>Kayıtlı Oyuncu</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '15px', fontWeight: 600 }}>Kayıtlı Oyuncu</p>
         </div>
       </section>
 
@@ -72,11 +75,11 @@ export default function Home({ stats, leaders, setCurrentPage }) {
         gap: '40px',
         alignItems: 'center'
       }}>
-        <div className="glass-panel" style={{ padding: '0', overflow: 'hidden', height: '360px', position: 'relative', borderRadius: '20px' }}>
+        <div className="glass-panel" style={{ padding: '0', overflow: 'hidden', height: '360px', position: 'relative', borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)' }}>
           <div style={{
             position: 'absolute',
             inset: 0,
-            background: 'linear-gradient(to bottom, transparent, rgba(11, 12, 16, 0.95))',
+            background: 'linear-gradient(to bottom, transparent 30%, #ffffff 90%)',
             zIndex: 1
           }} />
           <div style={{
@@ -88,25 +91,26 @@ export default function Home({ stats, leaders, setCurrentPage }) {
           }}>
             <span style={{
               background: 'var(--accent-primary)',
-              color: '#000',
-              padding: '4px 10px',
-              borderRadius: '6px',
+              color: '#ffffff',
+              padding: '6px 12px',
+              borderRadius: '8px',
               fontSize: '12px',
-              fontWeight: 700,
-              textTransform: 'uppercase'
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              boxShadow: '0 4px 6px -1px rgba(14, 165, 233, 0.3)'
             }}>Etkinlik Detayları</span>
-            <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '24px', fontWeight: 700, marginTop: '12px' }}>
+            <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '28px', fontWeight: 800, marginTop: '16px', color: 'var(--text-primary)' }}>
               Tilda Cafe Sosyal Satranç Buluşmaları
             </h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '6px' }}>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '15px', marginTop: '6px', fontWeight: 600 }}>
               📍 Ümraniye Tilda Cafe
             </p>
           </div>
           <div style={{
             width: '100%',
             height: '100%',
-            background: 'radial-gradient(circle, var(--accent-secondary) 0%, var(--bg-color) 100%)',
-            opacity: 0.15,
+            background: 'radial-gradient(circle, var(--accent-secondary) 0%, #f1f5f9 100%)',
+            opacity: 0.1,
             position: 'absolute'
           }} />
           <div style={{
@@ -114,36 +118,46 @@ export default function Home({ stats, leaders, setCurrentPage }) {
             justifyContent: 'center',
             alignItems: 'center',
             height: '100%',
-            fontSize: '160px',
-            opacity: 0.12,
-            userSelect: 'none'
+            fontSize: '180px',
+            opacity: 0.1,
+            userSelect: 'none',
+            color: 'var(--accent-primary)',
+            transform: 'translateY(-30px)'
           }}>
             👑
           </div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <h2 style={{ fontFamily: 'var(--font-title)', fontSize: '36px', fontWeight: 800 }}>
+          <h2 style={{ fontFamily: 'var(--font-title)', fontSize: '36px', fontWeight: 800, color: 'var(--text-primary)' }}>
             Neden <span className="text-gradient">ozder</span>'e Katılmalısın?
           </h2>
-          <p style={{ color: 'var(--text-secondary)' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '16px', lineHeight: 1.7 }}>
             ozder, sıradan bir satranç turnuvasından çok daha fazlasıdır. Burası her seviyeden insanın keyifle satranç oynayabileceği, yeni arkadaşlar edinebileceği ve kendini geliştirebileceği aktif bir sosyal topluluktur.
           </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '10px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '16px' }}>
             {[
               { title: "Sosyal ve Keyifli Ortam", desc: "Ümraniye Tilda Cafe'nin sıcacık atmosferinde kahvenizi yudumlarken rekabetin keyfini çıkarın." },
               { title: "Her Seviyeye Uygun", desc: "İster başlangıç seviyesinde olun ister usta bir oyuncu, kendinize uygun rakipler bulacaksınız." },
               { title: "Resmi Olmayan Dinamik Sıralama", desc: "Oynadığınız her maç topluluk istatistiklerine yansır ve sizi liderlik panosunda üst sıralara taşır." }
             ].map((item, index) => (
-              <div key={index} style={{ display: 'flex', gap: '16px' }}>
+              <div key={index} style={{ display: 'flex', gap: '16px', background: '#ffffff', padding: '16px', borderRadius: '12px', border: '1px solid var(--panel-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
                 <div style={{
-                  color: 'var(--accent-primary)',
-                  fontSize: '20px',
-                  fontWeight: 'bold'
+                  color: '#fff',
+                  background: 'var(--accent-primary)',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  flexShrink: 0
                 }}>✓</div>
                 <div>
-                  <h4 style={{ fontFamily: 'var(--font-title)', fontSize: '16px', fontWeight: 600 }}>{item.title}</h4>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>{item.desc}</p>
+                  <h4 style={{ fontFamily: 'var(--font-title)', fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)' }}>{item.title}</h4>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px' }}>{item.desc}</p>
                 </div>
               </div>
             ))}
@@ -152,11 +166,11 @@ export default function Home({ stats, leaders, setCurrentPage }) {
       </section>
 
       {/* Champions Showcase Section */}
-      <section style={{ textAlign: 'center' }}>
-        <h2 style={{ fontFamily: 'var(--font-title)', fontSize: '36px', fontWeight: 800, marginBottom: '16px' }}>
+      <section style={{ textAlign: 'center', marginTop: '40px' }}>
+        <h2 style={{ fontFamily: 'var(--font-title)', fontSize: '36px', fontWeight: 800, marginBottom: '16px', color: 'var(--text-primary)' }}>
           🏆 Haftanın Şampiyonları
         </h2>
-        <p style={{ color: 'var(--text-secondary)', maxWidth: '600px', margin: '0 auto 48px auto' }}>
+        <p style={{ color: 'var(--text-secondary)', maxWidth: '600px', margin: '0 auto 48px auto', fontSize: '16px' }}>
           Son turnuvalarda gösterdikleri üstün performansla liderlik tahtının zirvesinde yer alan oyuncularımız.
         </p>
 
@@ -176,20 +190,21 @@ export default function Home({ stats, leaders, setCurrentPage }) {
             {/* 2nd Place */}
             {topThree[1] && (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '150px' }}>
-                <div style={{ fontSize: '32px' }}>🥈</div>
-                <div style={{ fontFamily: 'var(--font-title)', fontWeight: 600, fontSize: '15px', marginBottom: '8px' }}>{topThree[1].name}</div>
+                <div style={{ fontSize: '40px', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))' }}>🥈</div>
+                <div style={{ fontFamily: 'var(--font-title)', fontWeight: 700, fontSize: '16px', marginBottom: '12px', color: 'var(--text-primary)' }}>{topThree[1].name}</div>
                 <div style={{
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid var(--panel-border)',
-                  borderRadius: '8px 8px 0 0',
+                  background: '#f1f5f9',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '12px 12px 0 0',
                   width: '100%',
-                  height: '100px',
+                  height: '110px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontFamily: 'var(--font-title)',
                   fontWeight: 'bold',
-                  color: 'var(--text-secondary)'
+                  color: 'var(--text-secondary)',
+                  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)'
                 }}>
                   {topThree[1].points} ELO
                 </div>
@@ -198,25 +213,26 @@ export default function Home({ stats, leaders, setCurrentPage }) {
 
             {/* 1st Place */}
             {topThree[0] && (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '180px', transform: 'scale(1.05)' }}>
-                <div style={{ fontSize: '40px' }}>👑</div>
-                <div style={{ fontFamily: 'var(--font-title)', fontWeight: 850, fontSize: '17px', color: 'var(--accent-primary)', marginBottom: '8px' }}>{topThree[0].name}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '180px', transform: 'scale(1.05)', zIndex: 10 }}>
+                <div style={{ fontSize: '48px', filter: 'drop-shadow(0 4px 6px rgba(245, 158, 11, 0.3))' }}>👑</div>
+                <div style={{ fontFamily: 'var(--font-title)', fontWeight: 800, fontSize: '18px', color: 'var(--accent-secondary)', marginBottom: '12px' }}>{topThree[0].name}</div>
                 <div style={{
-                  background: 'linear-gradient(to top, rgba(245, 158, 11, 0.2), rgba(14, 165, 233, 0.2))',
-                  border: '2px solid var(--accent-secondary)',
-                  borderRadius: '12px 12px 0 0',
+                  background: 'linear-gradient(to top, #fffbeb, #fef3c7)',
+                  border: '2px solid #fcd34d',
+                  borderRadius: '16px 16px 0 0',
                   width: '100%',
-                  height: '140px',
+                  height: '150px',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontFamily: 'var(--font-title)',
                   fontWeight: 'bold',
-                  gap: '4px'
+                  gap: '4px',
+                  boxShadow: '0 -10px 15px -3px rgba(245, 158, 11, 0.1), inset 0 2px 4px rgba(255,255,255,0.5)'
                 }}>
-                  <span style={{ fontSize: '20px', color: '#fff' }}>Şampiyon</span>
-                  <span style={{ fontSize: '12px', color: 'var(--accent-secondary)' }}>{topThree[0].points} ELO</span>
+                  <span style={{ fontSize: '20px', color: '#d97706', fontWeight: 800 }}>Şampiyon</span>
+                  <span style={{ fontSize: '14px', color: '#b45309', background: 'rgba(217, 119, 6, 0.1)', padding: '2px 8px', borderRadius: '12px' }}>{topThree[0].points} ELO</span>
                 </div>
               </div>
             )}
@@ -224,20 +240,21 @@ export default function Home({ stats, leaders, setCurrentPage }) {
             {/* 3rd Place */}
             {topThree[2] && (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '150px' }}>
-                <div style={{ fontSize: '32px' }}>🥉</div>
-                <div style={{ fontFamily: 'var(--font-title)', fontWeight: 600, fontSize: '15px', marginBottom: '8px' }}>{topThree[2].name}</div>
+                <div style={{ fontSize: '40px', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))' }}>🥉</div>
+                <div style={{ fontFamily: 'var(--font-title)', fontWeight: 700, fontSize: '16px', marginBottom: '12px', color: 'var(--text-primary)' }}>{topThree[2].name}</div>
                 <div style={{
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid var(--panel-border)',
-                  borderRadius: '8px 8px 0 0',
+                  background: '#f1f5f9',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '12px 12px 0 0',
                   width: '100%',
-                  height: '80px',
+                  height: '90px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontFamily: 'var(--font-title)',
                   fontWeight: 'bold',
-                  color: 'var(--text-secondary)'
+                  color: 'var(--text-secondary)',
+                  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)'
                 }}>
                   {topThree[2].points} ELO
                 </div>

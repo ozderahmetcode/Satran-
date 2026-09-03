@@ -85,8 +85,8 @@ export default function EventDetail({ tournaments, registrations, users = [], cu
               <div key={tour.id} className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '16px', justifyContent: 'space-between' }}>
                 <div>
                   <span style={{
-                    background: tour.status === 'active' ? 'var(--accent-primary)' : 'rgba(255,255,255,0.1)',
-                    color: '#fff',
+                    background: tour.status === 'active' ? 'var(--accent-primary)' : 'rgba(0,0,0,0.05)',
+                    color: tour.status === 'active' ? '#fff' : 'var(--text-secondary)',
                     padding: '4px 8px',
                     borderRadius: '6px',
                     fontSize: '11px',
@@ -103,7 +103,7 @@ export default function EventDetail({ tournaments, registrations, users = [], cu
                   </p>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.03)', paddingTop: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', borderTop: '1px solid var(--panel-border)', paddingTop: '16px' }}>
                   <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
                     Kontenjan: <strong>{regs.length} / {tour.maxQuota}</strong>
                   </span>
@@ -132,7 +132,7 @@ export default function EventDetail({ tournaments, registrations, users = [], cu
       </button>
 
       <section className="glass-panel" style={{
-        background: 'linear-gradient(135deg, rgba(13, 18, 30, 0.9) 0%, rgba(245, 158, 11, 0.08) 100%)',
+        background: '#ffffff',
         padding: '36px',
         position: 'relative'
       }}>
@@ -163,7 +163,7 @@ export default function EventDetail({ tournaments, registrations, users = [], cu
               <span>Kayıtlı Oyuncu: {regs.length}</span>
               <span>Kalan Yer: {Math.max(0, tour.maxQuota - regs.length)} / {tour.maxQuota}</span>
             </div>
-            <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '10px', height: '10px', overflow: 'hidden' }}>
+            <div style={{ background: 'rgba(0,0,0,0.05)', borderRadius: '10px', height: '10px', overflow: 'hidden' }}>
               <div style={{
                 background: 'var(--gradient-gold)',
                 width: `${Math.min(100, (regs.length / tour.maxQuota) * 100)}%`,
@@ -252,10 +252,10 @@ export default function EventDetail({ tournaments, registrations, users = [], cu
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      background: 'rgba(255,255,255,0.02)',
+                      background: 'rgba(0,0,0,0.02)',
                       padding: '10px 14px',
                       borderRadius: '8px',
-                      border: '1px solid rgba(255,255,255,0.03)'
+                      border: '1px solid var(--panel-border)'
                     }}>
                       <div>
                         <span style={{ fontSize: '14px', fontWeight: 600 }}>{idx + 1}. {displayName}</span>

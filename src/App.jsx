@@ -196,7 +196,7 @@ export default function App() {
         color: 'var(--accent-secondary)',
         flexDirection: 'column',
         gap: '16px',
-        background: '#07090e'
+        background: 'var(--bg-color)'
       }}>
         <div>Yükleniyor...</div>
         <div style={{

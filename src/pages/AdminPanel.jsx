@@ -467,16 +467,16 @@ export default function AdminPanel({ registrations, users = [], onRegisterUpdate
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {messages.map(msg => (
                 <div key={msg.id} style={{
-                  background: 'rgba(255,255,255,0.01)',
+                  background: '#fff',
                   border: '1px solid var(--panel-border)',
-                  borderRadius: '12px',
-                  padding: '20px',
+                  borderRadius: '6px',
+                  color: 'var(--text-primary)',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'flex-start',
                   gap: '24px'
                 }}>
-                  <div style={{ flex: 1 }}>
+                  <div style={{ flex: 1, padding: '20px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', marginBottom: '8px' }}>
                       <strong>{msg.name} ({msg.email})</strong>
                       <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>{new Date(msg.date).toLocaleString('tr-TR')}</span>

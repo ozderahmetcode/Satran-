@@ -83,11 +83,11 @@ export default function CreateEvent({ onAddTournament, setCurrentPage }) {
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             style={{
               width: '100%',
-              background: 'rgba(255, 255, 255, 0.03)',
+              background: '#fff',
               border: '1px solid var(--panel-border)',
               borderRadius: '8px',
               padding: '12px 16px',
-              color: '#fff',
+              color: 'var(--text-primary)',
               outline: 'none'
             }}
           />
@@ -106,11 +106,11 @@ export default function CreateEvent({ onAddTournament, setCurrentPage }) {
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
               style={{
                 width: '100%',
-                background: 'rgba(255, 255, 255, 0.03)',
+                background: '#fff',
                 border: '1px solid var(--panel-border)',
                 borderRadius: '8px',
                 padding: '12px 16px',
-                color: '#fff',
+                color: 'var(--text-primary)',
                 outline: 'none'
               }}
             />

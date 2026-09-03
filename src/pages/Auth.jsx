@@ -169,7 +169,7 @@ export default function Auth({ onLoginSuccess }) {
               placeholder="eposta@adresiniz.com"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              style={{ width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px', color: '#fff', outline: 'none' }}
+              style={{ width: '100%', background: '#fff', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px', color: 'var(--text-primary)', outline: 'none' }}
             />
           </div>
           <div>
@@ -180,7 +180,7 @@ export default function Auth({ onLoginSuccess }) {
               placeholder="••••••••"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              style={{ width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px', color: '#fff', outline: 'none' }}
+              style={{ width: '100%', background: '#fff', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px', color: 'var(--text-primary)', outline: 'none' }}
             />
           </div>
           <button type="submit" disabled={loading} className="btn-primary" style={{ justifyContent: 'center', marginTop: '8px' }}>
@@ -200,7 +200,7 @@ export default function Auth({ onLoginSuccess }) {
               placeholder="Örn: Ahmet Ozder"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              style={{ width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: '#fff', outline: 'none' }}
+              style={{ width: '100%', background: '#fff', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }}
             />
           </div>
           <div>
@@ -211,7 +211,7 @@ export default function Auth({ onLoginSuccess }) {
               placeholder="eposta@adresiniz.com"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              style={{ width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: '#fff', outline: 'none' }}
+              style={{ width: '100%', background: '#fff', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }}
             />
           </div>
           <div>
@@ -227,7 +227,7 @@ export default function Auth({ onLoginSuccess }) {
                   setFormData({ ...formData, phone: onlyNums });
                 }
               }}
-              style={{ width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: '#fff', outline: 'none' }}
+              style={{ width: '100%', background: '#fff', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }}
             />
           </div>
           <div>
@@ -238,7 +238,7 @@ export default function Auth({ onLoginSuccess }) {
               placeholder="Örn: ozder_chess"
               value={formData.chessUsername}
               onChange={(e) => setFormData({ ...formData, chessUsername: e.target.value })}
-              style={{ width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: '#fff', outline: 'none' }}
+              style={{ width: '100%', background: '#fff', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }}
             />
           </div>
           <div>
