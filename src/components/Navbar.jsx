@@ -147,32 +147,33 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
             style={{
               position: 'fixed',
               inset: 0,
-              background: 'rgba(0,0,0,0.5)',
-              zIndex: 998,
+              background: 'rgba(0,0,0,0.4)',
+              zIndex: 99998,
               backdropFilter: 'blur(4px)'
             }}
           />
 
           <div style={{
             position: 'fixed',
-            top: 0,
-            right: 0,
-            bottom: 0,
+            top: '16px',
+            right: '16px',
+            bottom: '16px',
             width: '340px',
-            background: 'var(--bg-color)',
-            borderLeft: '2px solid var(--accent-primary)',
-            boxShadow: '-20px 0 60px rgba(0,0,0,0.1)',
-            zIndex: 999,
+            background: 'var(--panel-bg)',
+            borderRadius: '24px',
+            border: '1px solid var(--panel-border)',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+            zIndex: 99999,
             padding: '32px 24px',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
-            animation: 'slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+            animation: 'slideInFloating 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards'
           }}>
             <style>{`
-              @keyframes slideIn {
-                from { transform: translateX(100%); }
-                to { transform: translateX(0); }
+              @keyframes slideInFloating {
+                from { transform: translateX(120%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
               }
             `}</style>
 
