@@ -2,13 +2,35 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const nodemailer = require('nodemailer');
+const fs = require('fs');
 const db = require('./database');
+const multer = require('multer');
+
+// Uploads dizinini oluştur
+const uploadsDir = path.join(__dirname, 'public/uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadsDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+const upload = multer({ storage: storage });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
+
+// Statik yükleme klasörü
+app.use('/uploads', express.static(uploadsDir));
 
 // Nodemailer SMTP Yapılandırması
 const transporter = nodemailer.createTransport({
@@ -144,6 +166,32 @@ app.post('/api/auth/login', (req, res) => {
     res.json({ success: true, user: result.user });
   } catch (error) {
     res.status(500).json({ error: "Giriş yapılırken bir hata oluştu." });
+  }
+});
+
+// Profil ve Kullanıcı Ayarları
+app.post('/api/users/:id/profile', upload.single('avatarFile'), (req, res) => {
+  try {
+    const { id } = req.params;
+    const { phone, bio, matchmakingSettings } = req.body;
+    
+    let avatarUrl = req.body.avatarUrl; // Keep existing if not changed
+    if (req.file) {
+      avatarUrl = '/uploads/' + req.file.filename;
+    }
+    
+    let parsedSettings = undefined;
+    if (matchmakingSettings) {
+      parsedSettings = JSON.parse(matchmakingSettings);
+    }
+    
+    const result = db.updateUserProfile(id, { phone, bio, avatar: avatarUrl, matchmakingSettings: parsedSettings });
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
+    }
+    res.json({ success: true, user: result.user });
+  } catch (error) {
+    res.status(500).json({ error: "Profil güncellenirken hata oluştu." });
   }
 });
 

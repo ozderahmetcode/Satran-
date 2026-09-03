@@ -76,35 +76,42 @@ function calculateEloChange(ratingA, ratingB, scoreA) {
 }
 
 function updateLeaderboards(db) {
-  // Tüm doğrulanmış veya otomatik geri yüklenmiş üyeleri ELO'ya göre sırala
-  const sortedByElo = [...db.users]
-    .sort((a, b) => (b.elo || 1500) - (a.elo || 1500));
+  // Yalnızca turnuvalara katılmış ve maç yapmış oyuncuları filtrele
+  const activeUsers = db.users.filter(u => {
+    return db.registrations.some(r => String(r.userId) === String(u.id));
+  });
 
-  db.leaders.champions = sortedByElo.slice(0, 5).map(u => ({
+  const sortedByElo = [...activeUsers].sort((a, b) => (b.elo || 1500) - (a.elo || 1500));
+
+  // Şampiyonlar (Sadece gerçek kupası olanlar, şu an kupa sistemi yoksa boş kalır)
+  db.leaders.champions = sortedByElo.filter(u => u.titles > 0).map(u => ({
     name: u.name,
-    titles: Math.max(1, Math.round((u.elo - 1400) / 100)),
+    titles: u.titles || 0,
     points: u.elo || 1500
   }));
 
-  db.leaders.activePlayers = db.users.slice(0, 5).map(u => {
-    const count = db.registrations.filter(r => String(r.userId) === String(u.id)).length;
+  // En aktif oyuncular
+  db.leaders.activePlayers = sortedByElo.slice(0, 5).map(u => {
+    const matches = (u.matchesPlayed || 0);
     return {
       name: u.name,
-      matches: count * 5,
-      winRate: `%${Math.min(95, Math.max(40, Math.round((u.elo / 3000) * 100)))}`
+      matches: matches,
+      winRate: matches > 0 ? `%${Math.round(( (u.matchesWon || 0) / matches) * 100)}` : '%0'
     };
-  });
+  }).filter(u => u.matches > 0);
 
+  // En yüksek ELO
   db.leaders.highestWinRates = sortedByElo.slice(0, 5).map(u => ({
     name: u.name,
     rate: u.elo || 1500,
-    matches: db.registrations.filter(r => String(r.userId) === String(u.id)).length * 5
-  }));
+    matches: (u.matchesPlayed || 0)
+  })).filter(u => u.matches > 0);
 
-  db.leaders.winStreaks = sortedByElo.slice(0, 5).map((u, idx) => ({
+  // Galibiyet Serisi
+  db.leaders.winStreaks = sortedByElo.slice(0, 5).map(u => ({
     name: u.name,
-    streak: Math.max(1, Math.round((u.elo - 1300) / 80))
-  }));
+    streak: u.currentStreak || 0
+  })).filter(u => u.streak > 0);
 }
 
 module.exports = {
@@ -164,13 +171,29 @@ module.exports = {
 
   loginUser: (email, password) => {
     const db = readDB();
-    const user = db.users.find(u => u.email === email && u.password === password);
-    if (!user) return { error: "Hatalı e-posta veya şifre." };
+    const user = db.users.find(u => u.email === email);
+    if (!user) return { error: "Hatalı e-posta." };
+    if (user.password !== password) return { error: "Şifre yanlış." };
     if (!user.verified) return { error: "Lütfen önce e-posta adresinizi doğrulayın.", requiresVerification: true };
-    return { success: true, user: { id: user.id, name: user.name, email: user.email, chessUsername: user.chessUsername, phone: user.phone, elo: user.elo || 1500 } };
+    return { success: true, user: { id: user.id, email: user.email, name: user.name, phone: user.phone, chessUsername: user.chessUsername, bio: user.bio, avatar: user.avatar, matchmakingSettings: user.matchmakingSettings } };
   },
 
-  // Turnuvaya Özel Kayıt İşlemleri (Otomatik üye geri kurtarma entegre edildi)
+  updateUserProfile: (userId, updates) => {
+    const db = readDB();
+    const userIndex = db.users.findIndex(u => String(u.id) === String(userId));
+    if (userIndex === -1) return { error: "Kullanıcı bulunamadı." };
+
+    const user = db.users[userIndex];
+    
+    if (updates.phone !== undefined) user.phone = updates.phone;
+    if (updates.bio !== undefined) user.bio = updates.bio;
+    if (updates.avatar !== undefined) user.avatar = updates.avatar;
+    if (updates.matchmakingSettings !== undefined) user.matchmakingSettings = updates.matchmakingSettings;
+
+    writeDB(db);
+    return { success: true, user: { id: user.id, email: user.email, name: user.name, phone: user.phone, chessUsername: user.chessUsername, bio: user.bio, avatar: user.avatar, matchmakingSettings: user.matchmakingSettings } };
+  },
+
   registerForTournament: (tournamentId, userId, name, chessUsername) => {
     const db = readDB();
     const tournament = db.tournaments.find(t => t.id === parseInt(tournamentId));

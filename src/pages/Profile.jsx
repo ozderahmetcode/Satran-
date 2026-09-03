@@ -7,8 +7,9 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
     phone: currentUser?.phone || '',
     chessUsername: currentUser?.chessUsername || '',
     bio: currentUser?.bio || 'Satranç tutkunu. OZDER etkinliklerine katılıyor.',
-    avatar: currentUser?.avatar || ''
+    avatarUrl: currentUser?.avatar || ''
   });
+  const [avatarFile, setAvatarFile] = useState(null);
   const [statusMsg, setStatusMsg] = useState('');
 
   // -------------------- STATS CALCULATION --------------------
@@ -121,8 +122,16 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
 
   const handleUpdateInfo = (e) => {
     e.preventDefault();
-    onUpdateProfile(profileData);
-    setStatusMsg('Profil bilgileri başarıyla güncellendi!');
+    const formData = new FormData();
+    formData.append('name', profileData.name);
+    formData.append('phone', profileData.phone);
+    formData.append('chessUsername', profileData.chessUsername);
+    formData.append('bio', profileData.bio);
+    if (profileData.avatarUrl) formData.append('avatarUrl', profileData.avatarUrl);
+    if (avatarFile) formData.append('avatarFile', avatarFile);
+
+    onUpdateProfile(formData);
+    setStatusMsg('Profil bilgileri güncelleniyor...');
     setTimeout(() => setStatusMsg(''), 3000);
   };
 
@@ -351,15 +360,14 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px' }}>Profil Fotoğrafı URL (İsteğe Bağlı)</label>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px' }}>Profil Fotoğrafı (Dosya Seç)</label>
               <input
-                type="text"
-                placeholder="https://example.com/avatar.jpg"
-                value={profileData.avatar}
-                onChange={(e) => setProfileData({ ...profileData, avatar: e.target.value })}
+                type="file"
+                accept="image/*"
+                onChange={(e) => setAvatarFile(e.target.files[0])}
                 style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px', color: 'var(--text-primary)', outline: 'none', fontWeight: 600 }}
               />
-              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>Kendi resminizin olduğu bir resim URL'si yapıştırarak profil fotoğrafınızı özelleştirebilirsiniz.</p>
+              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>Cihazınızdan bir resim dosyası seçin. Yeni resim yüklendiğinde eski resim değişecektir.</p>
             </div>
 
             <div>

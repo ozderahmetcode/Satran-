@@ -79,12 +79,25 @@ export default function App() {
     setCurrentPage('home');
   };
 
-  const handleUpdateProfile = (updatedProfile) => {
+  const handleUpdateProfile = async (formData) => {
     if (!currentUser) return;
-    const newUserData = { ...currentUser, ...updatedProfile };
-    setCurrentUser(newUserData);
-    localStorage.setItem('currentUser', JSON.stringify(newUserData));
-    // Not: Gerçek bir uygulamada bu veriler API'ye POST edilip DB'ye yazılmalıdır.
+    try {
+      const response = await fetch(`/api/users/${currentUser.id}/profile`, {
+        method: 'POST',
+        body: formData // FormData direkt gönderilir, Content-Type tarayıcı tarafından belirlenir
+      });
+      const data = await response.json();
+      if (data.success) {
+        setCurrentUser(data.user);
+        localStorage.setItem('currentUser', JSON.stringify(data.user));
+        loadData();
+      } else {
+        alert(data.error || "Profil güncellenemedi.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Sunucuya bağlanılamadı.");
+    }
   };
 
   const handleRegisterUpdate = (updatedRegistrations) => {
