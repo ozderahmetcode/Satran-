@@ -158,16 +158,16 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
             top: 0,
             right: 0,
             bottom: 0,
-            width: '290px',
+            width: '320px',
             background: '#ffffff',
-            borderLeft: '1px solid var(--panel-border)',
-            boxShadow: '-8px 0 32px rgba(0,0,0,0.5)',
+            borderLeft: '1px solid rgba(0,0,0,0.05)',
+            boxShadow: '-4px 0 24px rgba(0,0,0,0.06)',
             zIndex: 999,
-            padding: '24px 20px',
+            padding: '32px 24px',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
-            animation: 'slideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+            animation: 'slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards'
           }}>
             <style>{`
               @keyframes slideIn {
@@ -177,32 +177,34 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
             `}</style>
 
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                <span style={{ fontFamily: 'var(--font-title)', fontWeight: 700, fontSize: '18px' }}>Hesap & Menü</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                <span style={{ fontFamily: 'var(--font-title)', fontWeight: 800, fontSize: '20px', color: 'var(--text-primary)' }}>Hesap & Menü</span>
                 <button 
                   onClick={() => setIsDrawerOpen(false)}
-                  style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '20px', cursor: 'pointer' }}
+                  style={{ background: 'rgba(0,0,0,0.04)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', color: 'var(--text-secondary)', fontSize: '14px', cursor: 'pointer', transition: 'background 0.2s' }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.08)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.04)'}
                 >
                   ✕
                 </button>
               </div>
 
               {currentUser ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--panel-border)', paddingBottom: '24px', marginBottom: '24px', textAlign: 'center' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: '28px', marginBottom: '24px', textAlign: 'center' }}>
                   <div style={{
-                    width: '64px',
-                    height: '64px',
+                    width: '72px',
+                    height: '72px',
                     borderRadius: '50%',
-                    background: currentUser.avatar ? 'transparent' : 'var(--gradient-gold)',
+                    background: currentUser.avatar ? 'transparent' : 'var(--accent-primary)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '24px',
+                    fontSize: '28px',
                     fontWeight: 'bold',
                     color: '#fff',
-                    marginBottom: '8px',
+                    marginBottom: '12px',
                     overflow: 'hidden',
-                    border: '2px solid var(--accent-primary)'
+                    boxShadow: '0 8px 16px -4px rgba(2, 132, 199, 0.2)'
                   }}>
                     {currentUser.avatar ? (
                       <img src={currentUser.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -210,15 +212,16 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
                       currentUser.name.charAt(0).toUpperCase()
                     )}
                   </div>
-                  <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>{currentUser.name}</div>
-                  <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '12px' }}>@{currentUser.chessUsername}</div>
+                  <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>{currentUser.name}</div>
+                  <div style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: 500, marginBottom: '16px' }}>@{currentUser.chessUsername}</div>
                   
                   <button
                     onClick={() => { setCurrentPage('profile'); setIsDrawerOpen(false); }}
-                    className="btn-primary"
-                    style={{ fontSize: '13px', padding: '10px 16px', justifyContent: 'center', width: '100%', borderRadius: '20px' }}
+                    style={{ background: 'var(--accent-primary)', color: '#fff', border: 'none', fontWeight: 600, fontSize: '14px', padding: '12px 20px', width: '100%', borderRadius: '8px', cursor: 'pointer', transition: 'opacity 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                    onMouseEnter={(e) => e.currentTarget.style.opacity = 0.9}
+                    onMouseLeave={(e) => e.currentTarget.style.opacity = 1}
                   >
-                    Profilimi Görüntüle
+                    Profilimi Görüntüle <span style={{ fontSize: '16px' }}>👤</span>
                   </button>
                 </div>
               ) : (
@@ -235,25 +238,27 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
               )}
 
               {/* Mobil Menü Linkleri (Sadece Mobilde Görünecek) */}
-              <div className="mobile-nav-links" style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px', borderBottom: '1px solid var(--panel-border)', paddingBottom: '20px' }}>
-                <span style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Hızlı Menü</span>
+              <div className="mobile-nav-links" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px', borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: '24px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Hızlı Menü</span>
                 {mainLinks.map((item) => (
                   <button
                     key={item.id}
                     onClick={() => { setCurrentPage(item.id); setIsDrawerOpen(false); }}
                     style={{
-                      background: currentPage === item.id ? 'rgba(245, 158, 11, 0.08)' : 'transparent',
+                      background: currentPage === item.id ? 'rgba(2, 132, 199, 0.08)' : 'transparent',
                       border: 'none',
-                      color: currentPage === item.id ? 'var(--accent-secondary)' : 'var(--text-primary)',
+                      color: currentPage === item.id ? 'var(--accent-primary)' : 'var(--text-primary)',
                       fontFamily: 'inherit',
-                      fontSize: '14px',
-                      fontWeight: 600,
+                      fontSize: '15px',
+                      fontWeight: currentPage === item.id ? 700 : 500,
                       cursor: 'pointer',
                       textAlign: 'left',
-                      padding: '10px 12px',
-                      borderRadius: '6px',
-                      transition: 'background 0.2s'
+                      padding: '12px 16px',
+                      borderRadius: '8px',
+                      transition: 'background 0.2s, color 0.2s'
                     }}
+                    onMouseEnter={(e) => { if (currentPage !== item.id) e.currentTarget.style.background = 'rgba(0,0,0,0.03)' }}
+                    onMouseLeave={(e) => { if (currentPage !== item.id) e.currentTarget.style.background = 'transparent' }}
                   >
                     {item.label}
                   </button>
@@ -265,26 +270,36 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
                 <button
                   onClick={() => { setCurrentPage('admin'); setIsDrawerOpen(false); }}
                   style={{
-                    background: 'rgba(0,0,0,0.03)',
-                    border: '1px solid var(--panel-border)',
+                    background: '#fff',
+                    border: '1px solid rgba(0,0,0,0.1)',
                     borderRadius: '8px',
-                    padding: '12px 16px',
+                    padding: '14px 16px',
                     color: 'var(--text-primary)',
                     textAlign: 'left',
                     fontFamily: 'inherit',
                     fontWeight: 600,
                     cursor: 'pointer',
-                    fontSize: '14px',
+                    fontSize: '15px',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    transition: 'border-color 0.2s'
+                    transition: 'border-color 0.2s, box-shadow 0.2s',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent-secondary)'}
-                  onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--panel-border)'}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--accent-primary)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(2, 132, 199, 0.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'rgba(0,0,0,0.1)';
+                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.02)';
+                  }}
                 >
-                  <span>Yönetici Paneli 👑</span>
-                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Yetkili Girişi</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '18px' }}>👑</span>
+                    <span>Yönetici Paneli</span>
+                  </div>
+                  <span style={{ fontSize: '11px', color: 'var(--accent-primary)', background: 'rgba(2, 132, 199, 0.1)', padding: '4px 8px', borderRadius: '12px', fontWeight: 700 }}>Yetkili</span>
                 </button>
               </div>
             </div>
@@ -292,8 +307,26 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
             {currentUser && (
               <button 
                 onClick={() => { onLogout(); setIsDrawerOpen(false); }}
-                className="btn-secondary" 
-                style={{ justifyContent: 'center', borderColor: '#ef4444', color: '#ef4444' }}
+                style={{ 
+                  background: 'rgba(239, 68, 68, 0.05)', 
+                  border: '1px solid rgba(239, 68, 68, 0.2)', 
+                  color: '#ef4444',
+                  padding: '14px',
+                  borderRadius: '8px',
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s, color 0.2s',
+                  marginTop: 'auto'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#ef4444';
+                  e.currentTarget.style.color = '#fff';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.05)';
+                  e.currentTarget.style.color = '#ef4444';
+                }}
               >
                 Oturumu Kapat
               </button>
