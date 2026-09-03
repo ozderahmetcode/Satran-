@@ -158,10 +158,10 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
             top: 0,
             right: 0,
             bottom: 0,
-            width: '320px',
+            width: '340px',
             background: '#ffffff',
             borderLeft: '1px solid rgba(0,0,0,0.05)',
-            boxShadow: '-4px 0 24px rgba(0,0,0,0.06)',
+            boxShadow: '-10px 0 40px rgba(0,0,0,0.05)',
             zIndex: 999,
             padding: '32px 24px',
             display: 'flex',
@@ -178,50 +178,53 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
 
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-                <span style={{ fontFamily: 'var(--font-title)', fontWeight: 800, fontSize: '20px', color: 'var(--text-primary)' }}>Hesap & Menü</span>
+                <span style={{ fontFamily: 'var(--font-title)', fontWeight: 800, fontSize: '18px', color: 'var(--text-primary)' }}>Hesap & Menü</span>
                 <button 
                   onClick={() => setIsDrawerOpen(false)}
-                  style={{ background: 'rgba(0,0,0,0.04)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', color: 'var(--text-secondary)', fontSize: '14px', cursor: 'pointer', transition: 'background 0.2s' }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.08)'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.04)'}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', fontSize: '20px', cursor: 'pointer', transition: 'color 0.2s', padding: '4px' }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
                 >
                   ✕
                 </button>
               </div>
 
               {currentUser ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: '28px', marginBottom: '24px', textAlign: 'center' }}>
-                  <div style={{
-                    width: '72px',
-                    height: '72px',
-                    borderRadius: '50%',
-                    background: currentUser.avatar ? 'transparent' : 'var(--accent-primary)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '28px',
-                    fontWeight: 'bold',
-                    color: '#fff',
-                    marginBottom: '12px',
-                    overflow: 'hidden',
-                    boxShadow: '0 8px 16px -4px rgba(2, 132, 199, 0.2)'
-                  }}>
-                    {currentUser.avatar ? (
-                      <img src={currentUser.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      currentUser.name.charAt(0).toUpperCase()
-                    )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderBottom: '1px solid rgba(0,0,0,0.05)', paddingBottom: '24px', marginBottom: '24px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
+                    <div style={{
+                      width: '60px',
+                      height: '60px',
+                      borderRadius: '50%',
+                      background: currentUser.avatar ? 'transparent' : 'rgba(0,0,0,0.05)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '24px',
+                      fontWeight: 'bold',
+                      color: 'var(--text-primary)',
+                      overflow: 'hidden'
+                    }}>
+                      {currentUser.avatar ? (
+                        <img src={currentUser.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        currentUser.name.charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    <div style={{ flex: 1, overflow: 'hidden' }}>
+                      <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{currentUser.name}</div>
+                      <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>@{currentUser.chessUsername}</div>
+                    </div>
                   </div>
-                  <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>{currentUser.name}</div>
-                  <div style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: 500, marginBottom: '16px' }}>@{currentUser.chessUsername}</div>
                   
                   <button
                     onClick={() => { setCurrentPage('profile'); setIsDrawerOpen(false); }}
-                    style={{ background: 'var(--accent-primary)', color: '#fff', border: 'none', fontWeight: 600, fontSize: '14px', padding: '12px 20px', width: '100%', borderRadius: '8px', cursor: 'pointer', transition: 'opacity 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                    onMouseEnter={(e) => e.currentTarget.style.opacity = 0.9}
-                    onMouseLeave={(e) => e.currentTarget.style.opacity = 1}
+                    style={{ background: 'rgba(0,0,0,0.04)', color: 'var(--text-primary)', border: 'none', fontWeight: 600, fontSize: '14px', padding: '12px 16px', width: '100%', borderRadius: '8px', cursor: 'pointer', transition: 'background 0.2s', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.08)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.04)'}
                   >
-                    Profilimi Görüntüle <span style={{ fontSize: '16px' }}>👤</span>
+                    Profilimi Görüntüle 
+                    <span style={{ color: 'var(--text-secondary)' }}>→</span>
                   </button>
                 </div>
               ) : (
@@ -238,27 +241,27 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
               )}
 
               {/* Mobil Menü Linkleri (Sadece Mobilde Görünecek) */}
-              <div className="mobile-nav-links" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px', borderBottom: '1px solid rgba(0,0,0,0.06)', paddingBottom: '24px' }}>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Hızlı Menü</span>
+              <div className="mobile-nav-links" style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '24px', borderBottom: '1px solid rgba(0,0,0,0.05)', paddingBottom: '24px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px', letterSpacing: '0.5px' }}>Menü</span>
                 {mainLinks.map((item) => (
                   <button
                     key={item.id}
                     onClick={() => { setCurrentPage(item.id); setIsDrawerOpen(false); }}
                     style={{
-                      background: currentPage === item.id ? 'rgba(2, 132, 199, 0.08)' : 'transparent',
+                      background: currentPage === item.id ? 'rgba(0,0,0,0.04)' : 'transparent',
                       border: 'none',
-                      color: currentPage === item.id ? 'var(--accent-primary)' : 'var(--text-primary)',
+                      color: currentPage === item.id ? 'var(--text-primary)' : 'var(--text-secondary)',
                       fontFamily: 'inherit',
                       fontSize: '15px',
                       fontWeight: currentPage === item.id ? 700 : 500,
                       cursor: 'pointer',
                       textAlign: 'left',
-                      padding: '12px 16px',
+                      padding: '10px 12px',
                       borderRadius: '8px',
                       transition: 'background 0.2s, color 0.2s'
                     }}
-                    onMouseEnter={(e) => { if (currentPage !== item.id) e.currentTarget.style.background = 'rgba(0,0,0,0.03)' }}
-                    onMouseLeave={(e) => { if (currentPage !== item.id) e.currentTarget.style.background = 'transparent' }}
+                    onMouseEnter={(e) => { if (currentPage !== item.id) { e.currentTarget.style.background = 'rgba(0,0,0,0.02)'; e.currentTarget.style.color = 'var(--text-primary)' } }}
+                    onMouseLeave={(e) => { if (currentPage !== item.id) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)' } }}
                   >
                     {item.label}
                   </button>
@@ -266,14 +269,14 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
               </div>
 
               {/* Yönetici Girişi */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <button
                   onClick={() => { setCurrentPage('admin'); setIsDrawerOpen(false); }}
                   style={{
-                    background: '#fff',
-                    border: '1px solid rgba(0,0,0,0.1)',
+                    background: 'transparent',
+                    border: 'none',
                     borderRadius: '8px',
-                    padding: '14px 16px',
+                    padding: '12px',
                     color: 'var(--text-primary)',
                     textAlign: 'left',
                     fontFamily: 'inherit',
@@ -283,17 +286,10 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    transition: 'border-color 0.2s, box-shadow 0.2s',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                    transition: 'background 0.2s'
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--accent-primary)';
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(2, 132, 199, 0.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(0,0,0,0.1)';
-                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.02)';
-                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.04)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span style={{ fontSize: '18px' }}>👑</span>
@@ -308,26 +304,25 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
               <button 
                 onClick={() => { onLogout(); setIsDrawerOpen(false); }}
                 style={{ 
-                  background: 'rgba(239, 68, 68, 0.05)', 
-                  border: '1px solid rgba(239, 68, 68, 0.2)', 
+                  background: 'transparent', 
+                  border: 'none', 
                   color: '#ef4444',
-                  padding: '14px',
+                  padding: '12px',
                   borderRadius: '8px',
                   fontWeight: 600,
-                  fontSize: '14px',
+                  fontSize: '15px',
                   cursor: 'pointer',
-                  transition: 'background 0.2s, color 0.2s',
-                  marginTop: 'auto'
+                  transition: 'background 0.2s',
+                  marginTop: 'auto',
+                  textAlign: 'left',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#ef4444';
-                  e.currentTarget.style.color = '#fff';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.05)';
-                  e.currentTarget.style.color = '#ef4444';
-                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
               >
+                <span style={{ fontSize: '18px' }}>🚪</span>
                 Oturumu Kapat
               </button>
             )}
