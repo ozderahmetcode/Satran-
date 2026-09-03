@@ -148,7 +148,7 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
             right: 0,
             bottom: 0,
             width: '290px',
-            background: '#0c0f17',
+            background: '#ffffff',
             borderLeft: '1px solid var(--panel-border)',
             boxShadow: '-8px 0 32px rgba(0,0,0,0.5)',
             zIndex: 999,
