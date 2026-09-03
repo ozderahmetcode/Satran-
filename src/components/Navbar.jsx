@@ -105,231 +105,161 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
           ))}
         </div>
 
-        {/* Sağ: Profil İkonu */}
-        <button
-          onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-          style={{
-            background: currentUser?.avatar ? 'transparent' : 'rgba(0,0,0,0.05)',
-            border: '1px solid var(--panel-border)',
-            borderRadius: '50%',
-            width: '42px',
-            height: '42px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            color: 'var(--text-primary)',
-            fontSize: currentUser?.avatar ? 'inherit' : '18px',
-            fontWeight: 700,
-            transition: 'border-color 0.2s',
-            justifySelf: 'end',
-            padding: 0,
-            overflow: 'hidden'
-          }}
-        >
-          {currentUser ? (
-            currentUser.avatar ? (
-              <img src={currentUser.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        {/* Sağ: Profil İkonu & Dropdown */}
+        <div style={{ position: 'relative' }}>
+          <button
+            onClick={() => setIsDrawerOpen(!isDrawerOpen)}
+            style={{
+              background: currentUser?.avatar ? 'transparent' : 'rgba(0,0,0,0.05)',
+              border: '1px solid var(--panel-border)',
+              borderRadius: '50%',
+              width: '42px',
+              height: '42px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: 'var(--text-primary)',
+              fontSize: currentUser?.avatar ? 'inherit' : '18px',
+              fontWeight: 700,
+              transition: 'border-color 0.2s',
+              padding: 0,
+              overflow: 'hidden'
+            }}
+          >
+            {currentUser ? (
+              currentUser.avatar ? (
+                <img src={currentUser.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                currentUser.name.charAt(0).toUpperCase()
+              )
             ) : (
-              currentUser.name.charAt(0).toUpperCase()
-            )
-          ) : (
-            '👤'
+              '👤'
+            )}
+          </button>
+
+          {/* Profil Dropdown (Dark Theme) */}
+          {isDrawerOpen && (
+            <>
+              {/* Invisible Backdrop for click-outside */}
+              <div 
+                onClick={() => setIsDrawerOpen(false)}
+                style={{
+                  position: 'fixed',
+                  inset: 0,
+                  zIndex: 99998
+                }}
+              />
+              
+              <div style={{
+                position: 'absolute',
+                top: '52px',
+                right: 0,
+                width: '260px',
+                background: '#111111',
+                borderRadius: '8px',
+                border: '1px solid #2a2a2a',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+                zIndex: 99999,
+                padding: '12px 0',
+                display: 'flex',
+                flexDirection: 'column',
+                animation: 'fadeInDown 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+              }}>
+                <style>{`
+                  @keyframes fadeInDown {
+                    from { opacity: 0; transform: translateY(-10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                  }
+                  .dark-menu-item {
+                    display: flex;
+                    alignItems: center;
+                    gap: 12px;
+                    padding: 10px 16px;
+                    background: transparent;
+                    border: none;
+                    color: #e5e5e5;
+                    font-size: 14px;
+                    text-align: left;
+                    cursor: pointer;
+                    width: 100%;
+                    font-family: inherit;
+                  }
+                  .dark-menu-item:hover {
+                    background: rgba(255, 255, 255, 0.05);
+                  }
+                `}</style>
+                
+                {currentUser ? (
+                  <>
+                    <div style={{ padding: '0 16px 12px 16px', display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid #2a2a2a', marginBottom: '8px' }}>
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        background: currentUser.avatar ? 'transparent' : '#f3e8ff',
+                        color: '#9333ea',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '16px',
+                        fontWeight: 'bold',
+                        overflow: 'hidden'
+                      }}>
+                        {currentUser.avatar ? (
+                          <img src={currentUser.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          currentUser.name.charAt(0).toUpperCase()
+                        )}
+                      </div>
+                      <div style={{ overflow: 'hidden' }}>
+                        <div style={{ fontSize: '14px', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                          {currentUser.email || (currentUser.chessUsername + "@lichess.org")}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <button onClick={() => { setCurrentPage('profile'); setIsDrawerOpen(false); }} className="dark-menu-item">
+                      <span style={{ fontSize: '16px' }}>⚙️</span> Account settings
+                    </button>
+                    
+                    {/* Admin Item */}
+                    <button onClick={() => { setCurrentPage('admin'); setIsDrawerOpen(false); }} className="dark-menu-item" style={{ justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                         <span style={{ fontSize: '16px' }}>👑</span> Yönetici Paneli
+                      </div>
+                      <span style={{ fontSize: '18px', color: '#666' }}>›</span>
+                    </button>
+
+                    {/* Placeholder for Theme as requested by screenshot match */}
+                    <button onClick={() => {}} className="dark-menu-item" style={{ justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                         <span style={{ fontSize: '16px' }}>🖥️</span> Theme
+                      </div>
+                      <span style={{ fontSize: '18px', color: '#666' }}>›</span>
+                    </button>
+                    
+                    <div style={{ height: '1px', background: '#2a2a2a', margin: '8px 0' }} />
+                    
+                    <button onClick={() => { onLogout(); setIsDrawerOpen(false); }} className="dark-menu-item">
+                      <span style={{ fontSize: '16px', transform: 'scaleX(-1)', display: 'inline-block' }}>🚪</span> Sign out
+                    </button>
+                  </>
+                ) : (
+                  <div style={{ padding: '0 16px' }}>
+                    <p style={{ color: '#aaa', fontSize: '13px', marginBottom: '12px' }}>Giriş yapmadınız.</p>
+                    <button onClick={() => { setCurrentPage('auth'); setIsDrawerOpen(false); }} style={{ width: '100%', padding: '10px', background: '#fff', color: '#000', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}>
+                      Sign In
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
           )}
-        </button>
+        </div>
       </div>
 
-      {/* Sağdan Açılan Çekmece Arayüzü */}
-      {isDrawerOpen && (
-        <>
-          <div 
-            onClick={() => setIsDrawerOpen(false)}
-            style={{
-              position: 'fixed',
-              inset: 0,
-              background: 'rgba(0,0,0,0.4)',
-              zIndex: 99998,
-              backdropFilter: 'blur(4px)'
-            }}
-          />
 
-          <div style={{
-            position: 'fixed',
-            top: '16px',
-            right: '16px',
-            bottom: '16px',
-            width: '340px',
-            background: 'var(--panel-bg)',
-            borderRadius: '24px',
-            border: '1px solid var(--panel-border)',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
-            zIndex: 99999,
-            padding: '32px 24px',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            animation: 'slideInFloating 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards'
-          }}>
-            <style>{`
-              @keyframes slideInFloating {
-                from { transform: translateX(120%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-              }
-            `}</style>
-
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-                <span style={{ fontFamily: 'var(--font-title)', fontWeight: 800, fontSize: '18px', color: 'var(--text-primary)' }}>Hesap & Menü</span>
-                <button 
-                  onClick={() => setIsDrawerOpen(false)}
-                  style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', fontSize: '20px', cursor: 'pointer', transition: 'color 0.2s', padding: '4px' }}
-                  onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
-                  onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
-                >
-                  ✕
-                </button>
-              </div>
-
-              {currentUser ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderBottom: '1px solid rgba(0,0,0,0.05)', paddingBottom: '24px', marginBottom: '24px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
-                    <div style={{
-                      width: '60px',
-                      height: '60px',
-                      borderRadius: '50%',
-                      background: currentUser.avatar ? 'transparent' : 'rgba(0,0,0,0.05)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '24px',
-                      fontWeight: 'bold',
-                      color: 'var(--text-primary)',
-                      overflow: 'hidden'
-                    }}>
-                      {currentUser.avatar ? (
-                        <img src={currentUser.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      ) : (
-                        currentUser.name.charAt(0).toUpperCase()
-                      )}
-                    </div>
-                    <div style={{ flex: 1, overflow: 'hidden' }}>
-                      <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{currentUser.name}</div>
-                      <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>@{currentUser.chessUsername}</div>
-                    </div>
-                  </div>
-                  
-                  <button
-                    onClick={() => { setCurrentPage('profile'); setIsDrawerOpen(false); }}
-                    style={{ background: 'rgba(0,0,0,0.04)', color: 'var(--text-primary)', border: 'none', fontWeight: 600, fontSize: '14px', padding: '12px 16px', width: '100%', borderRadius: '8px', cursor: 'pointer', transition: 'background 0.2s', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.08)'}
-                    onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.04)'}
-                  >
-                    Profilimi Görüntüle 
-                    <span style={{ color: 'var(--text-secondary)' }}>→</span>
-                  </button>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderBottom: '1px solid var(--panel-border)', paddingBottom: '20px', marginBottom: '20px' }}>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Turnuvalara kaydolmak için giriş yapın.</p>
-                  <button 
-                    onClick={() => { setCurrentPage('auth'); setIsDrawerOpen(false); }}
-                    className="btn-primary" 
-                    style={{ justifyContent: 'center' }}
-                  >
-                    Giriş Yap / Üye Ol
-                  </button>
-                </div>
-              )}
-
-              {/* Mobil Menü Linkleri (Sadece Mobilde Görünecek) */}
-              <div className="mobile-nav-links" style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '24px', borderBottom: '1px solid rgba(0,0,0,0.05)', paddingBottom: '24px' }}>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px', letterSpacing: '0.5px' }}>Menü</span>
-                {mainLinks.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => { setCurrentPage(item.id); setIsDrawerOpen(false); }}
-                    style={{
-                      background: currentPage === item.id ? 'rgba(0,0,0,0.04)' : 'transparent',
-                      border: 'none',
-                      color: currentPage === item.id ? 'var(--text-primary)' : 'var(--text-secondary)',
-                      fontFamily: 'inherit',
-                      fontSize: '15px',
-                      fontWeight: currentPage === item.id ? 700 : 500,
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      padding: '10px 12px',
-                      borderRadius: '8px',
-                      transition: 'background 0.2s, color 0.2s'
-                    }}
-                    onMouseEnter={(e) => { if (currentPage !== item.id) { e.currentTarget.style.background = 'rgba(0,0,0,0.02)'; e.currentTarget.style.color = 'var(--text-primary)' } }}
-                    onMouseLeave={(e) => { if (currentPage !== item.id) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)' } }}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Yönetici Girişi */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <button
-                  onClick={() => { setCurrentPage('admin'); setIsDrawerOpen(false); }}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '12px',
-                    color: 'var(--text-primary)',
-                    textAlign: 'left',
-                    fontFamily: 'inherit',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    fontSize: '15px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    transition: 'background 0.2s'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.04)'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '18px' }}>👑</span>
-                    <span>Yönetici Paneli</span>
-                  </div>
-                  <span style={{ fontSize: '11px', color: 'var(--accent-primary)', background: 'rgba(2, 132, 199, 0.1)', padding: '4px 8px', borderRadius: '12px', fontWeight: 700 }}>Yetkili</span>
-                </button>
-              </div>
-            </div>
-
-            {currentUser && (
-              <button 
-                onClick={() => { onLogout(); setIsDrawerOpen(false); }}
-                style={{ 
-                  background: 'transparent', 
-                  border: 'none', 
-                  color: '#ef4444',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  fontWeight: 600,
-                  fontSize: '15px',
-                  cursor: 'pointer',
-                  transition: 'background 0.2s',
-                  marginTop: 'auto',
-                  textAlign: 'left',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-              >
-                <span style={{ fontSize: '18px' }}>🚪</span>
-                Oturumu Kapat
-              </button>
-            )}
-          </div>
-        </>
-      )}
     </nav>
   );
 }
