@@ -187,7 +187,7 @@ export default function App() {
       case 'contact':
         return <Contact />;
       case 'matchmaking':
-        return <Matchmaking currentUser={currentUser} onGoToAuth={() => setCurrentPage('auth')} />;
+        return <Matchmaking currentUser={currentUser} users={data.users} onGoToAuth={() => setCurrentPage('auth')} onUpdateProfile={handleUpdateProfile} />;
       case 'faq':
         return <FAQ setCurrentPage={setCurrentPage} />;
       case 'terms':

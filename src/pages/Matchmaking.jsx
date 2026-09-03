@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function Matchmaking({ currentUser, users = [], onGoToAuth }) {
+export default function Matchmaking({ currentUser, users = [], onGoToAuth, onUpdateProfile }) {
   const [filter, setFilter] = useState('all');
   const [activeTab, setActiveTab] = useState('find'); // find, requests, matches
   const [searchTerm, setSearchTerm] = useState('');
@@ -30,9 +30,11 @@ export default function Matchmaking({ currentUser, users = [], onGoToAuth }) {
       const data = await response.json();
       if (data.success) {
         alert("Durumunuz başarıyla kaydedildi!");
-        // State update can be handled by reloading or passing a prop. For now, just alert.
+        if (onUpdateProfile) {
+           onUpdateProfile(data.user);
+        }
       } else {
-        alert("Kaydedilemedi.");
+        alert(data.error || "Kaydedilemedi.");
       }
     } catch (e) {
       console.error(e);
