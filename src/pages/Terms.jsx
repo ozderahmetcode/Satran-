@@ -94,9 +94,9 @@ export default function Terms() {
           <strong>İPTAL VE İADE KURALI:</strong>
         </p>
         <ul style={{ listStylePosition: 'inside', color: 'var(--text-secondary)', lineHeight: 1.7, paddingLeft: '16px' }}>
-          <li><strong>24 Saat Sınırı:</strong> Ücretli etkinliklerimizde satın alınan biletler, etkinliğin başlangıç saatine <strong>en geç 24 saat kalana kadar</strong> kesintisiz olarak iptal edilebilir ve tam ücret iadesi yapılır.</li>
-          <li><strong>Son 24 Saat:</strong> Etkinliğe 24 saatten az süre kala yapılan iptallerde veya turnuvaya katılmama durumlarında <strong>kesinlikle ücret iadesi yapılmamaktadır.</strong></li>
-          <li><strong>İade Süreci:</strong> Onaylanan iade işlemleri doğrudan ödeme yönteminize iade edilir. İadenin kartınıza yansıması bankanıza bağlı olarak kredi kartlarında 1-3 iş günü, banka kartlarında ise 7-14 iş günü sürebilir.</li>
+          <li><strong>Nakit Ödeme Sistemi:</strong> Platformumuz üzerinden kredi kartı veya dijital ödeme alınmamaktadır. Tüm ödemeler etkinlik alanında (X Cafe) <strong>nakit veya elden</strong> yapılmaktadır.</li>
+          <li><strong>İade Durumu:</strong> Ödemeler sadece etkinlik alanında elden tahsil edildiği için herhangi bir dijital <strong>iptal veya iade işlemi yapılamaz</strong>. Etkinliğe katılmaktan vazgeçmeniz durumunda ödeme yapmamış olursunuz.</li>
+          <li>Lütfen sadece kesin katılım sağlayacağınız etkinliklere kayıt olunuz. Sürekli kayıt olup katılmayan kullanıcıların platform erişimi kısıtlanabilir.</li>
         </ul>
       </section>
 

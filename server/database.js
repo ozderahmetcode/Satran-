@@ -181,7 +181,7 @@ module.exports = {
   updateUserProfile: (userId, updates) => {
     const db = readDB();
     const userIndex = db.users.findIndex(u => String(u.id) === String(userId));
-    if (userIndex === -1) return { error: "Kullanıcı bulunamadı." };
+    if (userIndex === -1) return { error: "Oturum süresi dolmuş veya sunucu güncellenmiş. Lütfen 'Oturumu Kapat' diyip tekrar giriş yapın." };
 
     const user = db.users[userIndex];
     
