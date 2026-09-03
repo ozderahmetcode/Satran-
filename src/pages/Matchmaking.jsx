@@ -12,7 +12,6 @@ export default function Matchmaking({ currentUser, users = [], onGoToAuth, onUpd
 
   // Sadece matchmaking ayarı aktif olan ve gerçek kullanıcıları listele
   const availablePlayers = users.filter(u => {
-    if (currentUser && String(u.id) === String(currentUser.id)) return false;
     return u.matchmakingSettings && u.matchmakingSettings.isActive === true;
   });
 
@@ -193,16 +192,25 @@ export default function Matchmaking({ currentUser, users = [], onGoToAuth, onUpd
                   "{p.matchmakingSettings?.note || 'Satranç oynamak için rakip arıyor.'}"
                 </p>
 
-                <button 
-                  onClick={() => currentUser ? alert('İstek gönderildi!') : onGoToAuth()}
-                  style={{ width: '100%', background: 'var(--accent-primary)', color: '#fff', border: 'none', padding: '14px', borderRadius: '12px', fontWeight: 800, fontSize: '15px', cursor: 'pointer', transition: 'opacity 0.2s, transform 0.1s' }}
-                  onMouseEnter={(e) => e.currentTarget.style.opacity = 0.9}
-                  onMouseLeave={(e) => e.currentTarget.style.opacity = 1}
-                  onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
-                  onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                >
-                  Oyun İsteği
-                </button>
+                {currentUser && String(currentUser.id) === String(p.id) ? (
+                  <button 
+                    disabled
+                    style={{ width: '100%', background: 'rgba(0,0,0,0.05)', color: 'var(--text-secondary)', border: 'none', padding: '14px', borderRadius: '12px', fontWeight: 800, fontSize: '15px', cursor: 'not-allowed' }}
+                  >
+                    Bu Sensin
+                  </button>
+                ) : (
+                  <button 
+                    onClick={() => currentUser ? alert('İstek gönderildi!') : onGoToAuth()}
+                    style={{ width: '100%', background: 'var(--accent-primary)', color: '#fff', border: 'none', padding: '14px', borderRadius: '12px', fontWeight: 800, fontSize: '15px', cursor: 'pointer', transition: 'opacity 0.2s, transform 0.1s' }}
+                    onMouseEnter={(e) => e.currentTarget.style.opacity = 0.9}
+                    onMouseLeave={(e) => e.currentTarget.style.opacity = 1}
+                    onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
+                    onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  >
+                    Oyun İsteği
+                  </button>
+                )}
               </div>
             ))}
             
