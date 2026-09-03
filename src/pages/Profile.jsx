@@ -182,6 +182,15 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
              <span style={{ fontSize: '24px' }}>📷</span>
           </div>
         </div>
+        
+        {/* Hidden File Input for Avatar - ALWAYS IN DOM */}
+        <input
+          type="file"
+          accept="image/*"
+          ref={fileInputRef}
+          onChange={(e) => setAvatarFile(e.target.files[0])}
+          style={{ display: 'none' }}
+        />
 
         <div style={{ flex: 1, minWidth: '200px' }}>
           <h2 style={{ fontFamily: 'var(--font-title)', fontSize: '32px', fontWeight: 800, color: 'var(--text-primary)' }}>{currentUser.name}</h2>
@@ -373,15 +382,9 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px' }}>Profil Fotoğrafı (Dosya Seç)</label>
-              <input
-                type="file"
-                accept="image/*"
-                ref={fileInputRef}
-                onChange={(e) => setAvatarFile(e.target.files[0])}
-                style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px', color: 'var(--text-primary)', outline: 'none', fontWeight: 600, display: 'none' }}
-              />
-              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>Cihazınızdan bir resim dosyası seçin. Yeni resim yüklendiğinde eski resim değişecektir.</p>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                Profil fotoğrafınızı değiştirmek için yukarıdaki avatarınıza tıklayın.
+              </p>
             </div>
 
             <div>

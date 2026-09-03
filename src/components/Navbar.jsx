@@ -183,7 +183,7 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
                     text-align: left;
                     cursor: pointer;
                     width: 100%;
-                    font-family: inherit;
+                    font-family: var(--font-body);
                   }
                   .dark-menu-item:hover {
                     background: rgba(255, 255, 255, 0.05);
@@ -213,14 +213,14 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
                         )}
                       </div>
                       <div style={{ overflow: 'hidden' }}>
-                        <div style={{ fontSize: '14px', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                        <div style={{ fontSize: '14px', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', fontFamily: 'var(--font-title)' }}>
                           {currentUser.email || (currentUser.chessUsername + "@lichess.org")}
                         </div>
                       </div>
                     </div>
                     
                     <button onClick={() => { setCurrentPage('profile'); setIsDrawerOpen(false); }} className="dark-menu-item">
-                      <span style={{ fontSize: '16px' }}>⚙️</span> Account settings
+                      <span style={{ fontSize: '16px' }}>⚙️</span> Hesap Ayarları
                     </button>
                     
                     {/* Admin Item */}
@@ -230,19 +230,11 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
                       </div>
                       <span style={{ fontSize: '18px', color: '#666' }}>›</span>
                     </button>
-
-                    {/* Placeholder for Theme as requested by screenshot match */}
-                    <button onClick={() => {}} className="dark-menu-item" style={{ justifyContent: 'space-between' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                         <span style={{ fontSize: '16px' }}>🖥️</span> Theme
-                      </div>
-                      <span style={{ fontSize: '18px', color: '#666' }}>›</span>
-                    </button>
                     
                     <div style={{ height: '1px', background: '#2a2a2a', margin: '8px 0' }} />
                     
                     <button onClick={() => { onLogout(); setIsDrawerOpen(false); }} className="dark-menu-item">
-                      <span style={{ fontSize: '16px', transform: 'scaleX(-1)', display: 'inline-block' }}>🚪</span> Sign out
+                      <span style={{ fontSize: '16px', transform: 'scaleX(-1)', display: 'inline-block' }}>🚪</span> Çıkış Yap
                     </button>
                   </>
                 ) : (
