@@ -128,12 +128,11 @@ export default function CreateEvent({ onAddTournament, setCurrentPage }) {
               onChange={(e) => setFormData({ ...formData, time: e.target.value })}
               style={{
                 width: '100%',
-                background: 'rgba(255, 255, 255, 0.03)',
+                background: 'var(--bg-color)',
                 border: '1px solid var(--panel-border)',
                 borderRadius: '8px',
                 padding: '12px 16px',
-                color: '#fff',
-                outline: 'none'
+                color: 'var(--text-primary)', outline: 'none'
               }}
             />
           </div>
@@ -150,12 +149,11 @@ export default function CreateEvent({ onAddTournament, setCurrentPage }) {
             onChange={(e) => setFormData({ ...formData, location: e.target.value })}
             style={{
               width: '100%',
-              background: 'rgba(255, 255, 255, 0.03)',
+              background: 'var(--bg-color)',
               border: '1px solid var(--panel-border)',
               borderRadius: '8px',
               padding: '12px 16px',
-              color: '#fff',
-              outline: 'none'
+              color: 'var(--text-primary)', outline: 'none'
             }}
           />
         </div>
@@ -172,12 +170,11 @@ export default function CreateEvent({ onAddTournament, setCurrentPage }) {
               onChange={(e) => setFormData({ ...formData, fee: e.target.value })}
               style={{
                 width: '100%',
-                background: 'rgba(255, 255, 255, 0.03)',
+                background: 'var(--bg-color)',
                 border: '1px solid var(--panel-border)',
                 borderRadius: '8px',
                 padding: '12px 16px',
-                color: '#fff',
-                outline: 'none'
+                color: 'var(--text-primary)', outline: 'none'
               }}
             />
           </div>
@@ -193,12 +190,11 @@ export default function CreateEvent({ onAddTournament, setCurrentPage }) {
               onChange={(e) => setFormData({ ...formData, maxQuota: e.target.value })}
               style={{
                 width: '100%',
-                background: 'rgba(255, 255, 255, 0.03)',
+                background: 'var(--bg-color)',
                 border: '1px solid var(--panel-border)',
                 borderRadius: '8px',
                 padding: '12px 16px',
-                color: '#fff',
-                outline: 'none'
+                color: 'var(--text-primary)', outline: 'none'
               }}
             />
           </div>

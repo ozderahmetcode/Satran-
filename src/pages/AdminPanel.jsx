@@ -173,7 +173,7 @@ export default function AdminPanel({ registrations, users = [], onRegisterUpdate
             placeholder="Yönetici Kullanıcı Adı"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            style={{ width: '100%', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px 16px', color: '#fff', outline: 'none', textAlign: 'center' }}
+            style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px 16px', color: 'var(--text-primary)', outline: 'none', textAlign: 'center' }}
           />
           <input
             type="password"
@@ -181,7 +181,7 @@ export default function AdminPanel({ registrations, users = [], onRegisterUpdate
             placeholder="Yönetici Giriş Şifresi"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            style={{ width: '100%', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px 16px', color: '#fff', outline: 'none', textAlign: 'center' }}
+            style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px 16px', color: 'var(--text-primary)', outline: 'none', textAlign: 'center' }}
           />
           <button type="submit" className="btn-primary" style={{ justifyContent: 'center' }}>
             Giriş Yap
@@ -281,34 +281,34 @@ export default function AdminPanel({ registrations, users = [], onRegisterUpdate
             <form onSubmit={handleCreateTournament} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Başlık *</label>
-                <input type="text" required placeholder="1. X Cafe Hızlı Satranç..." value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} style={{ width: '100%', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: '#fff', outline: 'none' }} />
+                <input type="text" required placeholder="1. X Cafe Hızlı Satranç..." value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }} />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Tarih *</label>
-                  <input type="text" required placeholder="15.08.2026" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} style={{ width: '100%', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: '#fff', outline: 'none' }} />
+                  <input type="text" required placeholder="15.08.2026" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Saat *</label>
-                  <input type="text" required placeholder="15:00" value={formData.time} onChange={(e) => setFormData({ ...formData, time: e.target.value })} style={{ width: '100%', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: '#fff', outline: 'none' }} />
+                  <input type="text" required placeholder="15:00" value={formData.time} onChange={(e) => setFormData({ ...formData, time: e.target.value })} style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }} />
                 </div>
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Konum *</label>
-                <input type="text" required value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} style={{ width: '100%', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: '#fff', outline: 'none' }} />
+                <input type="text" required value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }} />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Ücret</label>
-                  <input type="text" value={formData.fee} onChange={(e) => setFormData({ ...formData, fee: e.target.value })} style={{ width: '100%', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: '#fff', outline: 'none' }} />
+                  <input type="text" value={formData.fee} onChange={(e) => setFormData({ ...formData, fee: e.target.value })} style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Kontenjan</label>
-                  <input type="number" required value={formData.maxQuota} onChange={(e) => setFormData({ ...formData, maxQuota: e.target.value })} style={{ width: '100%', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: '#fff', outline: 'none' }} />
+                  <input type="number" required value={formData.maxQuota} onChange={(e) => setFormData({ ...formData, maxQuota: e.target.value })} style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Tur Sayısı</label>
-                  <select value={formData.totalRounds} onChange={(e) => setFormData({ ...formData, totalRounds: e.target.value })} style={{ width: '100%', background: '#0d121e', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: '#fff', outline: 'none' }}>
+                  <select value={formData.totalRounds} onChange={(e) => setFormData({ ...formData, totalRounds: e.target.value })} style={{ width: '100%', background: '#0d121e', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }}>
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => <option key={n} value={n}>{n} Tur</option>)}
                   </select>
                 </div>
@@ -391,7 +391,7 @@ export default function AdminPanel({ registrations, users = [], onRegisterUpdate
                             }}>
                               <div style={{ display: 'flex', gap: '20px', alignItems: 'center', flex: 1 }}>
                                 <div style={{ width: '45%' }}>
-                                  <strong style={{ color: '#fff' }}>⚪ Beyaz:</strong> {wUser.name} <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>({wUser.elo || 1500} ELO)</span>
+                                  <strong style={{ color: 'var(--text-primary)' }}>⚪ Beyaz:</strong> {wUser.name} <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>({wUser.elo || 1500} ELO)</span>
                                 </div>
                                 <div style={{ fontSize: '18px' }}>vs</div>
                                 <div style={{ width: '45%' }}>

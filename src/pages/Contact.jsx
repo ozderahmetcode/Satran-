@@ -155,12 +155,11 @@ export default function Contact() {
                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                 style={{
                   width: '100%',
-                  background: 'rgba(255, 255, 255, 0.03)',
+                  background: 'var(--bg-color)',
                   border: '1px solid var(--panel-border)',
                   borderRadius: '8px',
                   padding: '12px',
-                  color: '#fff',
-                  outline: 'none',
+                  color: 'var(--text-primary)', outline: 'none',
                   resize: 'none'
                 }}
               />

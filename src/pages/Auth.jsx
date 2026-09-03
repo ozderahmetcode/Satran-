@@ -249,7 +249,7 @@ export default function Auth({ onLoginSuccess }) {
               placeholder="Şifreniz"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              style={{ width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: '#fff', outline: 'none' }}
+              style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }}
             />
           </div>
           <button type="submit" disabled={loading} className="btn-primary" style={{ justifyContent: 'center', marginTop: '8px' }}>
@@ -279,7 +279,7 @@ export default function Auth({ onLoginSuccess }) {
             placeholder="000000"
             value={verificationCode}
             onChange={(e) => setVerificationCode(e.target.value)}
-            style={{ width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px', color: '#fff', outline: 'none', textAlign: 'center', fontSize: '20px', letterSpacing: '4px' }}
+            style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px', color: 'var(--text-primary)', outline: 'none', textAlign: 'center', fontSize: '20px', letterSpacing: '4px' }}
           />
 
           <button type="submit" disabled={loading} className="btn-primary" style={{ justifyContent: 'center' }}>

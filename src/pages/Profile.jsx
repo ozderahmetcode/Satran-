@@ -11,6 +11,12 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
   });
   const [avatarFile, setAvatarFile] = useState(null);
   const [statusMsg, setStatusMsg] = useState('');
+  
+  // Create a ref for the hidden file input
+  const fileInputRef = React.useRef(null);
+  
+  // Local preview URL
+  const previewUrl = avatarFile ? URL.createObjectURL(avatarFile) : null;
 
   // -------------------- STATS CALCULATION --------------------
   const stats = useMemo(() => {
@@ -148,11 +154,13 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
         border: '1px solid var(--accent-primary)'
       }}>
         {/* Avatar */}
-        <div style={{
+        <div 
+          onClick={() => fileInputRef.current && fileInputRef.current.click()}
+          style={{
           width: '100px',
           height: '100px',
           borderRadius: '50%',
-          background: currentUser.avatar ? 'transparent' : 'var(--gradient-gold)',
+          background: (previewUrl || currentUser.avatar) ? 'transparent' : 'var(--gradient-gold)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -161,13 +169,18 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
           color: '#fff',
           boxShadow: '0 4px 20px rgba(217, 119, 6, 0.2)',
           overflow: 'hidden',
-          border: currentUser.avatar ? '2px solid var(--accent-primary)' : 'none'
+          border: (previewUrl || currentUser.avatar) ? '2px solid var(--accent-primary)' : 'none',
+          cursor: 'pointer',
+          position: 'relative'
         }}>
-          {currentUser.avatar ? (
-            <img src={currentUser.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          {(previewUrl || currentUser.avatar) ? (
+            <img src={previewUrl || currentUser.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
             currentUser.name.charAt(0).toUpperCase()
           )}
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s', ':hover': { opacity: 1 } }}>
+             <span style={{ fontSize: '24px' }}>📷</span>
+          </div>
         </div>
 
         <div style={{ flex: 1, minWidth: '200px' }}>
@@ -364,8 +377,9 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
               <input
                 type="file"
                 accept="image/*"
+                ref={fileInputRef}
                 onChange={(e) => setAvatarFile(e.target.files[0])}
-                style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px', color: 'var(--text-primary)', outline: 'none', fontWeight: 600 }}
+                style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px', color: 'var(--text-primary)', outline: 'none', fontWeight: 600, display: 'none' }}
               />
               <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>Cihazınızdan bir resim dosyası seçin. Yeni resim yüklendiğinde eski resim değişecektir.</p>
             </div>
