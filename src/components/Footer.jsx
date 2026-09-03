@@ -26,7 +26,7 @@ export default function Footer({ setCurrentPage }) {
             background: 'var(--gradient-glow)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent'
-          }}>ozder</span>
+          }}>OZDER</span>
           <span style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: 'normal' }}>satranç topluluğu</span>
         </div>
 
@@ -44,7 +44,7 @@ export default function Footer({ setCurrentPage }) {
           color: 'var(--text-secondary)',
           fontSize: '13px'
         }}>
-          © 2026 ozder. Tüm hakları saklıdır. Ümraniye Tilda Cafe iş birliğiyle.
+          © 2026 OZDER. Tüm hakları saklıdır. Ümraniye X Cafe iş birliğiyle.
         </div>
       </div>
     </footer>

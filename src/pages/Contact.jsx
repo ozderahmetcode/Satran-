@@ -53,8 +53,8 @@ export default function Contact() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
-              <strong style={{ color: 'var(--text-primary)' }}>Mekan Adı:</strong>
-              <p style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>Tilda Cafe (Ümraniye)</p>
+              <h4 style={{ fontFamily: 'var(--font-title)', fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>Adres</h4>
+              <p style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>X Cafe (Ümraniye)</p>
             </div>
             <div>
               <strong style={{ color: 'var(--text-primary)' }}>Adres:</strong>

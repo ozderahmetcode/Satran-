@@ -6,7 +6,8 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
     name: currentUser?.name || '',
     phone: currentUser?.phone || '',
     chessUsername: currentUser?.chessUsername || '',
-    bio: 'Satranç tutkunu. ozder etkinliklerine katılıyor.'
+    bio: currentUser?.bio || 'Satranç tutkunu. OZDER etkinliklerine katılıyor.',
+    avatar: currentUser?.avatar || ''
   });
   const [statusMsg, setStatusMsg] = useState('');
 
@@ -142,16 +143,22 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
           width: '100px',
           height: '100px',
           borderRadius: '50%',
-          background: 'var(--gradient-gold)',
+          background: currentUser.avatar ? 'transparent' : 'var(--gradient-gold)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           fontSize: '48px',
           fontWeight: 'bold',
           color: '#fff',
-          boxShadow: '0 4px 20px rgba(217, 119, 6, 0.2)'
+          boxShadow: '0 4px 20px rgba(217, 119, 6, 0.2)',
+          overflow: 'hidden',
+          border: currentUser.avatar ? '2px solid var(--accent-primary)' : 'none'
         }}>
-          {currentUser.name.charAt(0).toUpperCase()}
+          {currentUser.avatar ? (
+            <img src={currentUser.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ) : (
+            currentUser.name.charAt(0).toUpperCase()
+          )}
         </div>
 
         <div style={{ flex: 1, minWidth: '200px' }}>
@@ -341,6 +348,18 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
                   style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px', color: 'var(--text-primary)', outline: 'none', fontWeight: 600 }}
                 />
               </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px' }}>Profil Fotoğrafı URL (İsteğe Bağlı)</label>
+              <input
+                type="text"
+                placeholder="https://example.com/avatar.jpg"
+                value={profileData.avatar}
+                onChange={(e) => setProfileData({ ...profileData, avatar: e.target.value })}
+                style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px', color: 'var(--text-primary)', outline: 'none', fontWeight: 600 }}
+              />
+              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px' }}>Kendi resminizin olduğu bir resim URL'si yapıştırarak profil fotoğrafınızı özelleştirebilirsiniz.</p>
             </div>
 
             <div>

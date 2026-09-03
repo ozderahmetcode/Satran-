@@ -4,7 +4,7 @@ const path = require('path');
 const DATA_DIR = path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 
-// Sıfırdan başlayacak temiz veritabanı şablonu (ozder satranç topluluğu)
+// Sıfırdan başlayacak temiz veritabanı şablonu (OZDER satranç topluluğu)
 const defaultData = {
   stats: {
     organizedTournaments: 1,
@@ -22,10 +22,10 @@ const defaultData = {
   tournaments: [
     {
       id: 1,
-      title: "1. Tilda Cafe Satranç Tanışma Buluşması",
+      title: "1. X Cafe Satranç Tanışma Buluşması",
       date: "15.08.2026",
       time: "15:00",
-      location: "Ümraniye Tilda Cafe",
+      location: "Ümraniye X Cafe",
       fee: "300 TL",
       champion: "Bekleniyor...",
       status: "active",

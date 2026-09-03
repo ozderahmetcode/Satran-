@@ -11,7 +11,7 @@ export default function Terms() {
           1. Kabul ve Onay
         </h2>
         <p style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-          ozder platformunu ve etkinliklerini kullanarak, bu Kullanım Şartları'nı okuduğunuzu, anladığınızı ve kabul ettiğinizi beyan etmiş olursunuz. Bu şartları kabul etmiyorsanız, platformumuzu kullanmamanızı ve etkinliklerimize katılmamanızı rica ederiz.
+          OZDER platformunu ve etkinliklerini kullanarak, bu Kullanım Şartları'nı okuduğunuzu, anladığınızı ve kabul ettiğinizi beyan etmiş olursunuz. Bu şartları kabul etmiyorsanız, platformumuzu kullanmamanızı ve etkinliklerimize katılmamanızı rica ederiz.
         </p>
       </section>
 
@@ -20,7 +20,7 @@ export default function Terms() {
           2. Hizmet Tanımı
         </h2>
         <p style={{ color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: '12px' }}>
-          ozder, çeşitli sosyal, kültürel ve sportif (satranç vb.) etkinlikler düzenleyen bir organizasyon markasıdır. Hizmetlerimiz şunları içerir:
+          OZDER, çeşitli sosyal, kültürel ve sportif (satranç vb.) etkinlikler düzenleyen bir organizasyon markasıdır. Hizmetlerimiz şunları içerir:
         </p>
         <ul style={{ listStylePosition: 'inside', color: 'var(--text-secondary)', lineHeight: 1.7, paddingLeft: '16px' }}>
           <li>Etkinlik organizasyonu ve yönetimi</li>
@@ -53,15 +53,15 @@ export default function Terms() {
           4. Fotoğraf ve Video Çekimi (Görsel İçerik Hakları)
         </h2>
         <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 700, margin: '16px 0 8px 0' }}>4.1 Görsel İçerik Hakları</h3>
-        <p style={{ color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: '8px' }}>ozder etkinliklerine katılarak, aşağıdaki hususları kabul etmiş sayılırsınız:</p>
+        <p style={{ color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: '8px' }}>OZDER etkinliklerine katılarak, aşağıdaki hususları kabul etmiş sayılırsınız:</p>
         <ul style={{ listStylePosition: 'inside', color: 'var(--text-secondary)', lineHeight: 1.7, paddingLeft: '16px', marginBottom: '16px' }}>
-          <li>Etkinlik sırasında ozder veya görevlendirdiği kişiler tarafından çekilen tüm fotoğraf ve videoların tüm kullanım hakları süresiz ve sınırsız olarak ozder'e aittir.</li>
+          <li>Etkinlik sırasında OZDER veya görevlendirdiği kişiler tarafından çekilen tüm fotoğraf ve videoların tüm kullanım hakları süresiz ve sınırsız olarak OZDER'e aittir.</li>
           <li>Görseller; web sitesi, sosyal medya, basılı materyaller, reklamlar ve diğer tanıtım faaliyetlerinde kullanılabilir.</li>
           <li>Görselleriniz için herhangi bir telif ücreti veya kullanım bedeli talep edemezsiniz.</li>
         </ul>
         <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 700, margin: '16px 0 8px 0' }}>4.2 Çekilmeme Hakkı</h3>
         <p style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-          Fotoğraflanmak veya görüntülenmek istemiyorsanız: Etkinlik öncesinde organizatörlere yazılı bildirimde bulunabilirsiniz veya etkinlik sırasında fotoğrafçılara durumu belirtebilirsiniz. ozder, makul çaba göstererek talebinizi karşılamaya çalışacaktır.
+          Fotoğraflanmak veya görüntülenmek istemiyorsanız: Etkinlik öncesinde organizatörlere yazılı bildirimde bulunabilirsiniz veya etkinlik sırasında fotoğrafçılara durumu belirtebilirsiniz. OZDER, makul çaba göstererek talebinizi karşılamaya çalışacaktır.
         </p>
       </section>
 
@@ -70,7 +70,7 @@ export default function Terms() {
           5. Fikri Mülkiyet Hakları
         </h2>
         <p style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-          ozder markası, logosu ve tüm yazılım/tasarım içerikleri yasal olarak <strong>Ahmet Özder</strong>'e aittir. Platform üzerindeki içerikler izinsiz kopyalanamaz, çoğaltılamaz veya dağıtılamaz.
+          OZDER markası, logosu ve tüm yazılım/tasarım içerikleri yasal olarak <strong>Ahmet Özder</strong>'e aittir. Platform üzerindeki içerikler izinsiz kopyalanamaz, çoğaltılamaz veya dağıtılamaz.
         </p>
       </section>
 
@@ -79,10 +79,10 @@ export default function Terms() {
           6. Sorumluluk Sınırlaması
         </h2>
         <p style={{ color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: '8px' }}>
-          <strong>Etkinlik Riskleri:</strong> Etkinliklere katılım tamamen katılımcının kendi sorumluluğundadır. ozder, etkinlik sırasında oluşabilecek kişisel yaralanma, kayıp veya hasarlardan sorumlu tutulamaz.
+          <strong>Etkinlik Riskleri:</strong> Etkinliklere katılım tamamen katılımcının kendi sorumluluğundadır. OZDER, etkinlik sırasında oluşabilecek kişisel yaralanma, kayıp veya hasarlardan sorumlu tutulamaz.
         </p>
         <p style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-          <strong>Kişisel Eşyalar:</strong> Etkinlik sırasında kaybolan veya çalınan kişisel eşyalardan ozder sorumlu değildir.
+          <strong>Kişisel Eşyalar:</strong> Etkinlik sırasında kaybolan veya çalınan kişisel eşyalardan OZDER sorumlu değildir.
         </p>
       </section>
 

@@ -18,7 +18,7 @@ export default function Home({ stats, leaders, setCurrentPage }) {
           color: 'var(--text-primary)'
         }}>
           Sosyal Satranç Kültürü <br />
-          Şimdi <span className="text-gradient">ozder</span> ile Buluşuyor
+          Şimdi <span className="text-gradient">OZDER</span> ile Buluşuyor
         </h1>
         <p style={{
           color: 'var(--text-secondary)',
@@ -26,7 +26,7 @@ export default function Home({ stats, leaders, setCurrentPage }) {
           maxWidth: '650px',
           margin: '0 auto 40px auto'
         }}>
-          Ümraniye Tilda Cafe'de düzenlenen, satrancın heyecanını kahve kokusu ve samimi sohbetlerle birleştiren özgün etkinliklerimize katılın.
+          Ümraniye X Cafe'de düzenlenen, satrancın heyecanını kahve kokusu ve samimi sohbetlerle birleştiren özgün etkinliklerimize katılın.
         </p>
         <div style={{ display: 'flex', justifyContent: 'center', gap: '16px' }}>
           <button onClick={() => setCurrentPage('event')} className="btn-primary" style={{ padding: '14px 28px', fontSize: '16px' }}>
@@ -100,10 +100,10 @@ export default function Home({ stats, leaders, setCurrentPage }) {
               boxShadow: '0 4px 6px -1px rgba(14, 165, 233, 0.3)'
             }}>Etkinlik Detayları</span>
             <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '28px', fontWeight: 800, marginTop: '16px', color: 'var(--text-primary)' }}>
-              Tilda Cafe Sosyal Satranç Buluşmaları
+              X Cafe Sosyal Satranç Buluşmaları
             </h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '15px', marginTop: '6px', fontWeight: 600 }}>
-              📍 Ümraniye Tilda Cafe
+              📍 Ümraniye X Cafe
             </p>
           </div>
           <div style={{
@@ -130,14 +130,14 @@ export default function Home({ stats, leaders, setCurrentPage }) {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <h2 style={{ fontFamily: 'var(--font-title)', fontSize: '36px', fontWeight: 800, color: 'var(--text-primary)' }}>
-            Neden <span className="text-gradient">ozder</span>'e Katılmalısın?
+            Neden <span className="text-gradient">OZDER</span>'e Katılmalısın?
           </h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '16px', lineHeight: 1.7 }}>
-            ozder, sıradan bir satranç turnuvasından çok daha fazlasıdır. Burası her seviyeden insanın keyifle satranç oynayabileceği, yeni arkadaşlar edinebileceği ve kendini geliştirebileceği aktif bir sosyal topluluktur.
+            OZDER, sıradan bir satranç turnuvasından çok daha fazlasıdır. Burası her seviyeden insanın keyifle satranç oynayabileceği, yeni arkadaşlar edinebileceği ve kendini geliştirebileceği aktif bir sosyal topluluktur.
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '16px' }}>
             {[
-              { title: "Sosyal ve Keyifli Ortam", desc: "Ümraniye Tilda Cafe'nin sıcacık atmosferinde kahvenizi yudumlarken rekabetin keyfini çıkarın." },
+              { title: "Sosyal ve Keyifli Ortam", desc: "Ümraniye X Cafe'nin sıcacık atmosferinde kahvenizi yudumlarken rekabetin keyfini çıkarın." },
               { title: "Her Seviyeye Uygun", desc: "İster başlangıç seviyesinde olun ister usta bir oyuncu, kendinize uygun rakipler bulacaksınız." },
               { title: "Resmi Olmayan Dinamik Sıralama", desc: "Oynadığınız her maç topluluk istatistiklerine yansır ve sizi liderlik panosunda üst sıralara taşır." }
             ].map((item, index) => (

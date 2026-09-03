@@ -4,7 +4,7 @@ export default function FAQ({ setCurrentPage }) {
   const [openIndex, setOpenIndex] = useState(null);
 
   const faqs = [
-    { q: "Biz kimiz ve etkinliklerimiz nedir?", a: "ozder, satranç oynamayı ve yeni insanlarla tanışmayı sevenleri bir araya getiren sosyal bir topluluktur. Düzenli olarak kafelerde, barlarda veya parklarda satranç buluşmaları düzenliyoruz." },
+    { q: "Biz kimiz ve etkinliklerimiz nedir?", a: "OZDER, satranç oynamayı ve yeni insanlarla tanışmayı sevenleri bir araya getiren sosyal bir topluluktur. Düzenli olarak kafelerde, barlarda veya parklarda satranç buluşmaları düzenliyoruz." },
     { q: "Etkinliklere nasıl katılabilirim?", a: "Web sitemiz üzerinden 'Etkinlikler' sayfasına gidip, yaklaşan bir etkinliğe 'Tek Tıkla Katıl' butonu ile kaydınızı oluşturabilirsiniz." },
     { q: "Etkinlik ücretleri nasıl belirleniyor?", a: "Etkinlik mekanına ve ikramlara göre değişkenlik göstermektedir. Etkinlik detay sayfasında katılım ücretini görebilirsiniz." },
     { q: "Hangi yaş grupları katılabilir?", a: "Etkinliklerimiz genel olarak 16 yaş üzeri katılımcılara yöneliktir. Bazı özel etkinliklerimizde yaş sınırlamaları olabilir, bu durum etkinlik açıklamasında belirtilir. Gençlerden yetişkinlere kadar geniş bir katılımcı kitlemiz bulunuyor." },
@@ -33,7 +33,7 @@ export default function FAQ({ setCurrentPage }) {
           Merak Edilenler
         </h1>
         <p style={{ color: 'var(--text-secondary)' }}>
-          ozder hakkında aklınıza takılan sorulara yanıt bulun
+          OZDER hakkında aklınıza takılan sorulara yanıt bulun
         </p>
       </section>
 

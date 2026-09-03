@@ -16,7 +16,7 @@ export default function AdminPanel({ registrations, users = [], onRegisterUpdate
     title: '',
     date: '',
     time: '',
-    location: 'Ümraniye Tilda Cafe',
+    location: 'Ümraniye X Cafe',
     fee: '300 TL',
     maxQuota: '20',
     totalRounds: '5'
@@ -83,7 +83,7 @@ export default function AdminPanel({ registrations, users = [], onRegisterUpdate
           title: '',
           date: '',
           time: '',
-          location: 'Ümraniye Tilda Cafe',
+          location: 'Ümraniye X Cafe',
           fee: '300 TL',
           maxQuota: '20',
           totalRounds: '5'
@@ -198,7 +198,7 @@ export default function AdminPanel({ registrations, users = [], onRegisterUpdate
       <section style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h1 style={{ fontFamily: 'var(--font-title)', fontSize: '32px', fontWeight: 800 }}>
-            👑 ozder Yönetim Paneli
+            👑 OZDER Yönetim Paneli
           </h1>
           <p style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>
             Katılımcı listelerini yönetin, turnuvaları eşleştirin ve mesajları okuyun.
@@ -281,7 +281,7 @@ export default function AdminPanel({ registrations, users = [], onRegisterUpdate
             <form onSubmit={handleCreateTournament} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Başlık *</label>
-                <input type="text" required placeholder="1. Tilda Cafe Hızlı Satranç..." value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} style={{ width: '100%', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: '#fff', outline: 'none' }} />
+                <input type="text" required placeholder="1. X Cafe Hızlı Satranç..." value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} style={{ width: '100%', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: '#fff', outline: 'none' }} />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>

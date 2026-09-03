@@ -1,18 +1,13 @@
 import React, { useState } from 'react';
 
-export default function Matchmaking({ currentUser, onGoToAuth }) {
+export default function Matchmaking({ currentUser, users = [], onGoToAuth }) {
   const [filter, setFilter] = useState('all');
   const [activeTab, setActiveTab] = useState('find'); // find, requests, matches
+  const [searchTerm, setSearchTerm] = useState('');
 
-  // Dummy data for matchmaking
-  const players = [
-    { id: '1', name: 'Ali Cihat Kalkan', elo: 700, type: 'Online / Yüz Yüze', pref: 'Akşamları', note: '', status: 'online' },
-    { id: '2', name: 'Alihan Ersöz', elo: 1191, type: 'Sadece Yüz Yüze', pref: 'Akşamları', note: '"Kadıköy / Üsküdar tahtam var"', status: 'offline' },
-    { id: '3', name: 'Esra Berberler', elo: 1266, type: 'Online / Yüz Yüze', pref: 'Akşamları', note: '', status: 'offline' },
-    { id: '4', name: 'canengin', elo: 1337, type: 'Sadece Yüz Yüze', pref: '', note: '"Kadıköy moda"', status: 'online' },
-    { id: '5', name: 'Thomas Turbato', elo: 1024, type: 'Online / Yüz Yüze', pref: '', note: '', status: 'offline' },
-    { id: '6', name: 'Kerim Gedik', elo: 1071, type: 'Online / Yüz Yüze', pref: 'Akşamları', note: '', status: 'online' },
-  ];
+  // Sadece gerçek kullanıcıları listele, giriş yapmış kullanıcıyı hariç tut
+  const availablePlayers = users.filter(u => !currentUser || String(u.id) !== String(currentUser.id));
+
 
   return (
     <div className="animate-fade-in" style={{ padding: '40px 0', display: 'flex', flexDirection: 'column', gap: '30px' }}>
@@ -67,7 +62,7 @@ export default function Matchmaking({ currentUser, onGoToAuth }) {
         <>
           {/* Filters */}
           <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-            <input type="text" placeholder="İsim ile ara..." style={{ flex: 1, minWidth: '200px', padding: '12px', borderRadius: '8px', border: '1px solid var(--panel-border)', background: 'var(--panel-bg)', color: 'var(--text-primary)' }} />
+            <input type="text" placeholder="İsim ile ara..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ flex: 1, minWidth: '200px', padding: '12px', borderRadius: '8px', border: '1px solid var(--panel-border)', background: 'var(--panel-bg)', color: 'var(--text-primary)' }} />
             <select style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--panel-border)', background: 'var(--panel-bg)', color: 'var(--text-primary)' }}>
               <option>Tüm Oyun Türleri</option>
               <option>Online</option>
@@ -82,30 +77,30 @@ export default function Matchmaking({ currentUser, onGoToAuth }) {
 
           {/* Grid */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px' }}>
-            {players.map(p => (
+            {availablePlayers
+              .filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
+              .map(p => (
               <div key={p.id} className="glass-panel" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', position: 'relative', padding: '30px 20px' }}>
                 <div style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(0,0,0,0.05)', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>
-                  {p.elo}
+                  {p.elo || 1500}
                 </div>
-                <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#cbd5e1', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', color: '#fff', position: 'relative' }}>
-                  👤
-                  {p.status === 'online' && (
-                    <div style={{ position: 'absolute', bottom: '4px', right: '4px', width: '14px', height: '14px', background: '#10b981', borderRadius: '50%', border: '2px solid #fff' }} />
+                <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'var(--gradient-gold)', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', color: '#fff', position: 'relative' }}>
+                  {p.avatar ? (
+                    <img src={p.avatar} alt="Avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                  ) : (
+                    p.name.charAt(0).toUpperCase()
                   )}
+                  <div style={{ position: 'absolute', bottom: '4px', right: '4px', width: '14px', height: '14px', background: '#10b981', borderRadius: '50%', border: '2px solid #fff' }} />
                 </div>
                 <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '18px', fontWeight: 700 }}>{p.name}</h3>
                 
                 <div style={{ display: 'flex', gap: '8px', margin: '12px 0', flexWrap: 'wrap', justifyContent: 'center' }}>
-                  <span style={{ fontSize: '11px', padding: '4px 8px', background: 'rgba(217,119,6,0.1)', color: 'var(--accent-secondary)', borderRadius: '12px', fontWeight: 600 }}>{p.type}</span>
-                  {p.pref && <span style={{ fontSize: '11px', padding: '4px 8px', background: 'rgba(15,23,42,0.1)', color: 'var(--text-secondary)', borderRadius: '12px', fontWeight: 600 }}>{p.pref}</span>}
+                  <span style={{ fontSize: '11px', padding: '4px 8px', background: 'rgba(217,119,6,0.1)', color: 'var(--accent-secondary)', borderRadius: '12px', fontWeight: 600 }}>Satranç Oyuncusu</span>
                 </div>
                 
-                {p.note && (
-                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)', fontStyle: 'italic', marginBottom: '20px', minHeight: '40px' }}>
-                    {p.note}
-                  </p>
-                )}
-                {!p.note && <div style={{ minHeight: '60px' }} />}
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', fontStyle: 'italic', marginBottom: '20px', minHeight: '40px' }}>
+                  "{p.bio || 'Satranç tutkunu. OZDER etkinliklerine katılıyor.'}"
+                </p>
 
                 <button 
                   onClick={() => currentUser ? alert('İstek gönderildi!') : onGoToAuth()}
@@ -114,6 +109,12 @@ export default function Matchmaking({ currentUser, onGoToAuth }) {
                 </button>
               </div>
             ))}
+            
+            {availablePlayers.length === 0 && (
+              <div style={{ gridColumn: '1 / -1', padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                Sistemde henüz eşleşilecek başka oyuncu bulunmuyor.
+              </div>
+            )}
           </div>
         </>
       )}

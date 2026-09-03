@@ -109,7 +109,7 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
         <button
           onClick={() => setIsDrawerOpen(!isDrawerOpen)}
           style={{
-            background: 'rgba(255,255,255,0.03)',
+            background: currentUser?.avatar ? 'transparent' : 'rgba(0,0,0,0.05)',
             border: '1px solid var(--panel-border)',
             borderRadius: '50%',
             width: '42px',
@@ -118,13 +118,24 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            color: '#fff',
-            fontSize: '18px',
+            color: 'var(--text-primary)',
+            fontSize: currentUser?.avatar ? 'inherit' : '18px',
+            fontWeight: 700,
             transition: 'border-color 0.2s',
-            justifySelf: 'end'
+            justifySelf: 'end',
+            padding: 0,
+            overflow: 'hidden'
           }}
         >
-          {currentUser ? currentUser.name.charAt(0).toUpperCase() : '👤'}
+          {currentUser ? (
+            currentUser.avatar ? (
+              <img src={currentUser.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              currentUser.name.charAt(0).toUpperCase()
+            )
+          ) : (
+            '👤'
+          )}
         </button>
       </div>
 
@@ -177,17 +188,37 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
               </div>
 
               {currentUser ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderBottom: '1px solid var(--panel-border)', paddingBottom: '20px', marginBottom: '20px' }}>
-                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Giriş Yapılan Hesap</div>
-                  <div style={{ fontSize: '18px', fontWeight: 700 }}>{currentUser.name}</div>
-                  <div style={{ fontSize: '13px', color: 'var(--accent-primary)', marginBottom: '12px' }}>@{currentUser.chessUsername}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--panel-border)', paddingBottom: '24px', marginBottom: '24px', textAlign: 'center' }}>
+                  <div style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '50%',
+                    background: currentUser.avatar ? 'transparent' : 'var(--gradient-gold)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '24px',
+                    fontWeight: 'bold',
+                    color: '#fff',
+                    marginBottom: '8px',
+                    overflow: 'hidden',
+                    border: '2px solid var(--accent-primary)'
+                  }}>
+                    {currentUser.avatar ? (
+                      <img src={currentUser.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      currentUser.name.charAt(0).toUpperCase()
+                    )}
+                  </div>
+                  <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>{currentUser.name}</div>
+                  <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '12px' }}>@{currentUser.chessUsername}</div>
                   
                   <button
                     onClick={() => { setCurrentPage('profile'); setIsDrawerOpen(false); }}
                     className="btn-primary"
-                    style={{ fontSize: '13px', padding: '10px 14px', justifyContent: 'center' }}
+                    style={{ fontSize: '13px', padding: '10px 16px', justifyContent: 'center', width: '100%', borderRadius: '20px' }}
                   >
-                    Profilimi Görüntüle 👤
+                    Profilimi Görüntüle
                   </button>
                 </div>
               ) : (
@@ -234,11 +265,11 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
                 <button
                   onClick={() => { setCurrentPage('admin'); setIsDrawerOpen(false); }}
                   style={{
-                    background: 'rgba(255,255,255,0.02)',
+                    background: 'rgba(0,0,0,0.03)',
                     border: '1px solid var(--panel-border)',
                     borderRadius: '8px',
                     padding: '12px 16px',
-                    color: '#fff',
+                    color: 'var(--text-primary)',
                     textAlign: 'left',
                     fontFamily: 'inherit',
                     fontWeight: 600,
@@ -246,11 +277,14 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
                     fontSize: '14px',
                     display: 'flex',
                     justifyContent: 'space-between',
-                    alignItems: 'center'
+                    alignItems: 'center',
+                    transition: 'border-color 0.2s'
                   }}
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent-secondary)'}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--panel-border)'}
                 >
                   <span>Yönetici Paneli 👑</span>
-                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Şifreli</span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Yetkili Girişi</span>
                 </button>
               </div>
             </div>

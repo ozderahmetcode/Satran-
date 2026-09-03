@@ -165,7 +165,7 @@ export default function Database({ leaders, tournaments }) {
       {/* Page Header */}
       <section style={{ textAlign: 'center' }}>
         <h1 style={{ fontFamily: 'var(--font-title)', fontSize: '38px', fontWeight: 800 }}>
-          📊 <span className="text-gradient">ozder</span> Satranç Veritabanı
+          📊 <span className="text-gradient">OZDER</span> Satranç Veritabanı
         </h1>
         <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>
           Topluluğumuzdaki oyuncuların güncel performansları, turnuva geçmişleri ve liderlik tabloları.

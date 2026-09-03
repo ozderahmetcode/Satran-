@@ -5,7 +5,7 @@ export default function CreateEvent({ onAddTournament, setCurrentPage }) {
     title: '',
     date: '',
     time: '',
-    location: 'Ümraniye Tilda Cafe',
+    location: 'Ümraniye X Cafe',
     fee: '300 TL',
     maxQuota: '20'
   });
@@ -78,7 +78,7 @@ export default function CreateEvent({ onAddTournament, setCurrentPage }) {
           <input
             type="text"
             required
-            placeholder="Örn: 2. Tilda Cafe Hızlı Satranç Turnuvası"
+            placeholder="Örn: 2. X Cafe Hızlı Satranç Turnuvası"
             value={formData.title}
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             style={{
