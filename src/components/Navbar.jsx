@@ -25,7 +25,7 @@ export function Logo() {
           fontSize: '20px',
           fontWeight: 800,
           letterSpacing: '1px',
-          color: '#fff'
+          color: 'var(--text-primary)'
         }}>OZDER</span>
         <span style={{ fontSize: '10px', color: 'var(--accent-primary)', fontWeight: 700, letterSpacing: '2px' }}>SATRANÇ</span>
       </div>
