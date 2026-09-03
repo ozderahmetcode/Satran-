@@ -26,7 +26,7 @@ export default function Footer({ setCurrentPage }) {
             background: 'var(--gradient-glow)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent'
-          }}>özder</span>
+          }}>ozder</span>
           <span style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: 'normal' }}>satranç topluluğu</span>
         </div>
 
@@ -34,9 +34,9 @@ export default function Footer({ setCurrentPage }) {
           display: 'flex',
           gap: '32px'
         }}>
-          <a href="#privacy" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '14px' }}>Gizlilik Politikası</a>
-          <a href="#terms" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '14px' }}>Kullanım Şartları</a>
-          <a href="#contact" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '14px' }}>İletişim</a>
+          <button onClick={() => setCurrentPage('terms')} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '14px', cursor: 'pointer' }}>Gizlilik Politikası</button>
+          <button onClick={() => setCurrentPage('terms')} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '14px', cursor: 'pointer' }}>Kullanım Şartları ve İptal/İade Politikası</button>
+          <button onClick={() => setCurrentPage('contact')} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '14px', cursor: 'pointer' }}>İletişim</button>
         </div>
 
         <div style={{
@@ -44,7 +44,7 @@ export default function Footer({ setCurrentPage }) {
           color: 'var(--text-secondary)',
           fontSize: '13px'
         }}>
-          © 2026 özder. Tüm hakları saklıdır. Ümraniye Tilda Cafe iş birliğiyle.
+          © 2026 ozder. Tüm hakları saklıdır. Ümraniye Tilda Cafe iş birliğiyle.
         </div>
       </div>
     </footer>

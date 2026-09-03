@@ -17,7 +17,7 @@ export default function Home({ stats, leaders, setCurrentPage }) {
           marginBottom: '20px'
         }}>
           Sosyal Satranç Kültürü <br />
-          Şimdi <span className="text-gradient">özder</span> ile Buluşuyor
+          Şimdi <span className="text-gradient">ozder</span> ile Buluşuyor
         </h1>
         <p style={{
           color: 'var(--text-secondary)',
@@ -124,10 +124,10 @@ export default function Home({ stats, leaders, setCurrentPage }) {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <h2 style={{ fontFamily: 'var(--font-title)', fontSize: '36px', fontWeight: 800 }}>
-            Neden <span className="text-gradient">özder</span>'e Katılmalısın?
+            Neden <span className="text-gradient">ozder</span>'e Katılmalısın?
           </h2>
           <p style={{ color: 'var(--text-secondary)' }}>
-            özder, sıradan bir satranç turnuvasından çok daha fazlasıdır. Burası her seviyeden insanın keyifle satranç oynayabileceği, yeni arkadaşlar edinebileceği ve kendini geliştirebileceği aktif bir sosyal topluluktur.
+            ozder, sıradan bir satranç turnuvasından çok daha fazlasıdır. Burası her seviyeden insanın keyifle satranç oynayabileceği, yeni arkadaşlar edinebileceği ve kendini geliştirebileceği aktif bir sosyal topluluktur.
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '10px' }}>
             {[

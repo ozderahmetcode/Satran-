@@ -4,7 +4,7 @@ const path = require('path');
 const DATA_DIR = path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 
-// Sıfırdan başlayacak temiz veritabanı şablonu (özder satranç topluluğu)
+// Sıfırdan başlayacak temiz veritabanı şablonu (ozder satranç topluluğu)
 const defaultData = {
   stats: {
     organizedTournaments: 1,

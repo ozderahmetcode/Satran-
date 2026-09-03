@@ -26,7 +26,7 @@ export function Logo() {
           fontWeight: 800,
           letterSpacing: '1px',
           color: '#fff'
-        }}>ÖZDER</span>
+        }}>OZDER</span>
         <span style={{ fontSize: '10px', color: 'var(--accent-primary)', fontWeight: 700, letterSpacing: '2px' }}>SATRANÇ</span>
       </div>
     </div>
@@ -38,8 +38,10 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
 
   const mainLinks = [
     { id: 'home', label: 'Ana Sayfa' },
-    { id: 'event', label: 'Buluşmalar 🏆' },
-    { id: 'database', label: 'İstatistikler' },
+    { id: 'event', label: 'Etkinlikler' },
+    { id: 'database', label: 'Satranç Veritabanı' },
+    { id: 'matchmaking', label: 'Satranç Eşlendirme' },
+    { id: 'faq', label: 'Merak Edilenler' },
     { id: 'contact', label: 'İletişim' }
   ];
 

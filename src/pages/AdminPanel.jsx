@@ -198,7 +198,7 @@ export default function AdminPanel({ registrations, users = [], onRegisterUpdate
       <section style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h1 style={{ fontFamily: 'var(--font-title)', fontSize: '32px', fontWeight: 800 }}>
-            👑 özder Yönetim Paneli
+            👑 ozder Yönetim Paneli
           </h1>
           <p style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>
             Katılımcı listelerini yönetin, turnuvaları eşleştirin ve mesajları okuyun.

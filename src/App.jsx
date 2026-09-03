@@ -8,6 +8,9 @@ import AdminPanel from './pages/AdminPanel';
 import Auth from './pages/Auth';
 import Profile from './pages/Profile';
 import Contact from './pages/Contact';
+import Matchmaking from './pages/Matchmaking';
+import FAQ from './pages/FAQ';
+import Terms from './pages/Terms';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState('home');
@@ -170,6 +173,12 @@ export default function App() {
         );
       case 'contact':
         return <Contact />;
+      case 'matchmaking':
+        return <Matchmaking currentUser={currentUser} onGoToAuth={() => setCurrentPage('auth')} />;
+      case 'faq':
+        return <FAQ setCurrentPage={setCurrentPage} />;
+      case 'terms':
+        return <Terms />;
       default:
         return <Home stats={data.stats} leaders={data.leaders} setCurrentPage={setCurrentPage} />;
     }
