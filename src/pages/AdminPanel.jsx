@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 
-export default function AdminPanel({ registrations, users = [], onRegisterUpdate, tournaments, onAddTournament, messages = [], onMessagesUpdate }) {
+export default function AdminPanel({ registrations, users = [], activeUsersCount = 1, activeUsersList = [], onRegisterUpdate, tournaments, onAddTournament, messages = [], onMessagesUpdate }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
-  const [activeTab, setActiveTab] = useState('registrations'); // registrations | tournaments | messages
+  const [activeTab, setActiveTab] = useState('users'); // users | registrations | events | tournaments | messages
 
   // Eşleştirme Yönetimi Seçili Turnuva
   const [selectedTourId, setSelectedTourId] = useState(null);
@@ -298,11 +298,60 @@ export default function AdminPanel({ registrations, users = [], onRegisterUpdate
         </button>
       </section>
 
+      {/* KPI / Dashboard Metrik Kartları */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+        <div className="glass-panel" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(14, 165, 233, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>
+            👥
+          </div>
+          <div>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 }}>TOPLAM ÜYE SAYISI</div>
+            <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)' }}>{users.length}</div>
+            <div style={{ fontSize: '11px', color: '#10b981' }}>Kayıtlı ve onaylı hesaplar</div>
+          </div>
+        </div>
+
+        <div className="glass-panel" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', position: 'relative' }}>
+            🟢
+            <span style={{ position: 'absolute', top: '10px', right: '10px', width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', animation: 'pulse 1.5s infinite' }} />
+          </div>
+          <div>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 }}>ŞU AN SİTEDE AKTİF</div>
+            <div style={{ fontSize: '28px', fontWeight: 800, color: '#10b981' }}>{activeUsersCount}</div>
+            <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Canlı çevrimiçi kullanıcı</div>
+          </div>
+        </div>
+
+        <div className="glass-panel" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(245, 158, 11, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>
+            🏆
+          </div>
+          <div>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 }}>TOPLAM TURNUVA</div>
+            <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)' }}>{tournaments.length}</div>
+            <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{tournaments.filter(t => t.status === 'active').length} aktif kayıt açık</div>
+          </div>
+        </div>
+
+        <div className="glass-panel" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(139, 92, 246, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>
+            📝
+          </div>
+          <div>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 }}>TOPLAM KATILIM KAYDI</div>
+            <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)' }}>{registrations.length}</div>
+            <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Turnuva masa başvuruları</div>
+          </div>
+        </div>
+      </div>
+
       {/* Admin Tabs */}
       <div style={{ display: 'flex', gap: '12px', borderBottom: '1px solid var(--panel-border)', paddingBottom: '16px', flexWrap: 'wrap' }}>
         {[
-          { id: 'registrations', label: 'Katılımcı Kayıtları 👥' },
-          { id: 'events', label: 'Etkinlik & Turnuva Yönetimi 📅' },
+          { id: 'users', label: `Kullanıcılar & Canlı Takip (${users.length}) 👥` },
+          { id: 'registrations', label: `Katılımcı Kayıtları (${registrations.length}) 📋` },
+          { id: 'events', label: `Etkinlik & Turnuva Yönetimi (${tournaments.length}) 📅` },
           { id: 'tournaments', label: 'Eşleştirme Sistemi ♟️' },
           { id: 'messages', label: `Gelen Mesajlar (${messages.length}) ✉️` }
         ].map(tab => (
@@ -316,6 +365,134 @@ export default function AdminPanel({ registrations, users = [], onRegisterUpdate
           </button>
         ))}
       </div>
+
+      {/* Tab Content: Users & Active Status */}
+      {activeTab === 'users' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Active Users Live Monitor Card */}
+          <div className="glass-panel" style={{ border: '1px solid rgba(16, 185, 129, 0.3)', background: 'rgba(16, 185, 129, 0.02)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+                <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '18px', fontWeight: 700, margin: 0 }}>
+                  🟢 Canlı Ziyaretçi & Aktif Kullanıcı Monitörü ({activeUsersCount})
+                </h3>
+              </div>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Otomatik yenileniyor (Her 5 saniyede)</span>
+            </div>
+
+            {activeUsersList.length === 0 ? (
+              <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: 0 }}>
+                Şu an en az 1 aktif kullanıcı sitede geziniyor.
+              </p>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
+                {activeUsersList.map((session, idx) => (
+                  <div key={idx} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    background: '#ffffff',
+                    border: '1px solid var(--panel-border)',
+                    fontSize: '13px'
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: 600 }}>{session.name}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Sayfa: {session.page}</div>
+                    </div>
+                    <span style={{ fontSize: '11px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                      Çevrimiçi
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Registered Users Table */}
+          <div className="glass-panel">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 700 }}>
+                  👤 Kayıtlı Topluluk Üyeleri ({users.length})
+                </h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '4px' }}>
+                  Sisteme kaydolmuş tüm üyelerin bilgileri, iletişim numaraları ve ELO seviyeleri.
+                </p>
+              </div>
+            </div>
+
+            {users.length === 0 ? (
+              <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Henüz kayıtlı üye bulunmamaktadır.</p>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--panel-border)', color: 'var(--text-secondary)' }}>
+                      <th style={{ padding: '12px 10px' }}>Üye</th>
+                      <th style={{ padding: '12px 10px' }}>E-posta</th>
+                      <th style={{ padding: '12px 10px' }}>Telefon</th>
+                      <th style={{ padding: '12px 10px' }}>Satranç Platformu</th>
+                      <th style={{ padding: '12px 10px' }}>ELO</th>
+                      <th style={{ padding: '12px 10px' }}>Doğrulama</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.map((u, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                        <td style={{ padding: '12px 10px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '50%',
+                              background: 'var(--gradient-gold)',
+                              color: '#fff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: 700,
+                              fontSize: '13px'
+                            }}>
+                              {u.name ? u.name.charAt(0).toUpperCase() : 'U'}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 600 }}>{u.name}</div>
+                              <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>ID: {u.id}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{ padding: '12px 10px', color: 'var(--text-primary)' }}>{u.email}</td>
+                        <td style={{ padding: '12px 10px', color: 'var(--text-secondary)' }}>{u.phone || '-'}</td>
+                        <td style={{ padding: '12px 10px' }}>
+                          <span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>@{u.chessUsername || '-'}</span>
+                        </td>
+                        <td style={{ padding: '12px 10px' }}>
+                          <span style={{ fontWeight: 700, color: 'var(--accent-secondary)' }}>{u.elo || 1500}</span>
+                        </td>
+                        <td style={{ padding: '12px 10px' }}>
+                          <span style={{
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            background: u.verified !== false ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                            color: u.verified !== false ? '#10b981' : '#ef4444'
+                          }}>
+                            {u.verified !== false ? '✓ Doğrulandı' : 'Beklemede'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Tab Content: Registrations */}
       {activeTab === 'registrations' && (

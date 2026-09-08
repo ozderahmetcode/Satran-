@@ -58,13 +58,44 @@ export default function App() {
       setCurrentUser(JSON.parse(savedUser));
     }
 
+    // Client kimliği oluştur / al
+    let clientId = localStorage.getItem('ozder_client_id');
+    if (!clientId) {
+      clientId = 'client_' + Math.random().toString(36).substring(2, 10);
+      localStorage.setItem('ozder_client_id', clientId);
+    }
+
+    // Heartbeat sinyali gönder (aktif kullanıcı takibi için)
+    const sendHeartbeat = () => {
+      try {
+        const u = localStorage.getItem('currentUser');
+        const parsed = u ? JSON.parse(u) : null;
+        fetch('/api/heartbeat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            clientId,
+            userId: parsed?.id || null,
+            name: parsed?.name || 'Ziyaretçi',
+            page: currentPage
+          })
+        }).catch(() => {});
+      } catch (e) {}
+    };
+
+    sendHeartbeat();
+    const heartbeatInterval = setInterval(sendHeartbeat, 15000);
+
     // Tam Zamanlı Veri Güncelleme (Her 5 saniyede bir veritabanını yeniler)
     const interval = setInterval(() => {
       loadData();
     }, 5000);
 
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      clearInterval(interval);
+      clearInterval(heartbeatInterval);
+    };
+  }, [currentPage]);
 
   const handleLoginSuccess = (user) => {
     setCurrentUser(user);
@@ -162,6 +193,8 @@ export default function App() {
           <AdminPanel 
             registrations={data.registrations} 
             users={data.users}
+            activeUsersCount={data.activeUsersCount || 1}
+            activeUsersList={data.activeUsersList || []}
             onRegisterUpdate={handleRegisterUpdate}
             tournaments={data.tournaments}
             onAddTournament={handleAddTournament}

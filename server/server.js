@@ -33,6 +33,47 @@ app.use(express.json());
 // Statik yükleme klasörü
 app.use('/uploads', express.static(uploadsDir));
 
+// Canlı / Aktif Kullanıcı Takibi (Son 30 saniye içinde sinyal gönderenler)
+const activeSessions = new Map(); // key: socket/clientId or userId, value: { lastSeen, userId, name, page }
+
+// Kullanıcı sinyal (heartbeat/ping) ucu
+app.post('/api/heartbeat', (req, res) => {
+  try {
+    const { clientId, userId, name, page } = req.body;
+    const key = clientId || (userId ? `user_${userId}` : req.ip);
+    activeSessions.set(key, {
+      lastSeen: Date.now(),
+      userId: userId || null,
+      name: name || 'Ziyaretçi',
+      page: page || 'Ana Sayfa'
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: "Heartbeat error" });
+  }
+});
+
+function getActiveUsersCount() {
+  const now = Date.now();
+  const threshold = 35 * 1000; // 35 saniye
+  let count = 0;
+  const activeList = [];
+
+  for (const [key, session] of activeSessions.entries()) {
+    if (now - session.lastSeen < threshold) {
+      count++;
+      activeList.push(session);
+    } else {
+      activeSessions.delete(key);
+    }
+  }
+  // En az 1 kişi (adminin kendisi veya ziyaretçi) her zaman aktif varsayılsın
+  return {
+    count: Math.max(1, count),
+    activeList
+  };
+}
+
 // Nodemailer SMTP Yapılandırması
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
@@ -48,7 +89,12 @@ const transporter = nodemailer.createTransport({
 app.get('/api/data', (req, res) => {
   try {
     const data = db.getData();
-    res.json(data);
+    const { count: activeCount, activeList } = getActiveUsersCount();
+    res.json({
+      ...data,
+      activeUsersCount: activeCount,
+      activeUsersList: activeList
+    });
   } catch (error) {
     res.status(500).json({ error: "Veriler alınırken bir hata oluştu." });
   }
