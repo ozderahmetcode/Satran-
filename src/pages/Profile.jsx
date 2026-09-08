@@ -5,12 +5,22 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
   const [profileData, setProfileData] = useState({
     name: currentUser?.name || '',
     phone: currentUser?.phone || '',
+    chessPlatform: currentUser?.chessPlatform || 'chess.com',
     chessUsername: currentUser?.chessUsername || '',
     bio: currentUser?.bio || 'Satranç tutkunu. OZDER etkinliklerine katılıyor.',
     avatarUrl: currentUser?.avatar || ''
   });
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
+
+  // Password change states
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordMsg, setPasswordMsg] = useState({ type: '', text: '' });
   
   // Create a ref for the hidden file input
   const fileInputRef = useRef(null);
@@ -21,6 +31,7 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
       setProfileData({
         name: currentUser.name || '',
         phone: currentUser.phone || '',
+        chessPlatform: currentUser.chessPlatform || 'chess.com',
         chessUsername: currentUser.chessUsername || '',
         bio: currentUser.bio || 'Satranç tutkunu. OZDER etkinliklerine katılıyor.',
         avatarUrl: currentUser.avatar || ''
@@ -229,6 +240,7 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
       formData.append('name', profileData.name);
       if (currentUser.email) formData.append('email', currentUser.email);
       formData.append('phone', profileData.phone);
+      formData.append('chessPlatform', profileData.chessPlatform);
       formData.append('chessUsername', profileData.chessUsername);
       formData.append('bio', profileData.bio);
       if (profileData.avatarUrl) formData.append('avatarUrl', profileData.avatarUrl);
@@ -238,6 +250,49 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
       setTimeout(() => setStatusMsg(''), 3500);
     } catch (err) {
       setStatusMsg('Güncelleme sırasında hata oluştu.');
+    }
+  };
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    setPasswordMsg({ type: '', text: '' });
+
+    if (!passwordData.currentPassword || !passwordData.newPassword) {
+      setPasswordMsg({ type: 'error', text: 'Lütfen mevcut ve yeni şifrenizi girin.' });
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordMsg({ type: 'error', text: 'Yeni şifreler birbiriyle uyuşmuyor.' });
+      return;
+    }
+
+    if (passwordData.newPassword.length < 4) {
+      setPasswordMsg({ type: 'error', text: 'Yeni şifreniz en az 4 karakter olmalıdır.' });
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      const res = await fetch(`/api/users/${currentUser.id}/change-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setPasswordMsg({ type: 'success', text: data.message || 'Şifreniz başarıyla değiştirildi! ✅' });
+        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      } else {
+        setPasswordMsg({ type: 'error', text: data.error || 'Şifre değiştirilemedi.' });
+      }
+    } catch (err) {
+      setPasswordMsg({ type: 'error', text: 'Sunucuya bağlanılamadı.' });
+    } finally {
+      setPasswordLoading(false);
     }
   };
 
@@ -362,7 +417,14 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
         />
 
         <div style={{ flex: 1, minWidth: '200px' }}>
-          <h2 style={{ fontFamily: 'var(--font-title)', fontSize: '32px', fontWeight: 800, color: 'var(--text-primary)' }}>{currentUser.name}</h2>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', flexWrap: 'wrap' }}>
+            <h2 style={{ fontFamily: 'var(--font-title)', fontSize: '32px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>{currentUser.name}</h2>
+            {currentUser.username && (
+              <span style={{ fontSize: '15px', color: 'var(--accent-primary)', fontWeight: 700 }}>
+                @{currentUser.username}
+              </span>
+            )}
+          </div>
           <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginTop: '8px', flexWrap: 'wrap' }}>
             <span style={{ background: 'rgba(2, 132, 199, 0.1)', color: 'var(--accent-primary)', padding: '4px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: 700 }}>
               📈 ELO: {currentUser.elo || 1500}
@@ -499,77 +561,213 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
 
       {/* Tab Content: Settings */}
       {activeSubTab === 'settings' && (
-        <div className="glass-panel animate-fade-in" style={{ maxWidth: '600px' }}>
-          <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 700, marginBottom: '24px' }}>
-            Profil Bilgilerini Düzenle
-          </h3>
+        <div className="glass-panel animate-fade-in" style={{ maxWidth: '650px', display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          
+          {/* Bölüm 1: Profil Bilgilerini Düzenle */}
+          <div>
+            <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 700, marginBottom: '20px' }}>
+              Profil Bilgilerini Düzenle
+            </h3>
 
-          {statusMsg && (
-            <div style={{ background: 'rgba(5, 150, 105, 0.1)', border: '1px solid #059669', color: '#059669', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '14px', textAlign: 'center', fontWeight: 700 }}>
-              {statusMsg}
-            </div>
-          )}
+            {statusMsg && (
+              <div style={{ background: 'rgba(5, 150, 105, 0.1)', border: '1px solid #059669', color: '#059669', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '14px', textAlign: 'center', fontWeight: 700 }}>
+                {statusMsg}
+              </div>
+            )}
 
-          <form onSubmit={handleUpdateInfo} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px' }}>Ad Soyad</label>
-              <input
-                type="text"
-                required
-                value={profileData.name}
-                onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
-                style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px', color: 'var(--text-primary)', outline: 'none', fontWeight: 600 }}
-              />
-            </div>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <form onSubmit={handleUpdateInfo} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              
+              {/* Kullanıcı Adı (Salt Okunur / Değiştirilemez) */}
               <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px' }}>Telefon</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                    Kullanıcı Adı
+                  </label>
+                  <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 600 }}>
+                    🔒 Kullanıcı adı değiştirilemez
+                  </span>
+                </div>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)', fontWeight: 700 }}>
+                    @
+                  </span>
+                  <input
+                    type="text"
+                    disabled
+                    value={currentUser.username || 'belirtilmemis'}
+                    style={{ width: '100%', paddingLeft: '32px', background: 'rgba(0,0,0,0.04)', border: '1px solid var(--panel-border)', borderRadius: '8px', paddingRight: '12px', paddingTop: '12px', paddingBottom: '12px', color: 'var(--text-secondary)', outline: 'none', fontWeight: 700, cursor: 'not-allowed' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px' }}>Ad Soyad</label>
                 <input
                   type="text"
                   required
-                  value={profileData.phone}
-                  onChange={(e) => {
-                    const onlyNums = e.target.value.replace(/\D/g, '');
-                    if (onlyNums.length <= 11) {
-                      setProfileData({ ...profileData, phone: onlyNums });
-                    }
-                  }}
+                  value={profileData.name}
+                  onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
                   style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px', color: 'var(--text-primary)', outline: 'none', fontWeight: 600 }}
                 />
               </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px' }}>Telefon</label>
+                  <input
+                    type="text"
+                    required
+                    value={profileData.phone}
+                    onChange={(e) => {
+                      const onlyNums = e.target.value.replace(/\D/g, '');
+                      if (onlyNums.length <= 11) {
+                        setProfileData({ ...profileData, phone: onlyNums });
+                      }
+                    }}
+                    style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px', color: 'var(--text-primary)', outline: 'none', fontWeight: 600 }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px' }}>E-posta</label>
+                  <input
+                    type="email"
+                    disabled
+                    value={currentUser.email || ''}
+                    style={{ width: '100%', background: 'rgba(0,0,0,0.04)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px', color: 'var(--text-secondary)', outline: 'none', fontWeight: 600, cursor: 'not-allowed' }}
+                  />
+                </div>
+              </div>
+
+              {/* Satranç Platformu ve Kullanıcı Adı (İsteğe Bağlı) */}
+              <div style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid var(--panel-border)', borderRadius: '10px', padding: '14px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                    Satranç Platformu & Kullanıcı Adı
+                  </label>
+                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                    İsteğe Bağlı
+                  </span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr', gap: '8px' }}>
+                  <select
+                    value={profileData.chessPlatform}
+                    onChange={(e) => setProfileData({ ...profileData, chessPlatform: e.target.value })}
+                    style={{ background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px', color: 'var(--text-primary)', outline: 'none', fontWeight: 600, fontSize: '13px' }}
+                  >
+                    <option value="chess.com">Chess.com</option>
+                    <option value="lichess">Lichess.org</option>
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="Satranç kullanıcı adınız (opsiyonel)"
+                    value={profileData.chessUsername}
+                    onChange={(e) => setProfileData({ ...profileData, chessUsername: e.target.value })}
+                    style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px', color: 'var(--text-primary)', outline: 'none', fontWeight: 600, fontSize: '13px' }}
+                  />
+                </div>
+              </div>
+
               <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px' }}>Satranç Kullanıcı Adı (Lichess/Chess.com)</label>
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                  Profil fotoğrafınızı değiştirmek için yukarıdaki avatarınıza tıklayın.
+                </p>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px' }}>Hakkımda</label>
+                <textarea
+                  rows="3"
+                  value={profileData.bio}
+                  onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
+                  style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px', color: 'var(--text-primary)', outline: 'none', resize: 'none', fontWeight: 600 }}
+                />
+              </div>
+
+              <button type="submit" className="btn-primary" style={{ justifyContent: 'center' }}>
+                Değişiklikleri Kaydet
+              </button>
+            </form>
+          </div>
+
+          <div style={{ height: '1px', background: 'var(--panel-border)' }} />
+
+          {/* Bölüm 2: Şifre Değiştirme */}
+          <div>
+            <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 700, marginBottom: '20px' }}>
+              🔒 Şifre Değiştir
+            </h3>
+
+            {passwordMsg.text && (
+              <div style={{
+                background: passwordMsg.type === 'error' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                border: `1px solid ${passwordMsg.type === 'error' ? '#ef4444' : 'var(--accent-primary)'}`,
+                color: passwordMsg.type === 'error' ? '#ef4444' : 'var(--accent-primary)',
+                padding: '12px',
+                borderRadius: '8px',
+                marginBottom: '16px',
+                fontSize: '14px',
+                textAlign: 'center',
+                fontWeight: 600
+              }}>
+                {passwordMsg.text}
+              </div>
+            )}
+
+            <form onSubmit={handlePasswordChange} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                  Mevcut Şifre
+                </label>
                 <input
-                  type="text"
+                  type="password"
                   required
-                  value={profileData.chessUsername}
-                  onChange={(e) => setProfileData({ ...profileData, chessUsername: e.target.value })}
+                  placeholder="••••••••"
+                  value={passwordData.currentPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
                   style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px', color: 'var(--text-primary)', outline: 'none', fontWeight: 600 }}
                 />
               </div>
-            </div>
 
-            <div>
-              <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                Profil fotoğrafınızı değiştirmek için yukarıdaki avatarınıza tıklayın.
-              </p>
-            </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                    Yeni Şifre
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="En az 4 karakter"
+                    value={passwordData.newPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                    style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px', color: 'var(--text-primary)', outline: 'none', fontWeight: 600 }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                    Yeni Şifre (Tekrar)
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Yeni şifrenizi doğrulayın"
+                    value={passwordData.confirmPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                    style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px', color: 'var(--text-primary)', outline: 'none', fontWeight: 600 }}
+                  />
+                </div>
+              </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px' }}>Hakkımda</label>
-              <textarea
-                rows="3"
-                value={profileData.bio}
-                onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
-                style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px', color: 'var(--text-primary)', outline: 'none', resize: 'none', fontWeight: 600 }}
-              />
-            </div>
+              <button 
+                type="submit" 
+                disabled={passwordLoading}
+                className="btn-secondary" 
+                style={{ justifyContent: 'center', marginTop: '4px', background: 'var(--accent-primary)', color: '#fff', border: 'none' }}
+              >
+                {passwordLoading ? 'Şifre Güncelleniyor...' : 'Şifreyi Güncelle'}
+              </button>
+            </form>
+          </div>
 
-            <button type="submit" className="btn-primary" style={{ justifyContent: 'center' }}>
-              Değişiklikleri Kaydet
-            </button>
-          </form>
         </div>
       )}
 

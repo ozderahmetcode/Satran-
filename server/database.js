@@ -166,26 +166,59 @@ module.exports = {
   
   registerUser: (newUser) => {
     const db = readDB();
-    const emailExists = db.users.some(u => u.email === newUser.email);
+    const cleanEmail = (newUser.email || '').trim().toLowerCase();
+    const cleanUsername = (newUser.username || '').trim().toLowerCase();
+
+    if (!cleanUsername) {
+      return { error: "Kullanıcı adı oluşturulması zorunludur." };
+    }
+
+    // Kullanıcı adı geçerlilik kontrolü (yalnızca harf, rakam, alt çizgi, nokta ve tire, min 3 karakter)
+    if (!/^[a-zA-Z0-9_.-]{3,25}$/.test(cleanUsername)) {
+      return { error: "Kullanıcı adı 3-25 karakter arasında olmalı ve Türkçe özel karakter/boşluk içermemelidir." };
+    }
+
+    const emailExists = db.users.some(u => (u.email || '').trim().toLowerCase() === cleanEmail);
     if (emailExists) return { error: "Bu e-posta adresi zaten kayıtlı." };
+
+    const usernameExists = db.users.some(u => (u.username || '').trim().toLowerCase() === cleanUsername);
+    if (usernameExists) return { error: "Bu kullanıcı adı zaten alınmış. Lütfen başka bir kullanıcı adı seçin." };
 
     const uniqueUserId = 'usr_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     
     const user = {
       id: uniqueUserId,
       ...newUser,
+      username: cleanUsername,
+      email: cleanEmail,
+      chessPlatform: newUser.chessPlatform || 'chess.com',
+      chessUsername: newUser.chessUsername ? newUser.chessUsername.trim() : '',
       elo: newUser.elo ? parseInt(newUser.elo) : 1500,
       verified: true
     };
     db.users.push(user);
     updateLeaderboards(db);
     writeDB(db);
-    return { success: true, user: { id: user.id, email: user.email, name: user.name, phone: user.phone, chessUsername: user.chessUsername, bio: user.bio, avatar: user.avatar, matchmakingSettings: user.matchmakingSettings } };
+    return { 
+      success: true, 
+      user: { 
+        id: user.id, 
+        username: user.username, 
+        email: user.email, 
+        name: user.name, 
+        phone: user.phone, 
+        chessPlatform: user.chessPlatform,
+        chessUsername: user.chessUsername, 
+        bio: user.bio, 
+        avatar: user.avatar, 
+        matchmakingSettings: user.matchmakingSettings 
+      } 
+    };
   },
 
   verifyUser: (email, code) => {
     const db = readDB();
-    const user = db.users.find(u => u.email === email);
+    const user = db.users.find(u => (u.email || '').trim().toLowerCase() === (email || '').trim().toLowerCase());
     if (!user) return { error: "Kullanıcı bulunamadı." };
     user.verified = true;
     updateLeaderboards(db);
@@ -193,12 +226,48 @@ module.exports = {
     return { success: true };
   },
 
-  loginUser: (email, password) => {
+  loginUser: (identifier, password) => {
     const db = readDB();
-    const user = db.users.find(u => u.email === email);
-    if (!user) return { error: "Hatalı e-posta veya kullanıcı bulunamadı." };
+    const cleanId = (identifier || '').trim().toLowerCase();
+    
+    // E-posta veya Kullanıcı adı ile eşleşme
+    const user = db.users.find(u => 
+      (u.email && u.email.trim().toLowerCase() === cleanId) || 
+      (u.username && u.username.trim().toLowerCase() === cleanId)
+    );
+
+    if (!user) return { error: "Hatalı e-posta/kullanıcı adı veya kullanıcı bulunamadı." };
     if (user.password !== password) return { error: "Şifre yanlış." };
-    return { success: true, user: { id: user.id, email: user.email, name: user.name, phone: user.phone, chessUsername: user.chessUsername, bio: user.bio, avatar: user.avatar, matchmakingSettings: user.matchmakingSettings } };
+    return { 
+      success: true, 
+      user: { 
+        id: user.id, 
+        username: user.username || '', 
+        email: user.email, 
+        name: user.name, 
+        phone: user.phone, 
+        chessPlatform: user.chessPlatform || 'chess.com',
+        chessUsername: user.chessUsername || '', 
+        bio: user.bio, 
+        avatar: user.avatar, 
+        matchmakingSettings: user.matchmakingSettings 
+      } 
+    };
+  },
+
+  changePassword: (userId, currentPassword, newPassword) => {
+    const db = readDB();
+    const user = db.users.find(u => String(u.id) === String(userId));
+    if (!user) return { error: "Kullanıcı bulunamadı." };
+    if (user.password !== currentPassword) {
+      return { error: "Mevcut şifrenizi yanlış girdiniz." };
+    }
+    if (!newPassword || newPassword.length < 4) {
+      return { error: "Yeni şifre en az 4 karakterden oluşmalıdır." };
+    }
+    user.password = newPassword;
+    writeDB(db);
+    return { success: true };
   },
 
   updateUserProfile: (userId, updates) => {
@@ -212,11 +281,13 @@ module.exports = {
     if (userIndex === -1) {
       const newUser = {
         id: String(userId),
+        username: updates.username || `user_${Date.now().toString(36)}`,
         name: updates.name || "Satranç Oyuncusu",
         email: updates.email || `${userId}@ozderchess.com`,
         password: 'password_auto',
         phone: updates.phone || '05555555555',
-        chessUsername: updates.chessUsername || 'oyuncu',
+        chessPlatform: updates.chessPlatform || 'chess.com',
+        chessUsername: updates.chessUsername || '',
         elo: 1500,
         verified: true,
         bio: updates.bio || '',
@@ -229,10 +300,12 @@ module.exports = {
 
     const user = db.users[userIndex];
     
+    // NOT: username ASLA güncellenemez (sadece kayıt olurken oluşturulur)
     if (updates.name !== undefined) user.name = updates.name;
     if (updates.email !== undefined) user.email = updates.email;
-    if (updates.chessUsername !== undefined) user.chessUsername = updates.chessUsername;
     if (updates.phone !== undefined) user.phone = updates.phone;
+    if (updates.chessPlatform !== undefined) user.chessPlatform = updates.chessPlatform;
+    if (updates.chessUsername !== undefined) user.chessUsername = updates.chessUsername;
     if (updates.bio !== undefined) user.bio = updates.bio;
     if (updates.avatar !== undefined) user.avatar = updates.avatar;
     if (updates.matchmakingSettings !== undefined) user.matchmakingSettings = updates.matchmakingSettings;
@@ -254,7 +327,21 @@ module.exports = {
     }
 
     writeDB(db);
-    return { success: true, user: { id: user.id, email: user.email, name: user.name, phone: user.phone, chessUsername: user.chessUsername, bio: user.bio, avatar: user.avatar, matchmakingSettings: user.matchmakingSettings } };
+    return { 
+      success: true, 
+      user: { 
+        id: user.id, 
+        username: user.username || '', 
+        email: user.email, 
+        name: user.name, 
+        phone: user.phone, 
+        chessPlatform: user.chessPlatform || 'chess.com',
+        chessUsername: user.chessUsername || '', 
+        bio: user.bio, 
+        avatar: user.avatar, 
+        matchmakingSettings: user.matchmakingSettings 
+      } 
+    };
   },
 
   adminUpdateUser: (userId, updates) => {

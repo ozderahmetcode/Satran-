@@ -213,9 +213,14 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
                         )}
                       </div>
                       <div style={{ overflow: 'hidden' }}>
-                        <div style={{ fontSize: '14px', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', fontFamily: 'var(--font-title)' }}>
-                          {currentUser.email || (currentUser.chessUsername + "@lichess.org")}
+                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', fontFamily: 'var(--font-title)' }}>
+                          {currentUser.username ? `@${currentUser.username}` : (currentUser.email || currentUser.name)}
                         </div>
+                        {currentUser.username && currentUser.email && (
+                          <div style={{ fontSize: '12px', color: '#9ca3af', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                            {currentUser.email}
+                          </div>
+                        )}
                       </div>
                     </div>
                     

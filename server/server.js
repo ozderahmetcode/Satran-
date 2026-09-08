@@ -125,12 +125,12 @@ app.delete('/api/messages/:id', (req, res) => {
   }
 });
 
-// Kimlik Doğrulama API Rotaları (Doğrudan E-Posta ve Şifre ile Giriş)
+// Kimlik Doğrulama API Rotaları (E-Posta veya Kullanıcı Adı ile Giriş)
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { name, email, password, phone, chessUsername, elo } = req.body;
-    if (!name || !email || !password || !phone || !chessUsername) {
-      return res.status(400).json({ error: "Lütfen tüm zorunlu alanları doldurun." });
+    const { name, username, email, password, phone, chessPlatform, chessUsername, elo } = req.body;
+    if (!name || !username || !email || !password || !phone) {
+      return res.status(400).json({ error: "Lütfen tüm zorunlu alanları (Ad Soyad, Kullanıcı Adı, E-posta, Telefon, Şifre) doldurun." });
     }
 
     const cleanPhone = phone.replace(/\D/g, '');
@@ -138,7 +138,17 @@ app.post('/api/auth/register', async (req, res) => {
       return res.status(400).json({ error: "Telefon numarası formatı geçersizdir." });
     }
 
-    const result = db.registerUser({ name, email, password, phone: cleanPhone, chessUsername, elo });
+    const result = db.registerUser({ 
+      name, 
+      username, 
+      email, 
+      password, 
+      phone: cleanPhone, 
+      chessPlatform: chessPlatform || 'chess.com',
+      chessUsername: chessUsername || '', 
+      elo 
+    });
+
     if (result.error) {
       return res.status(400).json({ error: result.error });
     }
@@ -168,8 +178,12 @@ app.post('/api/auth/verify', (req, res) => {
 
 app.post('/api/auth/login', (req, res) => {
   try {
-    const { email, password } = req.body;
-    const result = db.loginUser(email, password);
+    const { identifier, email, password } = req.body;
+    const loginId = identifier || email;
+    if (!loginId || !password) {
+      return res.status(400).json({ error: "Lütfen kullanıcı adı / e-posta ve şifrenizi girin." });
+    }
+    const result = db.loginUser(loginId, password);
     if (result.error) {
       return res.status(400).json({ error: result.error, requiresVerification: result.requiresVerification });
     }
@@ -183,7 +197,7 @@ app.post('/api/auth/login', (req, res) => {
 app.post('/api/users/:id/profile', upload.single('avatarFile'), (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, chessUsername, phone, bio, matchmakingSettings } = req.body;
+    const { name, email, phone, chessPlatform, chessUsername, bio, matchmakingSettings } = req.body;
     
     let avatarUrl = req.body.avatarUrl; // Keep existing if not changed
     if (req.file) {
@@ -195,13 +209,40 @@ app.post('/api/users/:id/profile', upload.single('avatarFile'), (req, res) => {
       parsedSettings = JSON.parse(matchmakingSettings);
     }
     
-    const result = db.updateUserProfile(id, { name, email, chessUsername, phone, bio, avatar: avatarUrl, matchmakingSettings: parsedSettings });
+    const result = db.updateUserProfile(id, { 
+      name, 
+      email, 
+      phone, 
+      chessPlatform,
+      chessUsername, 
+      bio, 
+      avatar: avatarUrl, 
+      matchmakingSettings: parsedSettings 
+    });
     if (result.error) {
       return res.status(400).json({ error: result.error });
     }
     res.json({ success: true, user: result.user });
   } catch (error) {
     res.status(500).json({ error: "Profil güncellenirken hata oluştu." });
+  }
+});
+
+// Şifre Değiştirme Rotası
+app.post('/api/users/:id/change-password', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: "Mevcut şifre ve yeni şifre alanları zorunludur." });
+    }
+    const result = db.changePassword(id, currentPassword, newPassword);
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
+    }
+    res.json({ success: true, message: "Şifreniz başarıyla değiştirildi." });
+  } catch (error) {
+    res.status(500).json({ error: "Şifre değiştirilirken bir hata oluştu." });
   }
 });
 
@@ -234,15 +275,15 @@ app.delete('/api/users/:id', (req, res) => {
   }
 });
 
-// Turnuvaya Özel Kayıt Rotaları (Ad Soyad ve chessUsername artık parametredir)
+// Turnuvaya Özel Kayıt Rotaları
 app.post('/api/register', (req, res) => {
   try {
     const { tournamentId, userId, name, chessUsername } = req.body;
-    if (!tournamentId || !userId || !name || !chessUsername) {
-      return res.status(400).json({ error: "Turnuva ID, Kullanıcı ID, İsim ve Satranç Adı zorunludur." });
+    if (!tournamentId || !userId || !name) {
+      return res.status(400).json({ error: "Turnuva ID, Kullanıcı ID ve İsim zorunludur." });
     }
 
-    const result = db.registerForTournament(tournamentId, userId, name, chessUsername);
+    const result = db.registerForTournament(tournamentId, userId, name, chessUsername || '');
     if (result.error) {
       return res.status(400).json({ error: result.error });
     }
