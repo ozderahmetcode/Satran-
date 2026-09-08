@@ -15,11 +15,12 @@ export default function Matchmaking({ currentUser, users = [], onGoToAuth, onUpd
     return u.matchmakingSettings && u.matchmakingSettings.isActive === true;
   });
 
-  const handleSaveStatus = async () => {
+  const handleSaveStatus = async (overrideActive) => {
     if (!currentUser) return onGoToAuth();
+    const activeState = overrideActive !== undefined ? overrideActive : isLookingForMatch;
     try {
       const formData = new FormData();
-      const settings = { isActive: isLookingForMatch, type: matchType, availability, note };
+      const settings = { isActive: activeState, type: matchType, availability, note };
       formData.append('matchmakingSettings', JSON.stringify(settings));
       if (currentUser.name) formData.append('name', currentUser.name);
       if (currentUser.email) formData.append('email', currentUser.email);
@@ -32,17 +33,23 @@ export default function Matchmaking({ currentUser, users = [], onGoToAuth, onUpd
       });
       const data = await response.json();
       if (data.success) {
-        alert("Eşleşme durumunuz ve tercihleriniz başarıyla kaydedildi!");
+        setIsLookingForMatch(activeState);
+        alert(activeState ? "Eşleşme durumunuz ve tercihleriniz başarıyla güncellendi!" : "Rakip arama durumunuz iptal edildi ve listeden çıkarıldınız.");
         if (onUpdateProfile) {
            onUpdateProfile(data.user);
         }
       } else {
-        alert(data.error || "Kaydedilemedi.");
+        alert(data.error || "İşlem gerçekleştirilemedi.");
       }
     } catch (e) {
       console.error(e);
       alert("Hata oluştu.");
     }
+  };
+
+  const handleCancelStatus = async () => {
+    if (!window.confirm("Rakip arama havuzundan çıkmak ve durumunuzu iptal etmek istediğinize emin misiniz?")) return;
+    await handleSaveStatus(false);
   };
 
   return (
@@ -54,10 +61,12 @@ export default function Matchmaking({ currentUser, users = [], onGoToAuth, onUpd
         flexDirection: 'column',
         gap: '20px',
         padding: '28px',
-        background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%)',
-        border: '1px solid rgba(14, 165, 233, 0.3)',
+        background: isLookingForMatch 
+          ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(240, 249, 255, 0.95) 100%)' 
+          : 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%)',
+        border: isLookingForMatch ? '1px solid rgba(14, 165, 233, 0.4)' : '1px solid var(--panel-border)',
         borderRadius: '20px',
-        boxShadow: '0 12px 32px rgba(14, 165, 233, 0.08)'
+        boxShadow: isLookingForMatch ? '0 12px 32px rgba(14, 165, 233, 0.12)' : '0 8px 24px rgba(0,0,0,0.04)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
           <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: '14px' }}>
@@ -72,7 +81,10 @@ export default function Matchmaking({ currentUser, users = [], onGoToAuth, onUpd
               <input 
                 type="checkbox" 
                 checked={isLookingForMatch}
-                onChange={(e) => setIsLookingForMatch(e.target.checked)}
+                onChange={(e) => {
+                  const nextState = e.target.checked;
+                  setIsLookingForMatch(nextState);
+                }}
                 style={{ opacity: 0, width: 0, height: 0 }} 
               />
               <div style={{
@@ -92,24 +104,47 @@ export default function Matchmaking({ currentUser, users = [], onGoToAuth, onUpd
                 ⚔️ Rakip Bul Ve Oyna
               </span>
               <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>
-                {isLookingForMatch ? '🟢 Durumunuz açık: Diğer satranç oyuncuları sizi görebilir ve oyun daveti gönderebilir.' : '⚪ Durumunuz kapalı: Eşleşme havuzuna katılmak için anahtarı açın.'}
+                {isLookingForMatch ? '🟢 Durumunuz açık: Listede yer alıyorsunuz, istediğiniz an bilgilerinizi düzenleyebilir veya eşleşmeden çıkabilirsiniz.' : '⚪ Durumunuz kapalı: Listede görünmüyorsunuz. Katılmak için anahtarı açıp kaydedin.'}
               </p>
             </div>
           </label>
 
-          {isLookingForMatch && (
-            <span style={{
-              fontSize: '12px',
-              fontWeight: 700,
-              padding: '6px 14px',
-              borderRadius: '30px',
-              background: 'rgba(16, 185, 129, 0.12)',
-              color: '#059669',
-              border: '1px solid rgba(16, 185, 129, 0.3)'
-            }}>
-              ● Eşleşmeye Hazır
-            </span>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {isLookingForMatch && (
+              <>
+                <span style={{
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  padding: '6px 14px',
+                  borderRadius: '30px',
+                  background: 'rgba(16, 185, 129, 0.12)',
+                  color: '#059669',
+                  border: '1px solid rgba(16, 185, 129, 0.3)'
+                }}>
+                  ● Listede Aktif
+                </span>
+                <button
+                  type="button"
+                  onClick={handleCancelStatus}
+                  style={{
+                    padding: '6px 14px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    color: '#ef4444',
+                    background: 'rgba(239, 68, 68, 0.08)',
+                    border: '1px solid rgba(239, 68, 68, 0.25)',
+                    borderRadius: '30px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  ✕ Kendini Listeden Çıkar (İptal Et)
+                </button>
+              </>
+            )}
+          </div>
         </div>
         
         {isLookingForMatch && (
@@ -138,7 +173,7 @@ export default function Matchmaking({ currentUser, users = [], onGoToAuth, onUpd
                 </select>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', alignItems: 'center' }}>
               <input 
                 type="text" 
                 value={note}
@@ -146,13 +181,31 @@ export default function Matchmaking({ currentUser, users = [], onGoToAuth, onUpd
                 placeholder="Kısa bir not (Örn: Ümraniye veya Kadıköy civarı, Lichess 1600 vb.)" 
                 style={{ flex: 1, minWidth: '240px', padding: '12px 16px', borderRadius: '10px', border: '1px solid var(--panel-border)', background: '#fff', color: 'var(--text-primary)', outline: 'none', fontSize: '14px' }} 
               />
-              <button 
-                onClick={handleSaveStatus}
-                className="btn-primary"
-                style={{ padding: '12px 28px', fontSize: '14px', whiteSpace: 'nowrap', borderRadius: '10px' }}
-              >
-                💾 Durumu Kaydet
-              </button>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button 
+                  onClick={() => handleSaveStatus(true)}
+                  className="btn-primary"
+                  style={{ padding: '12px 24px', fontSize: '14px', whiteSpace: 'nowrap', borderRadius: '10px' }}
+                >
+                  💾 Tercihleri Güncelle
+                </button>
+                <button 
+                  onClick={handleCancelStatus}
+                  style={{
+                    padding: '12px 20px',
+                    fontSize: '14px',
+                    whiteSpace: 'nowrap',
+                    borderRadius: '10px',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    color: '#ef4444',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  🚫 İptal Et & Çık
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -252,12 +305,17 @@ export default function Matchmaking({ currentUser, users = [], onGoToAuth, onUpd
                 </p>
 
                 {currentUser && String(currentUser.id) === String(p.id) ? (
-                  <button 
-                    disabled
-                    style={{ width: '100%', background: 'rgba(0,0,0,0.05)', color: 'var(--text-secondary)', border: 'none', padding: '14px', borderRadius: '12px', fontWeight: 800, fontSize: '15px', cursor: 'not-allowed' }}
-                  >
-                    Bu Sensin
-                  </button>
+                  <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ padding: '8px 12px', background: 'rgba(14, 165, 233, 0.1)', color: '#0ea5e9', borderRadius: '10px', fontWeight: 700, fontSize: '13px' }}>
+                      👤 Bu Senin Profilin
+                    </div>
+                    <button 
+                      onClick={handleCancelStatus}
+                      style={{ width: '100%', background: 'rgba(239, 68, 68, 0.08)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.25)', padding: '10px', borderRadius: '10px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                    >
+                      🚫 Kendini Listeden Çıkar
+                    </button>
+                  </div>
                 ) : (
                   <button 
                     onClick={() => currentUser ? alert('İstek gönderildi!') : onGoToAuth()}
