@@ -160,6 +160,20 @@ export default function App() {
     }));
   };
 
+  const handleUsersUpdate = (updatedUsers, updatedRegistrations) => {
+    setData(prev => ({
+      ...prev,
+      users: updatedUsers,
+      ...(updatedRegistrations ? {
+        registrations: updatedRegistrations,
+        stats: {
+          ...prev.stats,
+          registeredPlayers: updatedRegistrations.length
+        }
+      } : {})
+    }));
+  };
+
   const renderPage = () => {
     switch (currentPage) {
       case 'home':
@@ -193,6 +207,7 @@ export default function App() {
           <AdminPanel 
             registrations={data.registrations} 
             users={data.users}
+            onUsersUpdate={handleUsersUpdate}
             activeUsersCount={data.activeUsersCount || 1}
             activeUsersList={data.activeUsersList || []}
             onRegisterUpdate={handleRegisterUpdate}

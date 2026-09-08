@@ -1,11 +1,135 @@
 import React, { useState } from 'react';
 
-export default function AdminPanel({ registrations, users = [], activeUsersCount = 1, activeUsersList = [], onRegisterUpdate, tournaments, onAddTournament, messages = [], onMessagesUpdate }) {
+export default function AdminPanel({ registrations, users = [], onUsersUpdate, activeUsersCount = 1, activeUsersList = [], onRegisterUpdate, tournaments, onAddTournament, messages = [], onMessagesUpdate }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
   const [activeTab, setActiveTab] = useState('users'); // users | registrations | events | tournaments | messages
+
+  // Arama & Filtreleme
+  const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [userFilterRole, setUserFilterRole] = useState('all'); // all | verified | unverified
+
+  // Kullanıcı Düzenleme State'i
+  const [editingUser, setEditingUser] = useState(null);
+  const [editUserFormData, setEditUserFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    chessUsername: '',
+    elo: 1500,
+    verified: true
+  });
+
+  const openEditUserModal = (u) => {
+    setEditingUser(u);
+    setEditUserFormData({
+      name: u.name || '',
+      email: u.email || '',
+      phone: u.phone || '',
+      chessUsername: u.chessUsername || '',
+      elo: u.elo || 1500,
+      verified: u.verified !== false
+    });
+  };
+
+  const handleUpdateUser = async (e) => {
+    e.preventDefault();
+    if (!editingUser) return;
+
+    try {
+      const response = await fetch(`/api/users/${editingUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editUserFormData)
+      });
+      const result = await response.json();
+      if (response.ok) {
+        if (onUsersUpdate) onUsersUpdate(result.users);
+        setEditingUser(null);
+        alert("Kullanıcı bilgileri başarıyla güncellendi!");
+      } else {
+        alert(result.error || "Güncelleme başarısız.");
+      }
+    } catch (error) {
+      alert("Sunucu bağlantı hatası.");
+    }
+  };
+
+  const handleDeleteUserAccount = async (userId, userName) => {
+    if (!window.confirm(`"${userName}" adlı kullanıcıyı ve ilgili turnuva kayıtlarını kalıcı olarak SİLMEK istediğinize emin misiniz?`)) return;
+
+    try {
+      const response = await fetch(`/api/users/${userId}`, { method: 'DELETE' });
+      const result = await response.json();
+      if (response.ok) {
+        if (onUsersUpdate) onUsersUpdate(result.users, result.registrations);
+        alert("Kullanıcı hesabı tamamen silindi.");
+      } else {
+        alert(result.error || "Silme başarısız.");
+      }
+    } catch (error) {
+      alert("Sunucu bağlantı hatası.");
+    }
+  };
+
+  // CSV / Excel Veri Dışa Aktarma
+  const exportUsersToCSV = () => {
+    if (!users || users.length === 0) {
+      alert("Dışa aktarılacak kullanıcı bulunmuyor.");
+      return;
+    }
+    const headers = ["ID", "Ad Soyad", "E-Posta", "Telefon", "Satranç Kullanıcı Adı", "ELO Puanı", "Doğrulandı Mı"];
+    const rows = users.map(u => [
+      `"${u.id}"`,
+      `"${u.name || ''}"`,
+      `"${u.email || ''}"`,
+      `"${u.phone || ''}"`,
+      `"${u.chessUsername || ''}"`,
+      u.elo || 1500,
+      u.verified !== false ? "Evet" : "Hayır"
+    ]);
+
+    const csvContent = "\uFEFF" + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `OZDER_Kullanici_Listesi_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportRegistrationsToCSV = () => {
+    if (!registrations || registrations.length === 0) {
+      alert("Dışa aktarılacak kayıt bulunmuyor.");
+      return;
+    }
+    const headers = ["Turnuva Başlığı", "Katılımcı Adı", "Satranç Kullanıcı Adı", "Telefon", "Kayıt Tarihi"];
+    const rows = registrations.map(r => {
+      const tour = tournaments.find(t => t.id === r.tournamentId) || { title: `Turnuva #${r.tournamentId}` };
+      const user = users.find(u => u.id === r.userId) || { name: r.name, phone: '-', chessUsername: r.chessUsername };
+      return [
+        `"${tour.title}"`,
+        `"${user.name || r.name || ''}"`,
+        `"${user.chessUsername || r.chessUsername || ''}"`,
+        `"${user.phone || ''}"`,
+        `"${r.registrationDate || '-'}"`
+      ];
+    });
+
+    const csvContent = "\uFEFF" + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `OZDER_Turnuva_Kayitlari_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // Eşleştirme Yönetimi Seçili Turnuva
   const [selectedTourId, setSelectedTourId] = useState(null);
@@ -413,83 +537,185 @@ export default function AdminPanel({ registrations, users = [], activeUsersCount
 
           {/* Registered Users Table */}
           <div className="glass-panel">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
               <div>
                 <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 700 }}>
                   👤 Kayıtlı Topluluk Üyeleri ({users.length})
                 </h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '4px' }}>
-                  Sisteme kaydolmuş tüm üyelerin bilgileri, iletişim numaraları ve ELO seviyeleri.
+                  Üye arayabilir, bilgilerini ve ELO puanlarını güncelleyebilir veya Excel/CSV olarak indirebilirsiniz.
                 </p>
+              </div>
+
+              {/* Dışa Aktarma & Hızlı Butonlar */}
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <button
+                  onClick={exportUsersToCSV}
+                  className="btn-secondary"
+                  style={{ padding: '8px 14px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  📥 Üye Listesini İndir (Excel/CSV)
+                </button>
               </div>
             </div>
 
-            {users.length === 0 ? (
-              <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Henüz kayıtlı üye bulunmamaktadır.</p>
-            ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid var(--panel-border)', color: 'var(--text-secondary)' }}>
-                      <th style={{ padding: '12px 10px' }}>Üye</th>
-                      <th style={{ padding: '12px 10px' }}>E-posta</th>
-                      <th style={{ padding: '12px 10px' }}>Telefon</th>
-                      <th style={{ padding: '12px 10px' }}>Satranç Platformu</th>
-                      <th style={{ padding: '12px 10px' }}>ELO</th>
-                      <th style={{ padding: '12px 10px' }}>Doğrulama</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map((u, idx) => (
-                      <tr key={idx} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-                        <td style={{ padding: '12px 10px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <div style={{
-                              width: '32px',
-                              height: '32px',
-                              borderRadius: '50%',
-                              background: 'var(--gradient-gold)',
-                              color: '#fff',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontWeight: 700,
-                              fontSize: '13px'
-                            }}>
-                              {u.name ? u.name.charAt(0).toUpperCase() : 'U'}
-                            </div>
-                            <div>
-                              <div style={{ fontWeight: 600 }}>{u.name}</div>
-                              <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>ID: {u.id}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td style={{ padding: '12px 10px', color: 'var(--text-primary)' }}>{u.email}</td>
-                        <td style={{ padding: '12px 10px', color: 'var(--text-secondary)' }}>{u.phone || '-'}</td>
-                        <td style={{ padding: '12px 10px' }}>
-                          <span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>@{u.chessUsername || '-'}</span>
-                        </td>
-                        <td style={{ padding: '12px 10px' }}>
-                          <span style={{ fontWeight: 700, color: 'var(--accent-secondary)' }}>{u.elo || 1500}</span>
-                        </td>
-                        <td style={{ padding: '12px 10px' }}>
-                          <span style={{
-                            padding: '3px 8px',
-                            borderRadius: '6px',
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            background: u.verified !== false ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                            color: u.verified !== false ? '#10b981' : '#ef4444'
-                          }}>
-                            {u.verified !== false ? '✓ Doğrulandı' : 'Beklemede'}
-                          </span>
-                        </td>
+            {/* Arama & Filtre Çubuğu */}
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
+              <input
+                type="text"
+                placeholder="🔍 İsim, e-posta, telefon veya satranç adı ara..."
+                value={userSearchTerm}
+                onChange={(e) => setUserSearchTerm(e.target.value)}
+                style={{
+                  flex: 1,
+                  minWidth: '240px',
+                  background: 'var(--bg-color)',
+                  border: '1px solid var(--panel-border)',
+                  borderRadius: '8px',
+                  padding: '10px 14px',
+                  fontSize: '13px',
+                  color: 'var(--text-primary)',
+                  outline: 'none'
+                }}
+              />
+              <select
+                value={userFilterRole}
+                onChange={(e) => setUserFilterRole(e.target.value)}
+                style={{
+                  background: 'var(--bg-color)',
+                  border: '1px solid var(--panel-border)',
+                  borderRadius: '8px',
+                  padding: '10px 14px',
+                  fontSize: '13px',
+                  color: 'var(--text-primary)',
+                  outline: 'none'
+                }}
+              >
+                <option value="all">Tüm Üyeler ({users.length})</option>
+                <option value="verified">Sadece Doğrulanmışlar ({users.filter(u => u.verified !== false).length})</option>
+                <option value="unverified">Doğrulama Bekleyenler ({users.filter(u => u.verified === false).length})</option>
+              </select>
+            </div>
+
+            {(() => {
+              const filteredUsers = users.filter(u => {
+                const term = userSearchTerm.toLowerCase();
+                const matchesSearch = 
+                  (u.name && u.name.toLowerCase().includes(term)) ||
+                  (u.email && u.email.toLowerCase().includes(term)) ||
+                  (u.phone && u.phone.toLowerCase().includes(term)) ||
+                  (u.chessUsername && u.chessUsername.toLowerCase().includes(term));
+                
+                if (!matchesSearch) return false;
+                if (userFilterRole === 'verified') return u.verified !== false;
+                if (userFilterRole === 'unverified') return u.verified === false;
+                return true;
+              });
+
+              if (filteredUsers.length === 0) {
+                return <p style={{ color: 'var(--text-secondary)', fontSize: '14px', padding: '16px 0' }}>Aradığınız kriterlere uygun üye bulunamadı.</p>;
+              }
+
+              return (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--panel-border)', color: 'var(--text-secondary)' }}>
+                        <th style={{ padding: '12px 10px' }}>Üye</th>
+                        <th style={{ padding: '12px 10px' }}>E-posta</th>
+                        <th style={{ padding: '12px 10px' }}>Telefon</th>
+                        <th style={{ padding: '12px 10px' }}>Satranç Platformu</th>
+                        <th style={{ padding: '12px 10px' }}>ELO</th>
+                        <th style={{ padding: '12px 10px' }}>Durum</th>
+                        <th style={{ padding: '12px 10px' }}>İşlemler</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                    </thead>
+                    <tbody>
+                      {filteredUsers.map((u, idx) => (
+                        <tr key={idx} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                          <td style={{ padding: '12px 10px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <div style={{
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '50%',
+                                background: 'var(--gradient-gold)',
+                                color: '#fff',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: 700,
+                                fontSize: '13px'
+                              }}>
+                                {u.name ? u.name.charAt(0).toUpperCase() : 'U'}
+                              </div>
+                              <div>
+                                <div style={{ fontWeight: 600 }}>{u.name}</div>
+                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>ID: {u.id}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ padding: '12px 10px', color: 'var(--text-primary)' }}>{u.email}</td>
+                          <td style={{ padding: '12px 10px', color: 'var(--text-secondary)' }}>{u.phone || '-'}</td>
+                          <td style={{ padding: '12px 10px' }}>
+                            <span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>@{u.chessUsername || '-'}</span>
+                          </td>
+                          <td style={{ padding: '12px 10px' }}>
+                            <span style={{ fontWeight: 700, color: 'var(--accent-secondary)' }}>{u.elo || 1500}</span>
+                          </td>
+                          <td style={{ padding: '12px 10px' }}>
+                            <span style={{
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              background: u.verified !== false ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                              color: u.verified !== false ? '#10b981' : '#ef4444'
+                            }}>
+                              {u.verified !== false ? '✓ Doğrulandı' : 'Beklemede'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '12px 10px' }}>
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                              <button
+                                onClick={() => openEditUserModal(u)}
+                                style={{
+                                  background: 'rgba(14, 165, 233, 0.1)',
+                                  color: '#0ea5e9',
+                                  border: '1px solid rgba(14, 165, 233, 0.25)',
+                                  borderRadius: '6px',
+                                  padding: '4px 8px',
+                                  fontSize: '12px',
+                                  cursor: 'pointer',
+                                  fontWeight: 600
+                                }}
+                              >
+                                ✏️ Düzenle
+                              </button>
+                              <button
+                                onClick={() => handleDeleteUserAccount(u.id, u.name)}
+                                style={{
+                                  background: 'rgba(239, 68, 68, 0.1)',
+                                  color: '#ef4444',
+                                  border: '1px solid rgba(239, 68, 68, 0.25)',
+                                  borderRadius: '6px',
+                                  padding: '4px 8px',
+                                  fontSize: '12px',
+                                  cursor: 'pointer',
+                                  fontWeight: 600
+                                }}
+                              >
+                                🗑️ Sil
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
@@ -499,9 +725,20 @@ export default function AdminPanel({ registrations, users = [], activeUsersCount
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '32px' }}>
           {/* Table */}
           <div className="glass-panel" style={{ flex: 2 }}>
-            <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 700, marginBottom: '20px' }}>
-              Buluşma Katılım Kayıtları ({registrations.length})
-            </h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+              <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 700, margin: 0 }}>
+                Buluşma Katılım Kayıtları ({registrations.length})
+              </h3>
+              {registrations.length > 0 && (
+                <button
+                  onClick={exportRegistrationsToCSV}
+                  className="btn-secondary"
+                  style={{ padding: '6px 12px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  📥 Kayıtları İndir (Excel/CSV)
+                </button>
+              )}
+            </div>
             {registrations.length === 0 ? (
               <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Henüz kayıtlı katılımcı bulunmuyor.</p>
             ) : (
@@ -917,6 +1154,133 @@ export default function AdminPanel({ registrations, users = [], activeUsersCount
                   style={{ flex: 1, justifyContent: 'center' }}
                 >
                   Değişiklikleri Kaydet
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Kullanıcı Düzenleme Modalı */}
+      {editingUser && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px'
+        }}>
+          <div className="glass-panel" style={{
+            background: '#ffffff',
+            maxWidth: '500px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '28px',
+            borderRadius: '16px',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 800 }}>
+                👤 Üye Bilgilerini Düzenle
+              </h3>
+              <button
+                onClick={() => setEditingUser(null)}
+                style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-secondary)' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateUser} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Ad Soyad *</label>
+                <input
+                  type="text"
+                  required
+                  value={editUserFormData.name}
+                  onChange={(e) => setEditUserFormData({ ...editUserFormData, name: e.target.value })}
+                  style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>E-Posta *</label>
+                  <input
+                    type="email"
+                    required
+                    value={editUserFormData.email}
+                    onChange={(e) => setEditUserFormData({ ...editUserFormData, email: e.target.value })}
+                    style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Telefon</label>
+                  <input
+                    type="text"
+                    value={editUserFormData.phone}
+                    onChange={(e) => setEditUserFormData({ ...editUserFormData, phone: e.target.value })}
+                    style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Satranç Kullanıcı Adı</label>
+                  <input
+                    type="text"
+                    value={editUserFormData.chessUsername}
+                    onChange={(e) => setEditUserFormData({ ...editUserFormData, chessUsername: e.target.value })}
+                    style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>ELO Puanı</label>
+                  <input
+                    type="number"
+                    value={editUserFormData.elo}
+                    onChange={(e) => setEditUserFormData({ ...editUserFormData, elo: e.target.value })}
+                    style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Hesap Doğrulama Durumu</label>
+                <select
+                  value={editUserFormData.verified ? 'true' : 'false'}
+                  onChange={(e) => setEditUserFormData({ ...editUserFormData, verified: e.target.value === 'true' })}
+                  style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }}
+                >
+                  <option value="true">✓ Doğrulanmış Hesap</option>
+                  <option value="false">⏳ Doğrulama Bekliyor / Askıda</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setEditingUser(null)}
+                  className="btn-secondary"
+                  style={{ flex: 1, justifyContent: 'center' }}
+                >
+                  Vazgeç
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  style={{ flex: 1, justifyContent: 'center' }}
+                >
+                  Kaydet
                 </button>
               </div>
             </form>

@@ -242,6 +242,35 @@ app.post('/api/users/:id/profile', upload.single('avatarFile'), (req, res) => {
   }
 });
 
+// Admin: Kullanıcı Düzenleme
+app.put('/api/users/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, phone, chessUsername, elo, verified } = req.body;
+    const result = db.adminUpdateUser(id, { name, email, phone, chessUsername, elo, verified });
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
+    }
+    res.json({ success: true, users: result.users });
+  } catch (error) {
+    res.status(500).json({ error: "Kullanıcı güncellenirken hata oluştu." });
+  }
+});
+
+// Admin: Kullanıcıyı Tamamen Silme
+app.delete('/api/users/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = db.deleteUser(id);
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
+    }
+    res.json({ success: true, users: result.users, registrations: result.registrations });
+  } catch (error) {
+    res.status(500).json({ error: "Kullanıcı silinirken hata oluştu." });
+  }
+});
+
 // Turnuvaya Özel Kayıt Rotaları (Ad Soyad ve chessUsername artık parametredir)
 app.post('/api/register', (req, res) => {
   try {

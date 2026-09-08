@@ -194,6 +194,35 @@ module.exports = {
     return { success: true, user: { id: user.id, email: user.email, name: user.name, phone: user.phone, chessUsername: user.chessUsername, bio: user.bio, avatar: user.avatar, matchmakingSettings: user.matchmakingSettings } };
   },
 
+  adminUpdateUser: (userId, updates) => {
+    const db = readDB();
+    const userIndex = db.users.findIndex(u => String(u.id) === String(userId));
+    if (userIndex === -1) return { error: "Kullanıcı bulunamadı." };
+
+    const user = db.users[userIndex];
+    if (updates.name !== undefined) user.name = updates.name;
+    if (updates.email !== undefined) user.email = updates.email;
+    if (updates.phone !== undefined) user.phone = updates.phone;
+    if (updates.chessUsername !== undefined) user.chessUsername = updates.chessUsername;
+    if (updates.elo !== undefined) user.elo = parseInt(updates.elo);
+    if (updates.verified !== undefined) user.verified = Boolean(updates.verified);
+
+    updateLeaderboards(db);
+    writeDB(db);
+    return { success: true, users: db.users };
+  },
+
+  deleteUser: (userId) => {
+    const db = readDB();
+    const uId = String(userId);
+    db.users = db.users.filter(u => String(u.id) !== uId);
+    db.registrations = db.registrations.filter(r => String(r.userId) !== uId);
+    db.stats.registeredPlayers = db.registrations.length;
+    updateLeaderboards(db);
+    writeDB(db);
+    return { success: true, users: db.users, registrations: db.registrations };
+  },
+
   registerForTournament: (tournamentId, userId, name, chessUsername) => {
     const db = readDB();
     const tournament = db.tournaments.find(t => t.id === parseInt(tournamentId));
