@@ -237,6 +237,22 @@ module.exports = {
     if (updates.avatar !== undefined) user.avatar = updates.avatar;
     if (updates.matchmakingSettings !== undefined) user.matchmakingSettings = updates.matchmakingSettings;
 
+    // Kullanıcının güncellenen avatar ve isim bilgisini tüm bekleyen/kabul edilmiş eşleşme isteklerinde senkronize et
+    if (Array.isArray(db.matchRequests)) {
+      db.matchRequests.forEach(req => {
+        if (String(req.fromUserId) === String(user.id)) {
+          if (user.avatar) req.fromUserAvatar = user.avatar;
+          if (user.name) req.fromUserName = user.name;
+          if (user.chessUsername) req.fromUserChess = user.chessUsername;
+        }
+        if (String(req.toUserId) === String(user.id)) {
+          if (user.avatar) req.toUserAvatar = user.avatar;
+          if (user.name) req.toUserName = user.name;
+          if (user.chessUsername) req.toUserChess = user.chessUsername;
+        }
+      });
+    }
+
     writeDB(db);
     return { success: true, user: { id: user.id, email: user.email, name: user.name, phone: user.phone, chessUsername: user.chessUsername, bio: user.bio, avatar: user.avatar, matchmakingSettings: user.matchmakingSettings } };
   },

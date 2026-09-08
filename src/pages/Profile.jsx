@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 
 export default function Profile({ currentUser, registrations, tournaments, onUpdateProfile }) {
   const [activeSubTab, setActiveSubTab] = useState('stats'); // stats | history | settings
@@ -9,14 +9,109 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
     bio: currentUser?.bio || 'Satranç tutkunu. OZDER etkinliklerine katılıyor.',
     avatarUrl: currentUser?.avatar || ''
   });
-  const [avatarFile, setAvatarFile] = useState(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
   
   // Create a ref for the hidden file input
-  const fileInputRef = React.useRef(null);
-  
-  // Local preview URL
-  const previewUrl = avatarFile ? URL.createObjectURL(avatarFile) : null;
+  const fileInputRef = useRef(null);
+
+  // currentUser güncellendiğinde local state'i senkronize et
+  useEffect(() => {
+    if (currentUser) {
+      setProfileData({
+        name: currentUser.name || '',
+        phone: currentUser.phone || '',
+        chessUsername: currentUser.chessUsername || '',
+        bio: currentUser.bio || 'Satranç tutkunu. OZDER etkinliklerine katılıyor.',
+        avatarUrl: currentUser.avatar || ''
+      });
+    }
+  }, [currentUser]);
+
+  // Görseli canvas ile sıkıştırıp Base64 Data URL'e çeviren yardımcı fonksiyon
+  const compressImage = (file, maxWidth = 400, maxHeight = 400, quality = 0.85) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxHeight) {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // WebP veya JPEG formatında hafif Base64 oluştur
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve(dataUrl);
+        };
+        img.onerror = (err) => reject(err);
+      };
+      reader.onerror = (err) => reject(err);
+    });
+  };
+
+  // Fotoğraf seçildiği an otomatik olarak kaydedip yükleme
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Dosya boyutu kontrolü (10MB üst sınır)
+    if (file.size > 10 * 1024 * 1024) {
+      alert("Lütfen 10 MB'dan küçük bir fotoğraf seçin.");
+      return;
+    }
+
+    try {
+      setIsUploadingAvatar(true);
+      setStatusMsg('Fotoğraf işleniyor ve yükleniyor...');
+
+      // Optimize edilmiş Base64 görsel oluştur
+      const base64Avatar = await compressImage(file, 400, 400, 0.88);
+
+      // Doğrudan FormData ile sunucuya anında kaydet
+      const formData = new FormData();
+      formData.append('name', profileData.name || currentUser?.name || '');
+      if (currentUser?.email) formData.append('email', currentUser.email);
+      formData.append('phone', profileData.phone || currentUser?.phone || '');
+      formData.append('chessUsername', profileData.chessUsername || currentUser?.chessUsername || '');
+      formData.append('bio', profileData.bio || currentUser?.bio || '');
+      formData.append('avatarUrl', base64Avatar);
+
+      // Ayrıca dosyayı multipart olarak da ekle
+      formData.append('avatarFile', file);
+
+      await onUpdateProfile(formData);
+
+      setProfileData(prev => ({ ...prev, avatarUrl: base64Avatar }));
+      setStatusMsg('Profil fotoğrafınız başarıyla güncellendi ve kaydedildi! 🎉');
+      setTimeout(() => setStatusMsg(''), 4000);
+    } catch (err) {
+      console.error("Fotoğraf yükleme hatası:", err);
+      alert("Fotoğraf yüklenirken bir sorun oluştu. Lütfen tekrar deneyin.");
+    } finally {
+      setIsUploadingAvatar(false);
+      // Inputu sıfırla ki aynı fotoğrafı tekrar seçebilsin
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   // -------------------- STATS CALCULATION --------------------
   const stats = useMemo(() => {
@@ -126,25 +221,48 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
   // Şampiyonluk sayıları hesaplama
   const championshipCount = tournaments.filter(t => String(t.champion) === String(currentUser.name)).length; // Basit isim eşleşmesi geçici çözüm. Geliştirilebilir.
 
-  const handleUpdateInfo = (e) => {
+  const handleUpdateInfo = async (e) => {
     e.preventDefault();
-    const formData = new FormData();
-    formData.append('name', profileData.name);
-    if (currentUser.email) formData.append('email', currentUser.email);
-    formData.append('phone', profileData.phone);
-    formData.append('chessUsername', profileData.chessUsername);
-    formData.append('bio', profileData.bio);
-    if (profileData.avatarUrl) formData.append('avatarUrl', profileData.avatarUrl);
-    if (avatarFile) formData.append('avatarFile', avatarFile);
+    try {
+      setStatusMsg('Profil bilgileri güncelleniyor...');
+      const formData = new FormData();
+      formData.append('name', profileData.name);
+      if (currentUser.email) formData.append('email', currentUser.email);
+      formData.append('phone', profileData.phone);
+      formData.append('chessUsername', profileData.chessUsername);
+      formData.append('bio', profileData.bio);
+      if (profileData.avatarUrl) formData.append('avatarUrl', profileData.avatarUrl);
 
-    onUpdateProfile(formData);
-    setStatusMsg('Profil bilgileri güncelleniyor...');
-    setTimeout(() => setStatusMsg(''), 3000);
+      await onUpdateProfile(formData);
+      setStatusMsg('Profil başarıyla güncellendi! ✅');
+      setTimeout(() => setStatusMsg(''), 3500);
+    } catch (err) {
+      setStatusMsg('Güncelleme sırasında hata oluştu.');
+    }
   };
 
   return (
-    <div className="animate-fade-in" style={{ padding: '20px 0', display: 'flex', flexDirection: 'column', gap: '32px' }}>
+    <div className="animate-fade-in" style={{ padding: '20px 0', display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
+      {statusMsg && (
+        <div style={{
+          background: statusMsg.includes('hata') ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+          color: statusMsg.includes('hata') ? '#ef4444' : '#059669',
+          border: `1px solid ${statusMsg.includes('hata') ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
+          padding: '12px 20px',
+          borderRadius: '10px',
+          fontWeight: 700,
+          fontSize: '14px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          animation: 'fadeIn 0.2s ease'
+        }}>
+          <span>{statusMsg.includes('hata') ? '⚠️' : '✨'}</span>
+          <span>{statusMsg}</span>
+        </div>
+      )}
+
       {/* Profile Header Card */}
       <section className="glass-panel" style={{
         display: 'flex',
@@ -154,13 +272,17 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
         background: 'var(--panel-bg)',
         border: '1px solid var(--accent-primary)'
       }}>
-        <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => fileInputRef.current && fileInputRef.current.click()}>
+        <div 
+          style={{ position: 'relative', cursor: isUploadingAvatar ? 'wait' : 'pointer' }} 
+          onClick={() => !isUploadingAvatar && fileInputRef.current && fileInputRef.current.click()}
+          title="Fotoğrafı Değiştirmek İçin Tıklayın"
+        >
           {/* Avatar Cemberi */}
           <div style={{
             width: '100px',
             height: '100px',
             borderRadius: '50%',
-            background: (previewUrl || currentUser.avatar) ? 'transparent' : 'var(--gradient-gold)',
+            background: (profileData.avatarUrl || currentUser.avatar) ? 'transparent' : 'var(--gradient-gold)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -169,33 +291,61 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
             color: '#fff',
             boxShadow: '0 4px 20px rgba(217, 119, 6, 0.2)',
             overflow: 'hidden',
-            border: (previewUrl || currentUser.avatar) ? '2px solid var(--accent-primary)' : 'none',
+            border: (profileData.avatarUrl || currentUser.avatar) ? '2px solid var(--accent-primary)' : 'none',
             position: 'relative'
           }}>
-            {(previewUrl || currentUser.avatar) ? (
-              <img src={previewUrl || currentUser.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            {(profileData.avatarUrl || currentUser.avatar) ? (
+              <img 
+                src={profileData.avatarUrl || currentUser.avatar} 
+                alt="Avatar" 
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+              />
             ) : (
               currentUser.name.charAt(0).toUpperCase()
             )}
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s', ':hover': { opacity: 1 } }}>
-               <span style={{ fontSize: '24px' }}>📷</span>
+
+            {/* Yükleme veya Üzerine Gelme Efekti */}
+            <div style={{ 
+              position: 'absolute', 
+              inset: 0, 
+              background: isUploadingAvatar ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.3)', 
+              display: 'flex', 
+              flexDirection: 'column',
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              opacity: isUploadingAvatar ? 1 : 0, 
+              transition: 'opacity 0.2s',
+              color: '#fff'
+            }}
+            onMouseEnter={(e) => { if (!isUploadingAvatar) e.currentTarget.style.opacity = '1'; }}
+            onMouseLeave={(e) => { if (!isUploadingAvatar) e.currentTarget.style.opacity = '0'; }}
+            >
+              {isUploadingAvatar ? (
+                <span style={{ fontSize: '18px', animation: 'spin 1s linear infinite' }}>⏳</span>
+              ) : (
+                <>
+                  <span style={{ fontSize: '24px' }}>📷</span>
+                  <span style={{ fontSize: '10px', fontWeight: 700, marginTop: '2px' }}>DEĞİŞTİR</span>
+                </>
+              )}
             </div>
           </div>
           
-          {/* Kucuk Kamera İkonu (Her Zaman Gorunur) */}
+          {/* Küçük Kamera İkonu (Her Zaman Görünür Rozet) */}
           <div style={{
             position: 'absolute',
             bottom: '0',
             right: '0',
-            background: 'var(--panel-bg)',
-            border: '2px solid var(--panel-border)',
+            background: 'var(--accent-primary)',
+            color: '#fff',
+            border: '2px solid var(--panel-bg)',
             borderRadius: '50%',
             width: '32px',
             height: '32px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
             zIndex: 10
           }}>
             <span style={{ fontSize: '14px' }}>📷</span>
@@ -205,9 +355,9 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
         {/* Hidden File Input for Avatar - ALWAYS IN DOM */}
         <input
           type="file"
-          accept="image/*"
+          accept="image/png, image/jpeg, image/webp, image/gif"
           ref={fileInputRef}
-          onChange={(e) => setAvatarFile(e.target.files[0])}
+          onChange={handleAvatarChange}
           style={{ display: 'none' }}
         />
 

@@ -731,17 +731,23 @@ export default function Matchmaking({
                       gap: '14px'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                      <div style={{ width: '46px', height: '46px', borderRadius: '50%', background: req.fromUserAvatar ? 'transparent' : 'var(--gradient-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, overflow: 'hidden' }}>
-                        {req.fromUserAvatar ? <img src={req.fromUserAvatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : req.fromUserName.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 800, fontSize: '16px', color: 'var(--text-primary)' }}>
-                          {req.fromUserName} <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 }}>({req.fromUserElo || 1500} ELO)</span>
+                    {(() => {
+                      const fromUserRecord = users.find(u => String(u.id) === String(req.fromUserId));
+                      const liveAvatar = fromUserRecord?.avatar || req.fromUserAvatar;
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                          <div style={{ width: '46px', height: '46px', borderRadius: '50%', background: liveAvatar ? 'transparent' : 'var(--gradient-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, overflow: 'hidden', border: liveAvatar ? '1px solid var(--panel-border)' : 'none' }}>
+                            {liveAvatar ? <img src={liveAvatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : req.fromUserName.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 800, fontSize: '16px', color: 'var(--text-primary)' }}>
+                              {req.fromUserName} <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 }}>({fromUserRecord?.elo || req.fromUserElo || 1500} ELO)</span>
+                            </div>
+                            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>"{req.message}"</p>
+                          </div>
                         </div>
-                        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>"{req.message}"</p>
-                      </div>
-                    </div>
+                      );
+                    })()}
                     <div style={{ display: 'flex', gap: '10px' }}>
                       <button 
                         onClick={() => handleRespondRequest(req.id, 'accept')} 
