@@ -1,11 +1,24 @@
 import React, { useState } from 'react';
 
-export default function AdminPanel({ registrations, users = [], onUsersUpdate, activeUsersCount = 1, activeUsersList = [], onRegisterUpdate, tournaments, onAddTournament, messages = [], onMessagesUpdate }) {
+export default function AdminPanel({ 
+  registrations, 
+  users = [], 
+  onUsersUpdate, 
+  activeUsersCount = 1, 
+  activeUsersList = [], 
+  onRegisterUpdate, 
+  tournaments, 
+  onAddTournament, 
+  messages = [], 
+  onMessagesUpdate,
+  spamReports = [],
+  onReloadData
+}) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
-  const [activeTab, setActiveTab] = useState('users'); // users | registrations | events | tournaments | messages
+  const [activeTab, setActiveTab] = useState('users'); // users | registrations | events | tournaments | messages | spam
 
   // Arama & Filtreleme
   const [userSearchTerm, setUserSearchTerm] = useState('');
@@ -516,7 +529,8 @@ export default function AdminPanel({ registrations, users = [], onUsersUpdate, a
           { id: 'registrations', label: `Katılımcı Kayıtları (${registrations.length}) 📋` },
           { id: 'events', label: `Etkinlik & Turnuva Yönetimi (${tournaments.length}) 📅` },
           { id: 'tournaments', label: 'Eşleştirme Sistemi ♟️' },
-          { id: 'messages', label: `Gelen Mesajlar (${messages.length}) ✉️` }
+          { id: 'messages', label: `Gelen Mesajlar (${messages.length}) ✉️` },
+          { id: 'spam', label: `Spam & Şikayetler (${spamReports.filter(s => s.status === 'pending').length} bekleyen) ⚠️` }
         ].map(tab => (
           <button
             key={tab.id}
@@ -1611,6 +1625,129 @@ export default function AdminPanel({ registrations, users = [], onUsersUpdate, a
                   <button onClick={() => handleDeleteMessage(msg.id)} style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.15)', borderRadius: '6px', padding: '6px 12px', fontSize: '13px', cursor: 'pointer' }}>Sil</button>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab Content: Spam & Abuse Reports */}
+      {activeTab === 'spam' && (
+        <div className="glass-panel" style={{ padding: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                ⚠️ Spam ve Uygunsuzluk Bildirimleri ({spamReports.length})
+              </h3>
+              <p style={{ margin: '4px 0 0 0', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                Oyuncuların "Rakip Bul" ve mesajlaşma ekranlarından yaptığı şikayetler.
+              </p>
+            </div>
+            <button 
+              onClick={onReloadData}
+              className="btn-secondary"
+              style={{ fontSize: '13px', padding: '6px 14px' }}
+            >
+              🔄 Yenile
+            </button>
+          </div>
+
+          {spamReports.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
+              Henüz herhangi bir spam veya uygunsuzluk şikayeti bildirilmedi.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {spamReports.map(report => {
+                const isPending = report.status === 'pending';
+                return (
+                  <div 
+                    key={report.id} 
+                    style={{
+                      background: isPending ? 'rgba(239, 68, 68, 0.03)' : '#fff',
+                      border: `1px solid ${isPending ? 'rgba(239, 68, 68, 0.3)' : 'var(--panel-border)'}`,
+                      borderRadius: '8px',
+                      padding: '16px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '10px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                        <span style={{ 
+                          padding: '4px 10px', 
+                          borderRadius: '12px', 
+                          fontSize: '11px', 
+                          fontWeight: 700,
+                          background: isPending ? '#ef4444' : '#10b981',
+                          color: '#fff'
+                        }}>
+                          {isPending ? '⏳ İnceleniyor / Beklemede' : '✅ Çözüldü'}
+                        </span>
+                        <strong style={{ color: 'var(--text-primary)', fontSize: '15px' }}>
+                          Şikayet Edilen: <span style={{ color: '#ef4444' }}>{report.targetUserName || `ID #${report.targetUserId}`}</span>
+                        </strong>
+                        <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
+                          (Bildiren: <b>{report.reporterName || `ID #${report.reporterId}`}</b>)
+                        </span>
+                      </div>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>
+                        {new Date(report.createdAt).toLocaleString('tr-TR')}
+                      </span>
+                    </div>
+
+                    <div style={{ background: 'var(--bg-secondary, #f8fafc)', padding: '10px 14px', borderRadius: '6px', fontSize: '13px' }}>
+                      <div><b>Sebep / Başlık:</b> {report.reason}</div>
+                      {report.details && (
+                        <div style={{ marginTop: '4px', color: 'var(--text-primary)' }}>
+                          <b>Açıklama:</b> {report.details}
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
+                      {isPending && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              const res = await fetch(`/api/spam-reports/${report.id}/resolve`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ adminNote: 'İncelendi ve kapatıldı.' })
+                              });
+                              if (res.ok) {
+                                if (onReloadData) onReloadData();
+                                alert("Şikayet 'Çözüldü' olarak işaretlendi.");
+                              }
+                            } catch (err) {
+                              alert("İşlem başarısız.");
+                            }
+                          }}
+                          className="btn-primary"
+                          style={{ padding: '6px 14px', fontSize: '12px', background: '#10b981', borderColor: '#10b981' }}
+                        >
+                          ✓ İncelendi / Çözüldü İşaretle
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDeleteUserAccount(report.targetUserId, report.targetUserName || 'Kullanıcı')}
+                        style={{
+                          background: 'rgba(239, 68, 68, 0.1)',
+                          color: '#ef4444',
+                          border: '1px solid rgba(239, 68, 68, 0.2)',
+                          padding: '6px 14px',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          fontWeight: 600
+                        }}
+                      >
+                        🚫 Şikayet Edilen Hesabı Sil
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

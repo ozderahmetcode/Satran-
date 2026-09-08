@@ -34,7 +34,10 @@ const defaultData = {
       totalRounds: 5
     }
   ],
-  registrations: [] 
+  registrations: [],
+  matchRequests: [],
+  directMessages: [],
+  spamReports: []
 };
 
 function initDB() {
@@ -59,6 +62,18 @@ function readDB() {
           changed = true;
         }
       });
+    }
+    if (!Array.isArray(parsed.matchRequests)) {
+      parsed.matchRequests = [];
+      changed = true;
+    }
+    if (!Array.isArray(parsed.directMessages)) {
+      parsed.directMessages = [];
+      changed = true;
+    }
+    if (!Array.isArray(parsed.spamReports)) {
+      parsed.spamReports = [];
+      changed = true;
     }
     if (changed) {
       fs.writeFileSync(DB_FILE, JSON.stringify(parsed, null, 2), 'utf-8');
@@ -594,5 +609,175 @@ module.exports = {
 
     writeDB(db);
     return { success: true, tournaments: db.tournaments };
+  },
+
+  // =================== RAKİP BULMA / EŞLEŞME İSTEKLERİ & MESAJLAŞMA ===================
+  sendMatchRequest: (fromUser, toUserId, message = '') => {
+    const db = readDB();
+    const toUser = db.users.find(u => String(u.id) === String(toUserId));
+    if (!toUser) return { error: "İstek gönderilecek oyuncu bulunamadı." };
+    if (String(fromUser.id) === String(toUserId)) return { error: "Kendinize oyun isteği gönderemezsiniz." };
+
+    // Engelleme kontrolü (eğer hedef kullanıcı göndereni engellediyse)
+    if (Array.isArray(toUser.blockedUsers) && toUser.blockedUsers.includes(String(fromUser.id))) {
+      return { error: "Bu kullanıcıya şu an istek gönderemezsiniz." };
+    }
+
+    const existingPending = db.matchRequests.find(r => 
+      String(r.fromUserId) === String(fromUser.id) && 
+      String(r.toUserId) === String(toUserId) && 
+      r.status === 'pending'
+    );
+    if (existingPending) {
+      return { error: "Bu oyuncuya zaten bekleyen bir oyun isteğiniz bulunuyor." };
+    }
+
+    const request = {
+      id: 'req_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+      fromUserId: String(fromUser.id),
+      fromUserName: fromUser.name,
+      fromUserChess: fromUser.chessUsername || '',
+      fromUserElo: fromUser.elo || 1500,
+      fromUserAvatar: fromUser.avatar || '',
+      toUserId: String(toUserId),
+      toUserName: toUser.name,
+      toUserChess: toUser.chessUsername || '',
+      toUserElo: toUser.elo || 1500,
+      toUserAvatar: toUser.avatar || '',
+      message: message.trim() || 'Seninle satranç oynamak istiyorum!',
+      status: 'pending', // 'pending', 'accepted', 'rejected', 'cancelled'
+      createdAt: new Date().toISOString()
+    };
+
+    db.matchRequests.unshift(request);
+    writeDB(db);
+    return { success: true, request, matchRequests: db.matchRequests };
+  },
+
+  respondMatchRequest: (userId, requestId, action) => { // action: 'accept' | 'reject' | 'cancel'
+    const db = readDB();
+    const request = db.matchRequests.find(r => r.id === requestId);
+    if (!request) return { error: "İstek bulunamadı." };
+
+    if (action === 'cancel') {
+      if (String(request.fromUserId) !== String(userId)) {
+        return { error: "Sadece kendi gönderdiğiniz isteği iptal edebilirsiniz." };
+      }
+      request.status = 'cancelled';
+    } else {
+      if (String(request.toUserId) !== String(userId)) {
+        return { error: "Bu istek size ait değil." };
+      }
+      if (action === 'accept') {
+        request.status = 'accepted';
+        request.acceptedAt = new Date().toISOString();
+      } else {
+        request.status = 'rejected';
+      }
+    }
+
+    writeDB(db);
+    return { success: true, request, matchRequests: db.matchRequests };
+  },
+
+  sendDirectMessage: (senderId, receiverId, text) => {
+    const db = readDB();
+    if (!text || !text.trim()) return { error: "Mesaj boş olamaz." };
+
+    const sender = db.users.find(u => String(u.id) === String(senderId));
+    const receiver = db.users.find(u => String(u.id) === String(receiverId));
+    if (!sender || !receiver) return { error: "Kullanıcı bulunamadı." };
+
+    // Engelleme kontrolü
+    if (Array.isArray(receiver.blockedUsers) && receiver.blockedUsers.includes(String(senderId))) {
+      return { error: "Bu kullanıcı tarafından engellendiğiniz için mesaj gönderilemiyor." };
+    }
+    if (Array.isArray(sender.blockedUsers) && sender.blockedUsers.includes(String(receiverId))) {
+      return { error: "Engellediğiniz kullanıcıya mesaj gönderemezsiniz. Önce engeli kaldırın." };
+    }
+
+    // Eşleşme kontrolü: İki kullanıcı arasında kabul edilmiş en az 1 matchRequest olmalıdır
+    const isMatched = db.matchRequests.some(r => 
+      r.status === 'accepted' && 
+      ((String(r.fromUserId) === String(senderId) && String(r.toUserId) === String(receiverId)) ||
+       (String(r.fromUserId) === String(receiverId) && String(r.toUserId) === String(senderId)))
+    );
+
+    if (!isMatched) {
+      return { error: "Mesajlaşabilmek için oyun isteğinin kabul edilmiş olması gerekir." };
+    }
+
+    const newMsg = {
+      id: 'dm_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+      senderId: String(senderId),
+      senderName: sender.name,
+      receiverId: String(receiverId),
+      receiverName: receiver.name,
+      text: text.trim(),
+      timestamp: new Date().toISOString()
+    };
+
+    db.directMessages.push(newMsg);
+    writeDB(db);
+    return { success: true, message: newMsg, directMessages: db.directMessages };
+  },
+
+  blockUserToggle: (currentUserId, targetUserId) => {
+    const db = readDB();
+    const user = db.users.find(u => String(u.id) === String(currentUserId));
+    if (!user) return { error: "Kullanıcı bulunamadı." };
+
+    if (!Array.isArray(user.blockedUsers)) {
+      user.blockedUsers = [];
+    }
+
+    const tId = String(targetUserId);
+    const index = user.blockedUsers.indexOf(tId);
+    let isBlocked = false;
+
+    if (index === -1) {
+      user.blockedUsers.push(tId);
+      isBlocked = true;
+    } else {
+      user.blockedUsers.splice(index, 1);
+      isBlocked = false;
+    }
+
+    writeDB(db);
+    return { success: true, isBlocked, blockedUsers: user.blockedUsers, user };
+  },
+
+  reportSpam: (reporterUser, targetUserId, reason, details = '') => {
+    const db = readDB();
+    const targetUser = db.users.find(u => String(u.id) === String(targetUserId));
+    if (!targetUser) return { error: "Şikayet edilen kullanıcı bulunamadı." };
+
+    const report = {
+      id: 'spam_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+      reporterId: String(reporterUser.id),
+      reporterName: reporterUser.name,
+      reporterEmail: reporterUser.email || '',
+      targetUserId: String(targetUserId),
+      targetUserName: targetUser.name,
+      targetUserEmail: targetUser.email || '',
+      reason: reason || 'Uygunsuz Davranış / Spam',
+      details: details.trim(),
+      date: new Date().toISOString(),
+      status: 'pending' // 'pending', 'resolved'
+    };
+
+    db.spamReports.unshift(report);
+    writeDB(db);
+    return { success: true, report, spamReports: db.spamReports };
+  },
+
+  resolveSpamReport: (reportId) => {
+    const db = readDB();
+    const rep = db.spamReports.find(r => r.id === reportId);
+    if (rep) {
+      rep.status = 'resolved';
+      writeDB(db);
+    }
+    return { success: true, spamReports: db.spamReports };
   }
 };

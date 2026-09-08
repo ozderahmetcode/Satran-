@@ -21,7 +21,10 @@ export default function App() {
     messages: [],
     leaders: {},
     tournaments: [],
-    registrations: []
+    registrations: [],
+    matchRequests: [],
+    directMessages: [],
+    spamReports: []
   });
   const [loading, setLoading] = useState(true);
 
@@ -215,6 +218,8 @@ export default function App() {
             onAddTournament={handleAddTournament}
             messages={data.messages}
             onMessagesUpdate={handleMessagesUpdate}
+            spamReports={data.spamReports || []}
+            onReloadData={loadData}
           />
         );
       case 'auth':
@@ -235,7 +240,17 @@ export default function App() {
       case 'contact':
         return <Contact />;
       case 'matchmaking':
-        return <Matchmaking currentUser={currentUser} users={data.users} onGoToAuth={() => setCurrentPage('auth')} onUpdateProfile={handleUpdateProfile} />;
+        return (
+          <Matchmaking 
+            currentUser={currentUser} 
+            users={data.users} 
+            matchRequests={data.matchRequests || []}
+            directMessages={data.directMessages || []}
+            onGoToAuth={() => setCurrentPage('auth')} 
+            onUpdateProfile={handleUpdateProfile}
+            onReloadData={loadData}
+          />
+        );
       case 'faq':
         return <FAQ setCurrentPage={setCurrentPage} />;
       case 'terms':

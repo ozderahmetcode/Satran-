@@ -381,6 +381,105 @@ app.post('/api/tournaments/:id/rounds/:round/results', (req, res) => {
   }
 });
 
+// =================== RAKİP BULMA / OYUN İSTEĞİ, MESAJLAŞMA & SPAM ROTALARI ===================
+// Oyun İsteği Gönderme
+app.post('/api/match-requests', (req, res) => {
+  try {
+    const { fromUser, toUserId, message } = req.body;
+    if (!fromUser || !fromUser.id || !toUserId) {
+      return res.status(400).json({ error: "Gönderen kullanıcı ve hedef oyuncu bilgisi zorunludur." });
+    }
+    const result = db.sendMatchRequest(fromUser, toUserId, message);
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
+    }
+    res.status(201).json(result);
+  } catch (error) {
+    res.status(500).json({ error: "İstek gönderilirken hata oluştu." });
+  }
+});
+
+// Oyun İsteğine Cevap Verme (accept, reject, cancel)
+app.put('/api/match-requests/:id/respond', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userId, action } = req.body;
+    if (!userId || !action) {
+      return res.status(400).json({ error: "Kullanıcı ID ve işlem (action) belirtilmelidir." });
+    }
+    const result = db.respondMatchRequest(userId, id, action);
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
+    }
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: "İstek yanıtlanırken hata oluştu." });
+  }
+});
+
+// Mesaj Gönderme
+app.post('/api/direct-messages', (req, res) => {
+  try {
+    const { senderId, receiverId, text } = req.body;
+    if (!senderId || !receiverId || !text) {
+      return res.status(400).json({ error: "Gönderen, alıcı ve mesaj metni zorunludur." });
+    }
+    const result = db.sendDirectMessage(senderId, receiverId, text);
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
+    }
+    res.status(201).json(result);
+  } catch (error) {
+    res.status(500).json({ error: "Mesaj iletilirken hata oluştu." });
+  }
+});
+
+// Kullanıcıyı Engelle / Engeli Kaldır
+app.post('/api/users/:targetUserId/toggle-block', (req, res) => {
+  try {
+    const { targetUserId } = req.params;
+    const { currentUserId } = req.body;
+    if (!currentUserId) {
+      return res.status(400).json({ error: "Kullanıcı kimliği zorunludur." });
+    }
+    const result = db.blockUserToggle(currentUserId, targetUserId);
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
+    }
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: "Engelleme işlemi sırasında hata oluştu." });
+  }
+});
+
+// Spam & Uygunsuzluk Bildirimi
+app.post('/api/spam-reports', (req, res) => {
+  try {
+    const { reporterUser, targetUserId, reason, details } = req.body;
+    if (!reporterUser || !targetUserId) {
+      return res.status(400).json({ error: "Bildiren ve şikayet edilen kullanıcı bilgisi zorunludur." });
+    }
+    const result = db.reportSpam(reporterUser, targetUserId, reason, details);
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
+    }
+    res.status(201).json(result);
+  } catch (error) {
+    res.status(500).json({ error: "Şikayet iletilirken hata oluştu." });
+  }
+});
+
+// Admin: Spam Raporunu Çözüldü Olarak İşaretle
+app.put('/api/spam-reports/:id/resolve', (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = db.resolveSpamReport(id);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: "Rapor güncellenirken hata oluştu." });
+  }
+});
+
 // React Build Statik Dosyalarını Sunma
 app.use(express.static(path.join(__dirname, '../dist')));
 
