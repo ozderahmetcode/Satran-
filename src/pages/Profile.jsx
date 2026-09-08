@@ -130,6 +130,7 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
     e.preventDefault();
     const formData = new FormData();
     formData.append('name', profileData.name);
+    if (currentUser.email) formData.append('email', currentUser.email);
     formData.append('phone', profileData.phone);
     formData.append('chessUsername', profileData.chessUsername);
     formData.append('bio', profileData.bio);

@@ -39,8 +39,8 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
   const mainLinks = [
     { id: 'home', label: 'Ana Sayfa' },
     { id: 'event', label: 'Etkinlikler' },
-    { id: 'database', label: 'Satranç Veritabanı' },
-    { id: 'matchmaking', label: 'Satranç Eşlendirme' },
+    { id: 'database', label: 'İstatistikler & Arşiv' },
+    { id: 'matchmaking', label: 'Rakip Bul' },
     { id: 'faq', label: 'Merak Edilenler' },
     { id: 'contact', label: 'İletişim' }
   ];

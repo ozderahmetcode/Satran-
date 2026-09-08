@@ -182,7 +182,7 @@ app.post('/api/auth/login', (req, res) => {
 app.post('/api/users/:id/profile', upload.single('avatarFile'), (req, res) => {
   try {
     const { id } = req.params;
-    const { phone, bio, matchmakingSettings } = req.body;
+    const { name, email, chessUsername, phone, bio, matchmakingSettings } = req.body;
     
     let avatarUrl = req.body.avatarUrl; // Keep existing if not changed
     if (req.file) {
@@ -194,7 +194,7 @@ app.post('/api/users/:id/profile', upload.single('avatarFile'), (req, res) => {
       parsedSettings = JSON.parse(matchmakingSettings);
     }
     
-    const result = db.updateUserProfile(id, { phone, bio, avatar: avatarUrl, matchmakingSettings: parsedSettings });
+    const result = db.updateUserProfile(id, { name, email, chessUsername, phone, bio, avatar: avatarUrl, matchmakingSettings: parsedSettings });
     if (result.error) {
       return res.status(400).json({ error: result.error });
     }

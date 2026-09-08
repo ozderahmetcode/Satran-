@@ -21,6 +21,10 @@ export default function Matchmaking({ currentUser, users = [], onGoToAuth, onUpd
       const formData = new FormData();
       const settings = { isActive: isLookingForMatch, type: matchType, availability, note };
       formData.append('matchmakingSettings', JSON.stringify(settings));
+      if (currentUser.name) formData.append('name', currentUser.name);
+      if (currentUser.email) formData.append('email', currentUser.email);
+      if (currentUser.chessUsername) formData.append('chessUsername', currentUser.chessUsername);
+      if (currentUser.phone) formData.append('phone', currentUser.phone);
       
       const response = await fetch(`/api/users/${currentUser.id}/profile`, {
         method: 'POST',
@@ -28,7 +32,7 @@ export default function Matchmaking({ currentUser, users = [], onGoToAuth, onUpd
       });
       const data = await response.json();
       if (data.success) {
-        alert("Durumunuz başarıyla kaydedildi!");
+        alert("Eşleşme durumunuz ve tercihleriniz başarıyla kaydedildi!");
         if (onUpdateProfile) {
            onUpdateProfile(data.user);
         }
@@ -42,57 +46,112 @@ export default function Matchmaking({ currentUser, users = [], onGoToAuth, onUpd
   };
 
   return (
-    <div className="animate-fade-in" style={{ padding: '40px 0', display: 'flex', flexDirection: 'column', gap: '30px' }}>
+    <div className="animate-fade-in" style={{ padding: '40px 0', display: 'flex', flexDirection: 'column', gap: '32px' }}>
       
-      {/* Top Toggle & Settings Panel */}
-      <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '24px', background: 'var(--panel-bg)', border: '1px solid var(--accent-primary)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: '12px' }}>
-            <input 
-              type="checkbox" 
-              checked={isLookingForMatch}
-              onChange={(e) => setIsLookingForMatch(e.target.checked)}
-              style={{ width: '40px', height: '24px', accentColor: 'var(--accent-primary)', cursor: 'pointer' }} 
-            />
-            <span style={{ fontFamily: 'var(--font-title)', fontWeight: 700, fontSize: '20px', color: 'var(--text-primary)' }}>Satranç Oynamak İstiyorum</span>
+      {/* Top Toggle & Settings Panel (Modern Premium Card) */}
+      <div className="glass-panel" style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '20px',
+        padding: '28px',
+        background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%)',
+        border: '1px solid rgba(14, 165, 233, 0.3)',
+        borderRadius: '20px',
+        boxShadow: '0 12px 32px rgba(14, 165, 233, 0.08)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: '14px' }}>
+            <div style={{
+              width: '48px',
+              height: '26px',
+              background: isLookingForMatch ? 'linear-gradient(135deg, #0ea5e9, #0284c7)' : '#cbd5e1',
+              borderRadius: '20px',
+              position: 'relative',
+              transition: 'background 0.25s ease'
+            }}>
+              <input 
+                type="checkbox" 
+                checked={isLookingForMatch}
+                onChange={(e) => setIsLookingForMatch(e.target.checked)}
+                style={{ opacity: 0, width: 0, height: 0 }} 
+              />
+              <div style={{
+                width: '20px',
+                height: '20px',
+                background: '#ffffff',
+                borderRadius: '50%',
+                position: 'absolute',
+                top: '3px',
+                left: isLookingForMatch ? '25px' : '3px',
+                transition: 'left 0.25s ease',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+              }} />
+            </div>
+            <div>
+              <span style={{ fontFamily: 'var(--font-title)', fontWeight: 800, fontSize: '22px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                ⚔️ Rakip Bul Ve Oyna
+              </span>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>
+                {isLookingForMatch ? '🟢 Durumunuz açık: Diğer satranç oyuncuları sizi görebilir ve oyun daveti gönderebilir.' : '⚪ Durumunuz kapalı: Eşleşme havuzuna katılmak için anahtarı açın.'}
+              </p>
+            </div>
           </label>
+
+          {isLookingForMatch && (
+            <span style={{
+              fontSize: '12px',
+              fontWeight: 700,
+              padding: '6px 14px',
+              borderRadius: '30px',
+              background: 'rgba(16, 185, 129, 0.12)',
+              color: '#059669',
+              border: '1px solid rgba(16, 185, 129, 0.3)'
+            }}>
+              ● Eşleşmeye Hazır
+            </span>
+          )}
         </div>
         
         {isLookingForMatch && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '8px', animation: 'fadeIn 0.3s' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-              <select 
-                value={matchType}
-                onChange={(e) => setMatchType(e.target.value)}
-                style={{ padding: '14px', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.1)', background: 'var(--bg-color)', color: 'var(--text-primary)', outline: 'none', fontWeight: 600 }}>
-                <option>Farketmez (Online & Yüz Yüze)</option>
-                <option>Sadece Online</option>
-                <option>Sadece Yüz Yüze</option>
-              </select>
-              <select 
-                value={availability}
-                onChange={(e) => setAvailability(e.target.value)}
-                style={{ padding: '14px', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.1)', background: 'var(--bg-color)', color: 'var(--text-primary)', outline: 'none', fontWeight: 600 }}>
-                <option>Her Zaman Müsaitim</option>
-                <option>Hafta Sonu Müsaitim</option>
-                <option>Sadece Akşamları</option>
-              </select>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '12px', animation: 'fadeIn 0.3s' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Oyun Şekli Tercihi</label>
+                <select 
+                  value={matchType}
+                  onChange={(e) => setMatchType(e.target.value)}
+                  style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--panel-border)', background: '#fff', color: 'var(--text-primary)', outline: 'none', fontWeight: 600, fontSize: '14px' }}>
+                  <option>Farketmez (Online & Yüz Yüze)</option>
+                  <option>Sadece Online</option>
+                  <option>Sadece Yüz Yüze</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Müsaitlik Zamanı</label>
+                <select 
+                  value={availability}
+                  onChange={(e) => setAvailability(e.target.value)}
+                  style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--panel-border)', background: '#fff', color: 'var(--text-primary)', outline: 'none', fontWeight: 600, fontSize: '14px' }}>
+                  <option>Her Zaman Müsaitim</option>
+                  <option>Hafta Sonu Müsaitim</option>
+                  <option>Sadece Akşamları</option>
+                </select>
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: '16px' }}>
+            <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
               <input 
                 type="text" 
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="Kısa bir not (Örn: Kadıköy civarı, Lichess 1500 vb.)" 
-                style={{ flex: 1, padding: '14px', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.1)', background: 'var(--bg-color)', color: 'var(--text-primary)', outline: 'none', fontWeight: 500 }} 
+                placeholder="Kısa bir not (Örn: Ümraniye veya Kadıköy civarı, Lichess 1600 vb.)" 
+                style={{ flex: 1, minWidth: '240px', padding: '12px 16px', borderRadius: '10px', border: '1px solid var(--panel-border)', background: '#fff', color: 'var(--text-primary)', outline: 'none', fontSize: '14px' }} 
               />
               <button 
                 onClick={handleSaveStatus}
-                style={{ padding: '0 32px', background: 'var(--accent-primary)', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', transition: 'opacity 0.2s', whiteSpace: 'nowrap' }}
-                onMouseEnter={(e) => e.currentTarget.style.opacity = 0.9}
-                onMouseLeave={(e) => e.currentTarget.style.opacity = 1}
+                className="btn-primary"
+                style={{ padding: '12px 28px', fontSize: '14px', whiteSpace: 'nowrap', borderRadius: '10px' }}
               >
-                Durumu Kaydet
+                💾 Durumu Kaydet
               </button>
             </div>
           </div>
@@ -119,21 +178,21 @@ export default function Matchmaking({ currentUser, users = [], onGoToAuth, onUpd
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--panel-border)' }}>
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--panel-border)', gap: '8px' }}>
         <button 
           onClick={() => setActiveTab('find')}
-          style={{ flex: 1, padding: '16px', background: activeTab === 'find' ? 'rgba(0,0,0,0.05)' : 'transparent', border: 'none', borderBottom: activeTab === 'find' ? '2px solid var(--accent-primary)' : 'none', color: activeTab === 'find' ? 'var(--accent-primary)' : 'var(--text-secondary)', fontWeight: 700, fontFamily: 'var(--font-title)', cursor: 'pointer' }}>
-          Oyuncu Bul
+          style={{ flex: 1, padding: '14px', background: activeTab === 'find' ? 'rgba(14, 165, 233, 0.08)' : 'transparent', border: 'none', borderBottom: activeTab === 'find' ? '3px solid var(--accent-primary)' : 'none', color: activeTab === 'find' ? 'var(--accent-primary)' : 'var(--text-secondary)', fontWeight: 800, fontSize: '15px', fontFamily: 'var(--font-title)', cursor: 'pointer', borderRadius: '8px 8px 0 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+          <span>♟️</span> Rakip Bul
         </button>
         <button 
           onClick={() => setActiveTab('requests')}
-          style={{ flex: 1, padding: '16px', background: activeTab === 'requests' ? 'rgba(0,0,0,0.05)' : 'transparent', border: 'none', borderBottom: activeTab === 'requests' ? '2px solid var(--accent-primary)' : 'none', color: activeTab === 'requests' ? 'var(--accent-primary)' : 'var(--text-secondary)', fontWeight: 700, fontFamily: 'var(--font-title)', cursor: 'pointer' }}>
-          İstekler
+          style={{ flex: 1, padding: '14px', background: activeTab === 'requests' ? 'rgba(14, 165, 233, 0.08)' : 'transparent', border: 'none', borderBottom: activeTab === 'requests' ? '3px solid var(--accent-primary)' : 'none', color: activeTab === 'requests' ? 'var(--accent-primary)' : 'var(--text-secondary)', fontWeight: 800, fontSize: '15px', fontFamily: 'var(--font-title)', cursor: 'pointer', borderRadius: '8px 8px 0 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+          <span>📨</span> Gelen/Giden İstekler
         </button>
         <button 
           onClick={() => setActiveTab('matches')}
-          style={{ flex: 1, padding: '16px', background: activeTab === 'matches' ? 'rgba(0,0,0,0.05)' : 'transparent', border: 'none', borderBottom: activeTab === 'matches' ? '2px solid var(--accent-primary)' : 'none', color: activeTab === 'matches' ? 'var(--accent-primary)' : 'var(--text-secondary)', fontWeight: 700, fontFamily: 'var(--font-title)', cursor: 'pointer' }}>
-          Eşleşmeler
+          style={{ flex: 1, padding: '14px', background: activeTab === 'matches' ? 'rgba(14, 165, 233, 0.08)' : 'transparent', border: 'none', borderBottom: activeTab === 'matches' ? '3px solid var(--accent-primary)' : 'none', color: activeTab === 'matches' ? 'var(--accent-primary)' : 'var(--text-secondary)', fontWeight: 800, fontSize: '15px', fontFamily: 'var(--font-title)', cursor: 'pointer', borderRadius: '8px 8px 0 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+          <span>🤝</span> Eşleşmelerim
         </button>
       </div>
 
