@@ -302,6 +302,26 @@ app.delete('/api/register/:tournamentId/:userId', (req, res) => {
   }
 });
 
+// Cafe Manuel Misafir Oyuncu Ekleme
+app.post('/api/tournaments/:id/guest', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, elo } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: "Misafir oyuncu Adı Soyadı zorunludur." });
+    }
+
+    const result = db.registerGuestParticipant(id, name.trim(), elo);
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
+    }
+    res.status(201).json({ success: true, users: result.users, registrations: result.registrations });
+  } catch (error) {
+    res.status(500).json({ error: "Misafir eklenirken hata oluştu." });
+  }
+});
+
 app.post('/api/tournaments', (req, res) => {
   try {
     const { title, date, time, location, fee, maxQuota, totalRounds } = req.body;

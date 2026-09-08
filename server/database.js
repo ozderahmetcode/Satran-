@@ -264,6 +264,45 @@ module.exports = {
     return { success: true, registrations: db.registrations };
   },
 
+  registerGuestParticipant: (tournamentId, guestName, initialElo = 1500) => {
+    const db = readDB();
+    const tournament = db.tournaments.find(t => t.id === parseInt(tournamentId));
+    if (!tournament) return { error: "Turnuva bulunamadı." };
+    if (tournament.status === 'cancelled') return { error: "Bu turnuva iptal edilmiştir, kayıt yapılamaz." };
+
+    const currentRegs = db.registrations.filter(r => r.tournamentId === parseInt(tournamentId)).length;
+    if (currentRegs >= tournament.maxQuota) return { error: "Kontenjan dolu." };
+
+    const guestId = 'guest_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+    const guestUser = {
+      id: guestId,
+      name: guestName.trim() + " (Misafir)",
+      email: `${guestId}@cafe.ozder`,
+      password: 'guest_no_login',
+      phone: '-',
+      chessUsername: 'misafir',
+      elo: parseInt(initialElo) || 1500,
+      verified: true,
+      isGuest: true,
+      tournamentId: parseInt(tournamentId)
+    };
+
+    db.users.push(guestUser);
+    db.registrations.push({
+      tournamentId: parseInt(tournamentId),
+      userId: guestId,
+      name: guestUser.name,
+      chessUsername: 'misafir',
+      isGuest: true,
+      registrationDate: new Date().toISOString()
+    });
+
+    db.stats.registeredPlayers = db.registrations.length;
+    updateLeaderboards(db);
+    writeDB(db);
+    return { success: true, users: db.users, registrations: db.registrations };
+  },
+
   cancelTournamentRegistration: (tournamentId, userId) => {
     const db = readDB();
     db.registrations = db.registrations.filter(r => !(r.tournamentId === parseInt(tournamentId) && String(r.userId) === String(userId)));
@@ -420,8 +459,13 @@ module.exports = {
       const winnerUser = db.users.find(u => String(u.id) === String(winnerId)) || players.find(p => String(p.id) === String(winnerId));
       tournament.champion = winnerUser ? winnerUser.name : "Belirsiz";
       tournament.status = "completed";
+
+      // Turnuva bittiğinde misafir (geçici cafe oyuncusu) profillerini temizle
+      db.users = db.users.filter(u => !u.isGuest);
+
+      updateLeaderboards(db);
       writeDB(db);
-      return { success: true, message: "Turnuva tamamlandı!", tournaments: db.tournaments };
+      return { success: true, message: "Turnuva tamamlandı! Misafir hesaplar temizlendi.", tournaments: db.tournaments, users: db.users };
     }
 
     const playerScores = {};

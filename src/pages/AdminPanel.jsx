@@ -135,6 +135,45 @@ export default function AdminPanel({ registrations, users = [], onUsersUpdate, a
   const [selectedTourId, setSelectedTourId] = useState(null);
   const [roundResults, setRoundResults] = useState({}); // { [matchKey]: result }
 
+  // Cafe Manuel Misafir Ekleme State'i
+  const [guestName, setGuestName] = useState('');
+  const [guestElo, setGuestElo] = useState('1500');
+  const [guestLoading, setGuestLoading] = useState(false);
+
+  const handleAddGuestParticipant = async (e, tourId) => {
+    e.preventDefault();
+    if (!guestName.trim()) {
+      alert("Lütfen misafir oyuncunun Adını ve Soyadını yazın.");
+      return;
+    }
+
+    setGuestLoading(true);
+    try {
+      const response = await fetch(`/api/tournaments/${tourId}/guest`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: guestName.trim(),
+          elo: parseInt(guestElo) || 1500
+        })
+      });
+      const result = await response.json();
+      if (response.ok) {
+        if (onUsersUpdate) onUsersUpdate(result.users, result.registrations);
+        else if (onRegisterUpdate) onRegisterUpdate(result.registrations);
+        setGuestName('');
+        setGuestElo('1500');
+        alert("Cafeden misafir oyuncu turnuvaya başarıyla eklendi!");
+      } else {
+        alert(result.error || "Misafir eklenemedi.");
+      }
+    } catch (error) {
+      alert("Sunucu bağlantı hatası.");
+    } finally {
+      setGuestLoading(false);
+    }
+  };
+
   // Turnuva Form State'i
   const [formData, setFormData] = useState({
     title: '',
@@ -760,8 +799,15 @@ export default function AdminPanel({ registrations, users = [], onUsersUpdate, a
                       return (
                         <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
                           <td style={{ padding: '12px 8px' }}>
-                            <div style={{ fontWeight: 600 }}>{matchedUser.name}</div>
-                            <div style={{ fontSize: '12px', color: 'var(--accent-primary)' }}>@{matchedUser.chessUsername}</div>
+                            <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span>{matchedUser.name}</span>
+                              {(matchedUser.isGuest || reg.isGuest || matchedUser.name?.includes('(Misafir)')) && (
+                                <span style={{ fontSize: '10px', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                                  ☕ Misafir
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: '12px', color: 'var(--accent-primary)' }}>@{matchedUser.chessUsername} ({matchedUser.elo || 1500} ELO)</div>
                           </td>
                           <td style={{ padding: '12px 8px', color: 'var(--accent-secondary)' }}>{matchedTour.title}</td>
                           <td style={{ padding: '12px 8px', color: 'var(--text-secondary)' }}>{matchedUser.phone}</td>
@@ -1336,15 +1382,110 @@ export default function AdminPanel({ registrations, users = [], onUsersUpdate, a
                     ← Turnuva Listesine Dön
                   </button>
 
-                  <div>
-                    <h2 style={{ fontWeight: 800 }}>{currentTour.title}</h2>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Toplam Tur: {currentTour.totalRounds} • Mevcut Tur: {roundsCount} / {currentTour.totalRounds}</p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+                    <div>
+                      <h2 style={{ fontWeight: 800 }}>{currentTour.title}</h2>
+                      <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
+                        Toplam Tur: {currentTour.totalRounds} • Mevcut Tur: {roundsCount} / {currentTour.totalRounds} • Katılımcı: {registrations.filter(r => r.tournamentId === currentTour.id).length} Kişi
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Cafeden Manuel / Misafir Katılımcı Ekleme Alanı */}
+                  <div style={{
+                    background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(217, 119, 6, 0.03) 100%)',
+                    border: '1px solid rgba(245, 158, 11, 0.25)',
+                    borderRadius: '12px',
+                    padding: '20px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                      <span style={{ fontSize: '20px' }}>☕</span>
+                      <h4 style={{ fontWeight: 700, fontSize: '16px', color: '#f59e0b', margin: 0 }}>
+                        Cafeden Manuel Oyuncu / Misafir Ekle
+                      </h4>
+                      <span style={{ fontSize: '11px', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                        Geçici Turnuva Katılımı
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+                      Kafede olup siteye üye olmadan turnuvaya katılmak isteyen oyuncuları anında ekleyebilirsiniz. Maç sonuçları katılımcıların ELO'sunu normal etkiler; turnuva bittiğinde misafir hesaplar otomatik temizlenir.
+                    </p>
+                    
+                    <form onSubmit={(e) => handleAddGuestParticipant(e, currentTour.id)} style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                      <div style={{ flex: '2', minWidth: '200px' }}>
+                        <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                          Oyuncu Adı Soyadı *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Örn: Ahmet Can"
+                          value={guestName}
+                          onChange={(e) => setGuestName(e.target.value)}
+                          style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px 12px', color: 'var(--text-primary)', outline: 'none', fontSize: '13px' }}
+                        />
+                      </div>
+                      <div style={{ flex: '1', minWidth: '130px' }}>
+                        <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                          Başlangıç ELO
+                        </label>
+                        <input
+                          type="number"
+                          placeholder="1500"
+                          value={guestElo}
+                          onChange={(e) => setGuestElo(e.target.value)}
+                          style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px 12px', color: 'var(--text-primary)', outline: 'none', fontSize: '13px' }}
+                        />
+                      </div>
+                      <div>
+                        <button
+                          type="submit"
+                          disabled={guestLoading}
+                          className="btn-primary"
+                          style={{
+                            padding: '10px 20px',
+                            fontSize: '13px',
+                            background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                            border: 'none',
+                            cursor: guestLoading ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          {guestLoading ? 'Ekleniyor...' : '+ Misafiri Turnuvaya Ekle'}
+                        </button>
+                      </div>
+                    </form>
+
+                    {/* Turnuvaya Kayıtlı Oyuncu Listesi Özeti */}
+                    <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px dashed rgba(245, 158, 11, 0.2)' }}>
+                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 }}>Mevcut Katılımcılar ({registrations.filter(r => r.tournamentId === currentTour.id).length}): </span>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
+                        {registrations.filter(r => r.tournamentId === currentTour.id).map((r, i) => {
+                          const u = users.find(user => user.id === r.userId);
+                          const isGuest = u?.isGuest || r.isGuest || r.name?.includes('(Misafir)');
+                          return (
+                            <span key={i} style={{
+                              fontSize: '12px',
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              background: isGuest ? 'rgba(245, 158, 11, 0.15)' : 'rgba(255,255,255,0.06)',
+                              color: isGuest ? '#f59e0b' : 'var(--text-primary)',
+                              border: isGuest ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid var(--panel-border)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}>
+                              {isGuest ? '☕' : '👤'} {r.name || u?.name} ({u?.elo || 1500})
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
 
                   {/* Round Pairing Control */}
                   {roundsCount === 0 ? (
                     <div style={{ textAlign: 'center', padding: '32px' }}>
-                      <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>Turnuva henüz başlatılmadı. 1. Tur eşleştirmelerini başlatabilirsiniz.</p>
+                      <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>Turnuva henüz başlatılmadı. Cafeden gelen misafirleri ekledikten sonra 1. Tur eşleştirmelerini başlatabilirsiniz.</p>
                       <button onClick={() => handleGeneratePairings(currentTour.id)} className="btn-primary">
                         1. Tur Eşleştirmelerini Oluştur
                       </button>
