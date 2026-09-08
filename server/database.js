@@ -50,7 +50,20 @@ function readDB() {
   initDB();
   try {
     const data = fs.readFileSync(DB_FILE, 'utf-8');
-    return JSON.parse(data);
+    const parsed = JSON.parse(data);
+    let changed = false;
+    if (Array.isArray(parsed.users)) {
+      parsed.users.forEach(u => {
+        if (u.verified === false) {
+          u.verified = true;
+          changed = true;
+        }
+      });
+    }
+    if (changed) {
+      fs.writeFileSync(DB_FILE, JSON.stringify(parsed, null, 2), 'utf-8');
+    }
+    return parsed;
   } catch (error) {
     console.error("Veritabanı okuma hatası:", error);
     return defaultData;
@@ -141,40 +154,35 @@ module.exports = {
     const emailExists = db.users.some(u => u.email === newUser.email);
     if (emailExists) return { error: "Bu e-posta adresi zaten kayıtlı." };
 
-    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
     const uniqueUserId = 'usr_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     
     const user = {
       id: uniqueUserId,
       ...newUser,
       elo: newUser.elo ? parseInt(newUser.elo) : 1500,
-      verified: false,
-      verificationCode
+      verified: true
     };
     db.users.push(user);
+    updateLeaderboards(db);
     writeDB(db);
-    return { success: true, user: { id: user.id, email: user.email, name: user.name }, code: verificationCode };
+    return { success: true, user: { id: user.id, email: user.email, name: user.name, phone: user.phone, chessUsername: user.chessUsername, bio: user.bio, avatar: user.avatar, matchmakingSettings: user.matchmakingSettings } };
   },
 
   verifyUser: (email, code) => {
     const db = readDB();
     const user = db.users.find(u => u.email === email);
     if (!user) return { error: "Kullanıcı bulunamadı." };
-    if (user.verificationCode === code) {
-      user.verified = true;
-      updateLeaderboards(db);
-      writeDB(db);
-      return { success: true };
-    }
-    return { error: "Geçersiz doğrulama kodu." };
+    user.verified = true;
+    updateLeaderboards(db);
+    writeDB(db);
+    return { success: true };
   },
 
   loginUser: (email, password) => {
     const db = readDB();
     const user = db.users.find(u => u.email === email);
-    if (!user) return { error: "Hatalı e-posta." };
+    if (!user) return { error: "Hatalı e-posta veya kullanıcı bulunamadı." };
     if (user.password !== password) return { error: "Şifre yanlış." };
-    if (!user.verified) return { error: "Lütfen önce e-posta adresinizi doğrulayın.", requiresVerification: true };
     return { success: true, user: { id: user.id, email: user.email, name: user.name, phone: user.phone, chessUsername: user.chessUsername, bio: user.bio, avatar: user.avatar, matchmakingSettings: user.matchmakingSettings } };
   },
 

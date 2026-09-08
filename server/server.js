@@ -124,7 +124,7 @@ app.delete('/api/messages/:id', (req, res) => {
   }
 });
 
-// E-posta Doğrulama ve Kimlik Doğrulama API Rotaları
+// Kimlik Doğrulama API Rotaları (Doğrudan E-Posta ve Şifre ile Giriş)
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { name, email, password, phone, chessUsername, elo } = req.body;
@@ -142,48 +142,10 @@ app.post('/api/auth/register', async (req, res) => {
       return res.status(400).json({ error: result.error });
     }
 
-    console.log(`[E-Posta Doğrulama Kodu] Kime: ${email} -> Kod: ${result.code}`);
-
-    if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-      const mailOptions = {
-        from: `"OZDER Satranç Topluluğu" <${process.env.SMTP_USER}>`,
-        to: email,
-        subject: `${result.code} - OZDER E-posta Doğrulama Kodu`,
-        html: `
-          <div style="background-color: #07090e; color: #f8fafc; padding: 40px; font-family: 'Inter', sans-serif; border-radius: 12px; max-width: 600px; margin: 0 auto; border: 1px solid rgba(255,255,255,0.05);">
-            <div style="text-align: center; margin-bottom: 30px;">
-              <h2 style="color: #f59e0b; font-size: 28px; margin: 0; font-weight: 800; letter-spacing: 1px;">OZDER SATRANÇ</h2>
-              <p style="color: #0ea5e9; font-size: 14px; margin: 5px 0 0 0; letter-spacing: 2px;">TOPLULUK DOĞRULAMA SERVİSİ</p>
-            </div>
-            <div style="background: rgba(13, 18, 30, 0.7); padding: 24px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.03); text-align: center;">
-              <p style="font-size: 16px; margin-bottom: 20px;">Merhaba <strong>${name}</strong>,</p>
-              <p style="color: #94a3b8; font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
-                OZDER Satranç topluluğuna katıldığınız için teşekkür ederiz! Kaydınızı tamamlamak ve turnuvalara katılım sağlamak için aşağıdaki 6 haneli doğrulama kodunu kullanın:
-              </p>
-              <div style="background: linear-gradient(135deg, #0ea5e9 0%, #10b981 100%); color: white; font-size: 32px; font-weight: bold; padding: 16px 24px; border-radius: 8px; display: inline-block; letter-spacing: 6px; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);">
-                ${result.code}
-              </div>
-            </div>
-            <p style="color: #64748b; font-size: 12px; text-align: center; margin-top: 30px; line-height: 1.5;">
-              Bu e-posta OZDER satranç topluluğu kayıt işlemi doğrultusunda gönderilmiştir.<br />
-              Ümraniye X Cafe • Sosyal Satranç Kültürü
-            </p>
-          </div>
-        `
-      };
-
-      try {
-        await transporter.sendMail(mailOptions);
-      } catch (err) {
-        console.error("Nodemailer e-posta gönderme hatası:", err);
-      }
-    }
-
     res.status(201).json({ 
       success: true, 
-      message: "Doğrulama kodu gönderildi.", 
-      email, 
-      testCode: process.env.SMTP_USER ? undefined : result.code
+      message: "Kayıt başarıyla tamamlandı! Giriş yapabilirsiniz.", 
+      user: result.user
     });
   } catch (error) {
     res.status(500).json({ error: "Kayıt sırasında bir hata oluştu." });
