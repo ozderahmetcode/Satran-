@@ -75,7 +75,8 @@ app.post('/api/heartbeat', (req, res) => {
       name: session.name,
       page: session.page,
       deltaSeconds,
-      isNewSession: sessionIsNew
+      isNewSession: sessionIsNew,
+      isAdmin: Boolean(req.body.isAdmin)
     });
 
     res.json({ 

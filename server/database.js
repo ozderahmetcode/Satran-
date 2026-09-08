@@ -964,10 +964,19 @@ module.exports = {
   },
 
   // Ziyaret & Süre Analitiği Kaydı
-  recordHeartbeatAndAnalytics: ({ clientId, userId, name, page, deltaSeconds = 0, isNewSession = false }) => {
+  recordHeartbeatAndAnalytics: ({ clientId, userId, name, page, deltaSeconds = 0, isNewSession = false, isAdmin = false }) => {
     const db = readDB();
     const now = new Date();
     const sec = Math.max(0, Math.min(60, Math.round(Number(deltaSeconds) || 0)));
+
+    // Eğer admin panelindeyse veya yönetici oturumuysa genel ziyaretçi süresini ve sayaçları etkilemez
+    if (isAdmin || page === 'Yönetici Paneli' || page === 'admin') {
+      return {
+        success: true,
+        analytics: db.analytics,
+        updatedUser: null
+      };
+    }
 
     // 1. Toplam geçirilen süre
     if (sec > 0) {

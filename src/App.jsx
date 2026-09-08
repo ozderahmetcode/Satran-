@@ -78,9 +78,15 @@ export default function App() {
         const diffSeconds = Math.round((now - lastBeatTime) / 1000);
         lastBeatTime = now;
 
+        // Admin kontrolü: Admin panelindeyken veya admin girişi yapılmışken süre/ziyaret sayılmaz
+        const isAdminLoggedIn = sessionStorage.getItem('ozder_admin_authenticated') === 'true';
+        const isInAdminPanel = currentPage === 'admin';
+        const isAdmin = isAdminLoggedIn || isInAdminPanel;
+
         // Sekme arka planda çok uzun kaldıysa en fazla 30 saniye ekle
-        const deltaSeconds = isFirstSignal ? 0 : Math.min(30, Math.max(0, diffSeconds));
-        const sendAsNewSession = isFirstSignal;
+        // Admin ise deltaSeconds 0 ve isNewSession false gönderilir (süreyi etkilemez)
+        const deltaSeconds = (isFirstSignal || isAdmin) ? 0 : Math.min(30, Math.max(0, diffSeconds));
+        const sendAsNewSession = isFirstSignal && !isAdmin;
         isFirstSignal = false;
 
         const u = localStorage.getItem('currentUser');
@@ -92,10 +98,11 @@ export default function App() {
           body: JSON.stringify({
             clientId,
             userId: parsed?.id || null,
-            name: parsed?.name || 'Ziyaretçi',
-            page: currentPage,
+            name: parsed?.name || (isAdmin ? 'Yönetici' : 'Ziyaretçi'),
+            page: currentPage === 'admin' ? 'Yönetici Paneli' : currentPage,
             deltaSeconds,
-            isNewSession: sendAsNewSession
+            isNewSession: sendAsNewSession,
+            isAdmin
           })
         }).catch(() => {});
       } catch (e) {}

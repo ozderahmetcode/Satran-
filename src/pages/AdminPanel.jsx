@@ -15,7 +15,13 @@ export default function AdminPanel({
   spamReports = [],
   onReloadData
 }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    try {
+      return sessionStorage.getItem('ozder_admin_authenticated') === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
@@ -223,6 +229,9 @@ export default function AdminPanel({
     if (username === 'ozder' && password === 'Ozderahmet123.') {
       setIsAuthenticated(true);
       setAuthError('');
+      try {
+        sessionStorage.setItem('ozder_admin_authenticated', 'true');
+      } catch (e) {}
     } else {
       setAuthError('Hatalı kullanıcı adı veya şifre! Lütfen tekrar deneyin.');
     }
@@ -487,7 +496,16 @@ export default function AdminPanel({
             Katılımcı listelerini yönetin, turnuvaları eşleştirin ve mesajları okuyun.
           </p>
         </div>
-        <button onClick={() => setIsAuthenticated(false)} className="btn-secondary" style={{ padding: '8px 16px', fontSize: '13px' }}>
+        <button 
+          onClick={() => {
+            setIsAuthenticated(false);
+            try {
+              sessionStorage.removeItem('ozder_admin_authenticated');
+            } catch (e) {}
+          }} 
+          className="btn-secondary" 
+          style={{ padding: '8px 16px', fontSize: '13px' }}
+        >
           Güvenli Çıkış
         </button>
       </section>
