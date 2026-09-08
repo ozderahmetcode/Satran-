@@ -98,6 +98,95 @@ export default function AdminPanel({ registrations, users = [], onRegisterUpdate
     }
   };
 
+  const [editingTour, setEditingTour] = useState(null); // Düzenlenen turnuva objesi veya null
+  const [editFormData, setEditFormData] = useState({
+    title: '',
+    date: '',
+    time: '',
+    location: '',
+    fee: '',
+    maxQuota: '',
+    totalRounds: '',
+    status: 'active'
+  });
+
+  const handleCancelTournament = async (tourId) => {
+    if (!window.confirm("Bu turnuvayı İPTAL ETMEK istediğinize emin misiniz? Durumu 'İptal Edildi' olarak güncellenecektir.")) return;
+
+    try {
+      const response = await fetch(`/api/tournaments/${tourId}/cancel`, { method: 'POST' });
+      const result = await response.json();
+      if (response.ok) {
+        onAddTournament(result.tournaments);
+        alert("Turnuva başarıyla iptal edildi.");
+      } else {
+        alert(result.error || "İptal işlemi başarısız.");
+      }
+    } catch (error) {
+      alert("Sunucu bağlantı hatası.");
+    }
+  };
+
+  const handleDeleteTournament = async (tourId) => {
+    if (!window.confirm("Bu turnuvayı ve ilgili tüm kayıtları tamamen SİLMEK istediğinize emin misiniz? Bu işlem geri alınamaz!")) return;
+
+    try {
+      const response = await fetch(`/api/tournaments/${tourId}`, { method: 'DELETE' });
+      const result = await response.json();
+      if (response.ok) {
+        onAddTournament(result.tournaments);
+        if (result.registrations) {
+          onRegisterUpdate(result.registrations);
+        }
+        if (selectedTourId === tourId) {
+          setSelectedTourId(null);
+        }
+        alert("Turnuva tamamen silindi.");
+      } else {
+        alert(result.error || "Silme işlemi başarısız.");
+      }
+    } catch (error) {
+      alert("Sunucu bağlantı hatası.");
+    }
+  };
+
+  const openEditModal = (tour) => {
+    setEditingTour(tour);
+    setEditFormData({
+      title: tour.title || '',
+      date: tour.date || '',
+      time: tour.time || '',
+      location: tour.location || '',
+      fee: tour.fee || '',
+      maxQuota: tour.maxQuota || '20',
+      totalRounds: tour.totalRounds || '5',
+      status: tour.status || 'active'
+    });
+  };
+
+  const handleUpdateTournament = async (e) => {
+    e.preventDefault();
+    if (!editingTour) return;
+
+    try {
+      const response = await fetch(`/api/tournaments/${editingTour.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editFormData)
+      });
+      const result = await response.json();
+      if (response.ok) {
+        onAddTournament(result.tournaments);
+        setEditingTour(null);
+        alert("Turnuva bilgileri başarıyla güncellendi!");
+      } else {
+        alert(result.error || "Güncelleme başarısız.");
+      }
+    } catch (error) {
+      alert("Sunucu bağlantı hatası.");
+    }
+  };
+
   // İsviçre Sistemi Eşleştirme Oluşturma
   const handleGeneratePairings = async (tourId) => {
     try {
@@ -213,7 +302,8 @@ export default function AdminPanel({ registrations, users = [], onRegisterUpdate
       <div style={{ display: 'flex', gap: '12px', borderBottom: '1px solid var(--panel-border)', paddingBottom: '16px', flexWrap: 'wrap' }}>
         {[
           { id: 'registrations', label: 'Katılımcı Kayıtları 👥' },
-          { id: 'tournaments', label: 'Eşleştirme & Turnuva Yönetimi ♟️' },
+          { id: 'events', label: 'Etkinlik & Turnuva Yönetimi 📅' },
+          { id: 'tournaments', label: 'Eşleştirme Sistemi ♟️' },
           { id: 'messages', label: `Gelen Mesajlar (${messages.length}) ✉️` }
         ].map(tab => (
           <button
@@ -315,6 +405,344 @@ export default function AdminPanel({ registrations, users = [], onRegisterUpdate
               </div>
               <button type="submit" disabled={loading} className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>Etkinlik Yayınla</button>
             </form>
+
+            {/* Hızlı Turnuva Listesi & Düzenleme / İptal Alanı */}
+            <div style={{ marginTop: '32px', borderTop: '1px solid var(--panel-border)', paddingTop: '20px' }}>
+              <h4 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '12px' }}>
+                📋 Etkinlik Listesi & Hızlı İşlemler
+              </h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {tournaments.map(t => (
+                  <div key={t.id} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    background: t.status === 'cancelled' ? 'rgba(239, 68, 68, 0.05)' : 'rgba(255,255,255,0.02)',
+                    border: '1px solid var(--panel-border)',
+                    fontSize: '13px',
+                    gap: '8px',
+                    flexWrap: 'wrap'
+                  }}>
+                    <div style={{ flex: 1, minWidth: '150px' }}>
+                      <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>{t.title}</span>
+                        {t.status === 'cancelled' && (
+                          <span style={{ fontSize: '10px', color: '#ef4444', background: 'rgba(239, 68, 68, 0.15)', padding: '1px 5px', borderRadius: '4px' }}>İptal</span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>📅 {t.date}</div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button
+                        onClick={() => openEditModal(t)}
+                        className="btn-secondary"
+                        style={{ padding: '4px 8px', fontSize: '11px' }}
+                      >
+                        ✏️ Düzenle
+                      </button>
+                      {t.status !== 'cancelled' && (
+                        <button
+                          onClick={() => handleCancelTournament(t.id)}
+                          style={{
+                            background: 'rgba(245, 158, 11, 0.1)',
+                            color: '#f59e0b',
+                            border: '1px solid rgba(245, 158, 11, 0.25)',
+                            borderRadius: '4px',
+                            padding: '4px 8px',
+                            fontSize: '11px',
+                            cursor: 'pointer',
+                            fontWeight: 600
+                          }}
+                        >
+                          🚫 İptal Et
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab Content: Events & Tournaments Management (Düzenleme, İptal, Silme) */}
+      {activeTab === 'events' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div className="glass-panel">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 700 }}>
+                  📅 Mevcut Turnuvalar ve Etkinlikler ({tournaments.length})
+                </h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '4px' }}>
+                  Buradan turnuvaları düzenleyebilir, iptal edebilir veya tamamen kaldırabilirsiniz.
+                </p>
+              </div>
+            </div>
+
+            {tournaments.length === 0 ? (
+              <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Henüz açılmış bir etkinlik veya turnuva bulunmuyor.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {tournaments.map(t => {
+                  const regCount = registrations.filter(r => r.tournamentId === t.id).length;
+                  const isCancelled = t.status === 'cancelled';
+                  const isCompleted = t.status === 'completed';
+
+                  return (
+                    <div
+                      key={t.id}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        background: isCancelled ? 'rgba(239, 68, 68, 0.04)' : 'rgba(255,255,255,0.02)',
+                        padding: '20px',
+                        border: isCancelled ? '1px solid rgba(239, 68, 68, 0.25)' : '1px solid var(--panel-border)',
+                        borderRadius: '12px',
+                        flexWrap: 'wrap',
+                        gap: '16px'
+                      }}
+                    >
+                      <div style={{ flex: 1, minWidth: '260px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                          <h4 style={{ fontWeight: 700, fontSize: '17px', margin: 0 }}>{t.title}</h4>
+                          <span style={{
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            background: isCancelled 
+                              ? 'rgba(239, 68, 68, 0.15)' 
+                              : isCompleted 
+                              ? 'rgba(245, 158, 11, 0.15)' 
+                              : 'rgba(16, 185, 129, 0.15)',
+                            color: isCancelled 
+                              ? '#ef4444' 
+                              : isCompleted 
+                              ? '#f59e0b' 
+                              : '#10b981'
+                          }}>
+                            {isCancelled ? '❌ İPTAL EDİLDİ' : isCompleted ? `🏆 BİTTİ (${t.champion})` : '🟢 AKTİF (Kayıt Açık)'}
+                          </span>
+                        </div>
+                        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>
+                          📍 {t.location} &nbsp;|&nbsp; 📅 {t.date} {t.time} &nbsp;|&nbsp; 💰 {t.fee} <br />
+                          👥 Kayıt: <strong>{regCount} / {t.maxQuota}</strong> kişi &nbsp;|&nbsp; ♟️ {t.totalRounds || 5} Tur (Oynanan: {t.rounds?.length || 0})
+                        </p>
+                      </div>
+
+                      {/* İşlem Butonları */}
+                      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                        <button
+                          onClick={() => openEditModal(t)}
+                          className="btn-secondary"
+                          style={{ padding: '8px 14px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                        >
+                          ✏️ Düzenle
+                        </button>
+
+                        {!isCancelled && (
+                          <button
+                            onClick={() => handleCancelTournament(t.id)}
+                            style={{
+                              background: 'rgba(245, 158, 11, 0.12)',
+                              color: '#f59e0b',
+                              border: '1px solid rgba(245, 158, 11, 0.3)',
+                              borderRadius: '8px',
+                              padding: '8px 14px',
+                              fontSize: '13px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}
+                          >
+                            🚫 İptal Et
+                          </button>
+                        )}
+
+                        <button
+                          onClick={() => handleDeleteTournament(t.id)}
+                          style={{
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            color: '#ef4444',
+                            border: '1px solid rgba(239, 68, 68, 0.25)',
+                            borderRadius: '8px',
+                            padding: '8px 14px',
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                          }}
+                        >
+                          🗑️ Sil
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Düzenleme Modalı */}
+      {editingTour && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px'
+        }}>
+          <div className="glass-panel" style={{
+            background: '#ffffff',
+            maxWidth: '520px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '28px',
+            borderRadius: '16px',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 800 }}>
+                ✏️ Turnuvayı / Etkinliği Düzenle
+              </h3>
+              <button
+                onClick={() => setEditingTour(null)}
+                style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-secondary)' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateTournament} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Turnuva Başlığı *</label>
+                <input
+                  type="text"
+                  required
+                  value={editFormData.title}
+                  onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
+                  style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Tarih *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.date}
+                    onChange={(e) => setEditFormData({ ...editFormData, date: e.target.value })}
+                    style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Saat *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.time}
+                    onChange={(e) => setEditFormData({ ...editFormData, time: e.target.value })}
+                    style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Konum *</label>
+                <input
+                  type="text"
+                  required
+                  value={editFormData.location}
+                  onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })}
+                  style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Ücret</label>
+                  <input
+                    type="text"
+                    value={editFormData.fee}
+                    onChange={(e) => setEditFormData({ ...editFormData, fee: e.target.value })}
+                    style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Kontenjan</label>
+                  <input
+                    type="number"
+                    required
+                    value={editFormData.maxQuota}
+                    onChange={(e) => setEditFormData({ ...editFormData, maxQuota: e.target.value })}
+                    style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Tur Sayısı</label>
+                  <select
+                    value={editFormData.totalRounds}
+                    onChange={(e) => setEditFormData({ ...editFormData, totalRounds: e.target.value })}
+                    style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }}
+                  >
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => <option key={n} value={n}>{n} Tur</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Durum</label>
+                  <select
+                    value={editFormData.status}
+                    onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
+                    style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }}
+                  >
+                    <option value="active">🟢 Aktif (Kayıt Açık)</option>
+                    <option value="cancelled">🚫 İptal Edildi</option>
+                    <option value="completed">🏆 Tamamlandı</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setEditingTour(null)}
+                  className="btn-secondary"
+                  style={{ flex: 1, justifyContent: 'center' }}
+                >
+                  Vazgeç
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  style={{ flex: 1, justifyContent: 'center' }}
+                >
+                  Değişiklikleri Kaydet
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -327,14 +755,29 @@ export default function AdminPanel({ registrations, users = [], onRegisterUpdate
               <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 700, marginBottom: '20px' }}>Eşleştirme İçin Turnuva Seçin</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {tournaments.map(t => (
-                  <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '16px', border: '1px solid var(--panel-border)', borderRadius: '12px' }}>
+                  <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '16px', border: '1px solid var(--panel-border)', borderRadius: '12px', flexWrap: 'wrap', gap: '12px' }}>
                     <div>
-                      <h4 style={{ fontWeight: 700 }}>{t.title}</h4>
-                      <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>📅 {t.date} • Durum: {t.status === 'active' ? 'Devam Ediyor' : 'Tamamlandı (Şampiyon: ' + t.champion + ')'}</p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <h4 style={{ fontWeight: 700 }}>{t.title}</h4>
+                        {t.status === 'cancelled' && (
+                          <span style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', fontSize: '11px', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>İptal Edildi</span>
+                        )}
+                      </div>
+                      <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>📅 {t.date} • Durum: {t.status === 'active' ? 'Devam Ediyor' : t.status === 'cancelled' ? 'İptal Edildi' : 'Tamamlandı (Şampiyon: ' + t.champion + ')'}</p>
                     </div>
-                    <button onClick={() => setSelectedTourId(t.id)} className="btn-secondary" style={{ padding: '8px 16px', fontSize: '13px' }}>
-                      Eşleştirmeleri Yönet
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button onClick={() => openEditModal(t)} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '12px' }}>
+                        ✏️ Düzenle
+                      </button>
+                      {t.status !== 'cancelled' && (
+                        <button onClick={() => handleCancelTournament(t.id)} style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.25)', borderRadius: '6px', padding: '6px 12px', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}>
+                          🚫 İptal Et
+                        </button>
+                      )}
+                      <button onClick={() => setSelectedTourId(t.id)} className="btn-primary" style={{ padding: '8px 16px', fontSize: '13px' }}>
+                        Eşleştirmeleri Yönet
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

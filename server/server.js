@@ -242,6 +242,60 @@ app.post('/api/tournaments', (req, res) => {
   }
 });
 
+// Turnuva Güncelleme / Düzenleme
+app.put('/api/tournaments/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, date, time, location, fee, maxQuota, totalRounds, status } = req.body;
+
+    const result = db.updateTournament(id, {
+      title,
+      date,
+      time,
+      location,
+      fee,
+      maxQuota,
+      totalRounds,
+      status
+    });
+
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
+    }
+    res.json({ success: true, tournaments: result.tournaments });
+  } catch (error) {
+    res.status(500).json({ error: "Turnuva güncellenirken hata oluştu." });
+  }
+});
+
+// Turnuva İptal Etme
+app.post('/api/tournaments/:id/cancel', (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = db.cancelTournament(id);
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
+    }
+    res.json({ success: true, tournaments: result.tournaments });
+  } catch (error) {
+    res.status(500).json({ error: "Turnuva iptal edilirken hata oluştu." });
+  }
+});
+
+// Turnuva Tamamen Silme
+app.delete('/api/tournaments/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = db.deleteTournament(id);
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
+    }
+    res.json({ success: true, tournaments: result.tournaments, registrations: result.registrations });
+  } catch (error) {
+    res.status(500).json({ error: "Turnuva silinirken hata oluştu." });
+  }
+});
+
 // Eşleştirme ve Tur Sonuç API Rotaları
 app.post('/api/tournaments/:id/pairings', (req, res) => {
   try {

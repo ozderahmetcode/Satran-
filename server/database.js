@@ -198,6 +198,7 @@ module.exports = {
     const db = readDB();
     const tournament = db.tournaments.find(t => t.id === parseInt(tournamentId));
     if (!tournament) return { error: "Turnuva bulunamadı." };
+    if (tournament.status === 'cancelled') return { error: "Bu turnuva iptal edilmiştir, kayıt yapılamaz." };
 
     const alreadyRegistered = db.registrations.some(r => r.tournamentId === parseInt(tournamentId) && String(r.userId) === String(userId));
     if (alreadyRegistered) return { error: "Bu turnuvaya zaten kayıtlısınız." };
@@ -258,6 +259,50 @@ module.exports = {
     db.stats.organizedTournaments = db.tournaments.length;
     writeDB(db);
     return db.tournaments;
+  },
+
+  updateTournament: (tournamentId, updates) => {
+    const db = readDB();
+    const index = db.tournaments.findIndex(t => t.id === parseInt(tournamentId));
+    if (index === -1) return { error: "Turnuva bulunamadı." };
+
+    const current = db.tournaments[index];
+    db.tournaments[index] = {
+      ...current,
+      title: updates.title !== undefined ? updates.title : current.title,
+      date: updates.date !== undefined ? updates.date : current.date,
+      time: updates.time !== undefined ? updates.time : current.time,
+      location: updates.location !== undefined ? updates.location : current.location,
+      fee: updates.fee !== undefined ? updates.fee : current.fee,
+      maxQuota: updates.maxQuota !== undefined ? parseInt(updates.maxQuota) : current.maxQuota,
+      totalRounds: updates.totalRounds !== undefined ? parseInt(updates.totalRounds) : current.totalRounds,
+      status: updates.status !== undefined ? updates.status : current.status
+    };
+
+    writeDB(db);
+    return { success: true, tournaments: db.tournaments };
+  },
+
+  cancelTournament: (tournamentId) => {
+    const db = readDB();
+    const tournament = db.tournaments.find(t => t.id === parseInt(tournamentId));
+    if (!tournament) return { error: "Turnuva bulunamadı." };
+
+    tournament.status = "cancelled";
+    writeDB(db);
+    return { success: true, tournaments: db.tournaments };
+  },
+
+  deleteTournament: (tournamentId) => {
+    const db = readDB();
+    const id = parseInt(tournamentId);
+    db.tournaments = db.tournaments.filter(t => t.id !== id);
+    db.registrations = db.registrations.filter(r => r.tournamentId !== id);
+    db.stats.organizedTournaments = db.tournaments.length;
+    db.stats.registeredPlayers = db.registrations.length;
+    updateLeaderboards(db);
+    writeDB(db);
+    return { success: true, tournaments: db.tournaments, registrations: db.registrations };
   },
 
   submitRoundResults: (tournamentId, roundNumber, matchResults) => {

@@ -85,14 +85,18 @@ export default function EventDetail({ tournaments, registrations, users = [], cu
               <div key={tour.id} className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '16px', justifyContent: 'space-between' }}>
                 <div>
                   <span style={{
-                    background: tour.status === 'active' ? 'var(--accent-primary)' : 'rgba(0,0,0,0.05)',
-                    color: tour.status === 'active' ? '#fff' : 'var(--text-secondary)',
+                    background: tour.status === 'active' 
+                      ? 'var(--accent-primary)' 
+                      : tour.status === 'cancelled' 
+                      ? '#ef4444' 
+                      : 'rgba(0,0,0,0.05)',
+                    color: tour.status === 'active' || tour.status === 'cancelled' ? '#fff' : 'var(--text-secondary)',
                     padding: '4px 8px',
                     borderRadius: '6px',
                     fontSize: '11px',
                     fontWeight: 700
                   }}>
-                    {tour.status === 'active' ? 'KAYITLAR AÇIK' : 'TAMAMLANDI'}
+                    {tour.status === 'active' ? 'KAYITLAR AÇIK' : tour.status === 'cancelled' ? 'İPTAL EDİLDİ' : 'TAMAMLANDI'}
                   </span>
                   <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', marginTop: '12px', fontWeight: 700 }}>
                     {tour.title}
@@ -190,7 +194,12 @@ export default function EventDetail({ tournaments, registrations, users = [], cu
           <div className="glass-panel" style={{ textAlign: 'center' }}>
             <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '18px', fontWeight: 700, marginBottom: '16px' }}>Turnuva Katılımı</h3>
             
-            {!currentUser ? (
+            {tour.status === 'cancelled' ? (
+              <div style={{ padding: '16px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.25)', color: '#ef4444' }}>
+                <p style={{ fontWeight: 700, margin: 0 }}>🚫 Bu etkinlik organizatör tarafından iptal edilmiştir.</p>
+                <p style={{ fontSize: '13px', margin: '6px 0 0 0', color: 'var(--text-secondary)' }}>Yeni kayıt alınmamaktadır.</p>
+              </div>
+            ) : !currentUser ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
                   Bu etkinliğe kayıt olmak için önce hesabınıza giriş yapmalısınız.
