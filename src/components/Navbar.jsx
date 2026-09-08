@@ -156,10 +156,10 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
                 top: '52px',
                 right: 0,
                 width: '260px',
-                background: '#111111',
-                borderRadius: '8px',
-                border: '1px solid #2a2a2a',
-                boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+                background: '#ffffff',
+                borderRadius: '12px',
+                border: '1px solid var(--panel-border)',
+                boxShadow: '0 12px 36px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06)',
                 zIndex: 99999,
                 padding: '12px 0',
                 display: 'flex',
@@ -171,40 +171,44 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
                     from { opacity: 0; transform: translateY(-10px); }
                     to { opacity: 1; transform: translateY(0); }
                   }
-                  .dark-menu-item {
+                  .user-menu-item {
                     display: flex;
                     alignItems: center;
                     gap: 12px;
                     padding: 10px 16px;
                     background: transparent;
                     border: none;
-                    color: #e5e5e5;
+                    color: var(--text-primary);
                     font-size: 14px;
+                    font-weight: 600;
                     text-align: left;
                     cursor: pointer;
                     width: 100%;
                     font-family: var(--font-body);
+                    transition: all 0.15s ease;
                   }
-                  .dark-menu-item:hover {
-                    background: rgba(255, 255, 255, 0.05);
+                  .user-menu-item:hover {
+                    background: rgba(14, 165, 233, 0.08);
+                    color: var(--accent-primary);
                   }
                 `}</style>
                 
                 {currentUser ? (
                   <>
-                    <div style={{ padding: '0 16px 12px 16px', display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid #2a2a2a', marginBottom: '8px' }}>
+                    <div style={{ padding: '0 16px 12px 16px', display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid var(--panel-border)', marginBottom: '8px' }}>
                       <div style={{
-                        width: '32px',
-                        height: '32px',
+                        width: '36px',
+                        height: '36px',
                         borderRadius: '50%',
-                        background: currentUser.avatar ? 'transparent' : '#f3e8ff',
-                        color: '#9333ea',
+                        background: currentUser.avatar ? 'transparent' : 'var(--gradient-gold)',
+                        color: '#fff',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         fontSize: '16px',
                         fontWeight: 'bold',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        border: '1px solid rgba(0,0,0,0.08)'
                       }}>
                         {currentUser.avatar ? (
                           <img src={currentUser.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -213,40 +217,40 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
                         )}
                       </div>
                       <div style={{ overflow: 'hidden' }}>
-                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', fontFamily: 'var(--font-title)' }}>
+                        <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', fontFamily: 'var(--font-title)' }}>
                           {currentUser.username ? `@${currentUser.username}` : (currentUser.email || currentUser.name)}
                         </div>
                         {currentUser.username && currentUser.email && (
-                          <div style={{ fontSize: '12px', color: '#9ca3af', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
                             {currentUser.email}
                           </div>
                         )}
                       </div>
                     </div>
                     
-                    <button onClick={() => { setCurrentPage('profile'); setIsDrawerOpen(false); }} className="dark-menu-item">
+                    <button onClick={() => { setCurrentPage('profile'); setIsDrawerOpen(false); }} className="user-menu-item">
                       <span style={{ fontSize: '16px' }}>⚙️</span> Hesap Ayarları
                     </button>
                     
                     {/* Admin Item */}
-                    <button onClick={() => { setCurrentPage('admin'); setIsDrawerOpen(false); }} className="dark-menu-item" style={{ justifyContent: 'space-between' }}>
+                    <button onClick={() => { setCurrentPage('admin'); setIsDrawerOpen(false); }} className="user-menu-item" style={{ justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                          <span style={{ fontSize: '16px' }}>👑</span> Yönetici Paneli
                       </div>
-                      <span style={{ fontSize: '18px', color: '#666' }}>›</span>
+                      <span style={{ fontSize: '18px', color: 'var(--text-secondary)' }}>›</span>
                     </button>
                     
-                    <div style={{ height: '1px', background: '#2a2a2a', margin: '8px 0' }} />
+                    <div style={{ height: '1px', background: 'var(--panel-border)', margin: '8px 0' }} />
                     
-                    <button onClick={() => { onLogout(); setIsDrawerOpen(false); }} className="dark-menu-item">
+                    <button onClick={() => { onLogout(); setIsDrawerOpen(false); }} className="user-menu-item" style={{ color: '#ef4444' }}>
                       <span style={{ fontSize: '16px', transform: 'scaleX(-1)', display: 'inline-block' }}>🚪</span> Çıkış Yap
                     </button>
                   </>
                 ) : (
-                  <div style={{ padding: '0 16px' }}>
-                    <p style={{ color: '#aaa', fontSize: '13px', marginBottom: '12px' }}>Giriş yapmadınız.</p>
-                    <button onClick={() => { setCurrentPage('auth'); setIsDrawerOpen(false); }} style={{ width: '100%', padding: '10px', background: '#fff', color: '#000', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}>
-                      Sign In
+                  <div style={{ padding: '8px 16px' }}>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '12px' }}>Giriş yapmadınız.</p>
+                    <button onClick={() => { setCurrentPage('auth'); setIsDrawerOpen(false); }} className="btn-primary" style={{ width: '100%', justifyContent: 'center', fontSize: '13px' }}>
+                      Giriş Yap / Kayıt Ol
                     </button>
                   </div>
                 )}

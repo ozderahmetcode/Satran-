@@ -6,6 +6,7 @@ export default function AdminPanel({
   onUsersUpdate, 
   activeUsersCount = 1, 
   activeUsersList = [], 
+  analytics = {},
   onRegisterUpdate, 
   tournaments, 
   onAddTournament, 
@@ -18,7 +19,22 @@ export default function AdminPanel({
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
-  const [activeTab, setActiveTab] = useState('users'); // users | registrations | events | tournaments | messages | spam
+  const [activeTab, setActiveTab] = useState('users'); // users | analytics | registrations | events | tournaments | messages | spam
+
+  // Süreyi okunabilir formata dönüştüren yardımcı (saniye -> Saat, Dakika, Saniye)
+  const formatDuration = (totalSeconds) => {
+    const sec = Math.max(0, Math.round(Number(totalSeconds) || 0));
+    if (sec === 0) return '0 sn';
+    const hours = Math.floor(sec / 3600);
+    const minutes = Math.floor((sec % 3600) / 60);
+    const seconds = sec % 60;
+
+    const parts = [];
+    if (hours > 0) parts.push(`${hours} sa`);
+    if (minutes > 0) parts.push(`${minutes} dk`);
+    if (seconds > 0 || parts.length === 0) parts.push(`${seconds} sn`);
+    return parts.join(' ');
+  };
 
   // Arama & Filtreleme
   const [userSearchTerm, setUserSearchTerm] = useState('');
@@ -93,7 +109,7 @@ export default function AdminPanel({
       alert("Dışa aktarılacak kullanıcı bulunmuyor.");
       return;
     }
-    const headers = ["ID", "Ad Soyad", "E-Posta", "Telefon", "Satranç Kullanıcı Adı", "ELO Puanı", "Doğrulandı Mı"];
+    const headers = ["ID", "Ad Soyad", "E-Posta", "Telefon", "Satranç Kullanıcı Adı", "ELO Puanı", "Sitede Geçirilen Süre", "Giriş/Ziyaret Sayısı", "Doğrulandı Mı"];
     const rows = users.map(u => [
       `"${u.id}"`,
       `"${u.name || ''}"`,
@@ -101,6 +117,8 @@ export default function AdminPanel({
       `"${u.phone || ''}"`,
       `"${u.chessUsername || ''}"`,
       u.elo || 1500,
+      `"${formatDuration(u.totalTimeSpentSeconds || 0)}"`,
+      u.visitCount || 0,
       u.verified !== false ? "Evet" : "Hayır"
     ]);
 
@@ -475,14 +493,14 @@ export default function AdminPanel({
       </section>
 
       {/* KPI / Dashboard Metrik Kartları */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
         <div className="glass-panel" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(14, 165, 233, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>
             👥
           </div>
           <div>
             <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 }}>TOPLAM ÜYE SAYISI</div>
-            <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)' }}>{users.length}</div>
+            <div style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text-primary)' }}>{users.length}</div>
             <div style={{ fontSize: '11px', color: '#10b981' }}>Kayıtlı ve onaylı hesaplar</div>
           </div>
         </div>
@@ -494,8 +512,23 @@ export default function AdminPanel({
           </div>
           <div>
             <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 }}>ŞU AN SİTEDE AKTİF</div>
-            <div style={{ fontSize: '28px', fontWeight: 800, color: '#10b981' }}>{activeUsersCount}</div>
+            <div style={{ fontSize: '26px', fontWeight: 800, color: '#10b981' }}>{activeUsersCount}</div>
             <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Canlı çevrimiçi kullanıcı</div>
+          </div>
+        </div>
+
+        <div className="glass-panel" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(59, 130, 246, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>
+            ⏱️
+          </div>
+          <div>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 }}>TOPLAM GEÇİRİLEN SÜRE</div>
+            <div style={{ fontSize: '22px', fontWeight: 800, color: '#3b82f6' }}>
+              {formatDuration(analytics.totalTimeSpentSeconds || 0)}
+            </div>
+            <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+              Toplam Ziyaret: {analytics.totalVisits || 0}
+            </div>
           </div>
         </div>
 
@@ -505,7 +538,7 @@ export default function AdminPanel({
           </div>
           <div>
             <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 }}>TOPLAM TURNUVA</div>
-            <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)' }}>{tournaments.length}</div>
+            <div style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text-primary)' }}>{tournaments.length}</div>
             <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{tournaments.filter(t => t.status === 'active').length} aktif kayıt açık</div>
           </div>
         </div>
@@ -516,7 +549,7 @@ export default function AdminPanel({
           </div>
           <div>
             <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 }}>TOPLAM KATILIM KAYDI</div>
-            <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)' }}>{registrations.length}</div>
+            <div style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text-primary)' }}>{registrations.length}</div>
             <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Turnuva masa başvuruları</div>
           </div>
         </div>
@@ -525,7 +558,8 @@ export default function AdminPanel({
       {/* Admin Tabs */}
       <div style={{ display: 'flex', gap: '12px', borderBottom: '1px solid var(--panel-border)', paddingBottom: '16px', flexWrap: 'wrap' }}>
         {[
-          { id: 'users', label: `Kullanıcılar & Canlı Takip (${users.length}) 👥` },
+          { id: 'users', label: `Kullanıcılar (${users.length}) 👥` },
+          { id: 'analytics', label: `Ziyaret & Süre Analitiği 📊` },
           { id: 'registrations', label: `Katılımcı Kayıtları (${registrations.length}) 📋` },
           { id: 'events', label: `Etkinlik & Turnuva Yönetimi (${tournaments.length}) 📅` },
           { id: 'tournaments', label: 'Eşleştirme Sistemi ♟️' },
@@ -578,8 +612,11 @@ export default function AdminPanel({
                     <div>
                       <div style={{ fontWeight: 600 }}>{session.name}</div>
                       <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Sayfa: {session.page}</div>
+                      <div style={{ fontSize: '11px', color: '#0ea5e9', fontWeight: 600, marginTop: '2px' }}>
+                        ⏱️ Oturum: {formatDuration(session.sessionSeconds || 0)}
+                      </div>
                     </div>
-                    <span style={{ fontSize: '11px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                    <span style={{ fontSize: '11px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '4px 8px', borderRadius: '4px', fontWeight: 700 }}>
                       Çevrimiçi
                     </span>
                   </div>
@@ -679,6 +716,7 @@ export default function AdminPanel({
                         <th style={{ padding: '12px 10px' }}>Telefon</th>
                         <th style={{ padding: '12px 10px' }}>Satranç Platformu</th>
                         <th style={{ padding: '12px 10px' }}>ELO</th>
+                        <th style={{ padding: '12px 10px' }}>Sitede Geçirilen Süre</th>
                         <th style={{ padding: '12px 10px' }}>Durum</th>
                         <th style={{ padding: '12px 10px' }}>İşlemler</th>
                       </tr>
@@ -704,7 +742,9 @@ export default function AdminPanel({
                               </div>
                               <div>
                                 <div style={{ fontWeight: 600 }}>{u.name}</div>
-                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>ID: {u.id}</div>
+                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                                  {u.username ? `@${u.username}` : `ID: ${u.id}`}
+                                </div>
                               </div>
                             </div>
                           </td>
@@ -715,6 +755,14 @@ export default function AdminPanel({
                           </td>
                           <td style={{ padding: '12px 10px' }}>
                             <span style={{ fontWeight: 700, color: 'var(--accent-secondary)' }}>{u.elo || 1500}</span>
+                          </td>
+                          <td style={{ padding: '12px 10px' }}>
+                            <div style={{ fontWeight: 700, color: '#0ea5e9', fontSize: '13px' }}>
+                              ⏱️ {formatDuration(u.totalTimeSpentSeconds || 0)}
+                            </div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                              {u.visitCount || 0} giriş
+                            </div>
                           </td>
                           <td style={{ padding: '12px 10px' }}>
                             <span style={{
@@ -770,6 +818,229 @@ export default function AdminPanel({
               );
             })()}
           </div>
+        </div>
+      )}
+
+      {/* Tab Content: Analytics & Visits */}
+      {activeTab === 'analytics' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+          
+          {/* Üst Analitik Özet Kartları */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+            <div className="glass-panel" style={{ padding: '20px', borderLeft: '4px solid #0ea5e9' }}>
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 700 }}>TOPLAM SİTEDE KALINAN SÜRE</div>
+              <div style={{ fontSize: '26px', fontWeight: 800, color: '#0ea5e9', marginTop: '6px' }}>
+                {formatDuration(analytics.totalTimeSpentSeconds || 0)}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                Tüm ziyaretçi ve üyelerin kümülatif süresi
+              </div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '20px', borderLeft: '4px solid #10b981' }}>
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 700 }}>TOPLAM GİRİŞ / ZİYARET</div>
+              <div style={{ fontSize: '26px', fontWeight: 800, color: '#10b981', marginTop: '6px' }}>
+                {analytics.totalVisits || 0}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                Başlatılan toplam tekil oturum sayısı
+              </div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '20px', borderLeft: '4px solid #f59e0b' }}>
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 700 }}>ORTALAMA ZİYARET SÜRESİ</div>
+              <div style={{ fontSize: '26px', fontWeight: 800, color: '#f59e0b', marginTop: '6px' }}>
+                {analytics.totalVisits > 0 
+                  ? formatDuration(Math.round((analytics.totalTimeSpentSeconds || 0) / analytics.totalVisits))
+                  : '0 sn'}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                Oturum başına düşen ortalama süre
+              </div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '20px', borderLeft: '4px solid #8b5cf6' }}>
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 700 }}>ŞU AN CANLI OTURUMLAR</div>
+              <div style={{ fontSize: '26px', fontWeight: 800, color: '#8b5cf6', marginTop: '6px' }}>
+                {activeUsersCount} Aktif
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                Son 35 saniyede sinyal veren cihazlar
+              </div>
+            </div>
+          </div>
+
+          {/* Dönemsel Giriş Sayıları Paneli: Saatlik, Günlük, Haftalık, Aylık, Yıllık */}
+          <div className="glass-panel">
+            <div style={{ marginBottom: '20px' }}>
+              <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 700 }}>
+                📅 Dönemsel Siteye Giriş Sayıları
+              </h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '4px' }}>
+                Sitenize saatlik, günlük, haftalık, aylık ve yıllık olarak kaç kez giriş yapıldığını buradan takip edebilirsiniz.
+              </p>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+              
+              {/* Günlük Girişler */}
+              <div style={{ background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '12px', padding: '16px' }}>
+                <h4 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>📆</span> Günlük Girişler
+                </h4>
+                {Object.keys(analytics.daily || {}).length === 0 ? (
+                  <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0 }}>Henüz kayıtlı günlük giriş yok.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '220px', overflowY: 'auto' }}>
+                    {Object.entries(analytics.daily || {})
+                      .sort(([a], [b]) => b.localeCompare(a))
+                      .slice(0, 10)
+                      .map(([date, count]) => (
+                        <div key={date} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '8px 12px', borderRadius: '6px', fontSize: '13px', border: '1px solid rgba(0,0,0,0.04)' }}>
+                          <span style={{ fontWeight: 600 }}>{date}</span>
+                          <span style={{ fontWeight: 700, color: 'var(--accent-primary)', background: 'rgba(14, 165, 233, 0.1)', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>
+                            {count} Ziyaret
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Saatlik Girişler (Son Saatler) */}
+              <div style={{ background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '12px', padding: '16px' }}>
+                <h4 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>⏰</span> Saatlik Girişler
+                </h4>
+                {Object.keys(analytics.hourly || {}).length === 0 ? (
+                  <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0 }}>Henüz saatlik veri oluşmadı.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '220px', overflowY: 'auto' }}>
+                    {Object.entries(analytics.hourly || {})
+                      .sort(([a], [b]) => b.localeCompare(a))
+                      .slice(0, 10)
+                      .map(([hour, count]) => (
+                        <div key={hour} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '8px 12px', borderRadius: '6px', fontSize: '13px', border: '1px solid rgba(0,0,0,0.04)' }}>
+                          <span style={{ fontWeight: 600 }}>{hour}</span>
+                          <span style={{ fontWeight: 700, color: '#10b981', background: 'rgba(16, 185, 129, 0.1)', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>
+                            {count} Giriş
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Haftalık Girişler */}
+              <div style={{ background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '12px', padding: '16px' }}>
+                <h4 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>📊</span> Haftalık Girişler
+                </h4>
+                {Object.keys(analytics.weekly || {}).length === 0 ? (
+                  <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0 }}>Henüz haftalık veri oluşmadı.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '220px', overflowY: 'auto' }}>
+                    {Object.entries(analytics.weekly || {})
+                      .sort(([a], [b]) => b.localeCompare(a))
+                      .slice(0, 10)
+                      .map(([week, count]) => (
+                        <div key={week} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '8px 12px', borderRadius: '6px', fontSize: '13px', border: '1px solid rgba(0,0,0,0.04)' }}>
+                          <span style={{ fontWeight: 600 }}>{week}. Hafta</span>
+                          <span style={{ fontWeight: 700, color: '#f59e0b', background: 'rgba(245, 158, 11, 0.1)', padding: '2px 8px', borderRadius: '12px', fontSize: '12px' }}>
+                            {count} Giriş
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Aylık & Yıllık Girişler */}
+              <div style={{ background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '12px', padding: '16px' }}>
+                <h4 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>🗓️</span> Aylık ve Yıllık Girişler
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, marginBottom: '6px' }}>AY BAZINDA</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '100px', overflowY: 'auto' }}>
+                      {Object.entries(analytics.monthly || {})
+                        .sort(([a], [b]) => b.localeCompare(a))
+                        .map(([month, count]) => (
+                          <div key={month} style={{ display: 'flex', justifyContent: 'space-between', background: '#fff', padding: '6px 10px', borderRadius: '6px', fontSize: '12px' }}>
+                            <span>{month}</span>
+                            <span style={{ fontWeight: 700, color: '#8b5cf6' }}>{count} Giriş</span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, marginBottom: '6px' }}>YIL BAZINDA</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {Object.entries(analytics.yearly || {})
+                        .sort(([a], [b]) => b.localeCompare(a))
+                        .map(([year, count]) => (
+                          <div key={year} style={{ display: 'flex', justifyContent: 'space-between', background: '#fff', padding: '6px 10px', borderRadius: '6px', fontSize: '12px' }}>
+                            <span>{year} Yılı</span>
+                            <span style={{ fontWeight: 700, color: '#0ea5e9' }}>{count} Giriş</span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Sitede En Çok Vakit Geçiren Üyeler Sıralaması */}
+          <div className="glass-panel">
+            <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 700, marginBottom: '16px' }}>
+              🏆 Sitede En Çok Vakit Geçiren Üyeler
+            </h3>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--panel-border)', color: 'var(--text-secondary)' }}>
+                    <th style={{ padding: '12px 10px' }}>Sıra</th>
+                    <th style={{ padding: '12px 10px' }}>Üye Adı</th>
+                    <th style={{ padding: '12px 10px' }}>Kullanıcı Adı</th>
+                    <th style={{ padding: '12px 10px' }}>Sitede Geçirdiği Toplam Süre</th>
+                    <th style={{ padding: '12px 10px' }}>Giriş Sayısı</th>
+                    <th style={{ padding: '12px 10px' }}>Son Görülme</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...users]
+                    .sort((a, b) => (b.totalTimeSpentSeconds || 0) - (a.totalTimeSpentSeconds || 0))
+                    .map((u, idx) => (
+                      <tr key={u.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                        <td style={{ padding: '12px 10px', fontWeight: 700, color: idx < 3 ? '#f59e0b' : 'var(--text-secondary)' }}>
+                          {idx === 0 ? '🥇 1.' : idx === 1 ? '🥈 2.' : idx === 2 ? '🥉 3.' : `#${idx + 1}`}
+                        </td>
+                        <td style={{ padding: '12px 10px', fontWeight: 600 }}>{u.name}</td>
+                        <td style={{ padding: '12px 10px', color: 'var(--accent-primary)', fontWeight: 600 }}>
+                          {u.username ? `@${u.username}` : '-'}
+                        </td>
+                        <td style={{ padding: '12px 10px' }}>
+                          <span style={{ fontWeight: 800, color: '#0ea5e9', background: 'rgba(14, 165, 233, 0.1)', padding: '4px 10px', borderRadius: '20px', fontSize: '13px' }}>
+                            ⏱️ {formatDuration(u.totalTimeSpentSeconds || 0)}
+                          </span>
+                        </td>
+                        <td style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                          {u.visitCount || 0} Giriş
+                        </td>
+                        <td style={{ padding: '12px 10px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                          {u.lastActiveAt ? new Date(u.lastActiveAt).toLocaleString('tr-TR') : 'Kayıtlı'}
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
         </div>
       )}
 

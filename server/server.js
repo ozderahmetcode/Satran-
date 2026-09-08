@@ -34,21 +34,55 @@ app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 // Statik yükleme klasörü
 app.use('/uploads', express.static(uploadsDir));
 
-// Canlı / Aktif Kullanıcı Takibi (Son 30 saniye içinde sinyal gönderenler)
-const activeSessions = new Map(); // key: socket/clientId or userId, value: { lastSeen, userId, name, page }
+// Canlı / Aktif Kullanıcı Takibi (Son 35 saniye içinde sinyal gönderenler)
+// activeSessions Map: key => { lastSeen, firstSeen, userId, name, page, durationSeconds }
+const activeSessions = new Map();
 
-// Kullanıcı sinyal (heartbeat/ping) ucu
+// Kullanıcı sinyal (heartbeat/ping) ve analitik kayıt ucu
 app.post('/api/heartbeat', (req, res) => {
   try {
-    const { clientId, userId, name, page } = req.body;
+    const { clientId, userId, name, page, deltaSeconds = 0, isNewSession = false } = req.body;
+    const now = Date.now();
     const key = clientId || (userId ? `user_${userId}` : req.ip);
-    activeSessions.set(key, {
-      lastSeen: Date.now(),
-      userId: userId || null,
-      name: name || 'Ziyaretçi',
-      page: page || 'Ana Sayfa'
+
+    let session = activeSessions.get(key);
+    let sessionIsNew = isNewSession;
+
+    if (!session || (now - session.lastSeen > 5 * 60 * 1000)) { // 5 dakikadan uzun kopukluk yeni oturum sayılır
+      sessionIsNew = true;
+      session = {
+        firstSeen: now,
+        lastSeen: now,
+        userId: userId || null,
+        name: name || 'Ziyaretçi',
+        page: page || 'Ana Sayfa',
+        durationSeconds: 0
+      };
+    } else {
+      const addedSec = Math.max(0, Math.min(60, Math.round(Number(deltaSeconds) || 0)));
+      session.lastSeen = now;
+      session.durationSeconds = (session.durationSeconds || 0) + addedSec;
+      session.page = page || session.page;
+      if (userId) session.userId = userId;
+      if (name && name !== 'Ziyaretçi') session.name = name;
+    }
+    activeSessions.set(key, session);
+
+    // Veritabanına analitik ve süre bilgilerini kaydet
+    const result = db.recordHeartbeatAndAnalytics({
+      clientId: key,
+      userId: userId || session.userId,
+      name: session.name,
+      page: session.page,
+      deltaSeconds,
+      isNewSession: sessionIsNew
     });
-    res.json({ success: true });
+
+    res.json({ 
+      success: true, 
+      sessionSeconds: session.durationSeconds,
+      userTimeSpent: result.updatedUser ? result.updatedUser.totalTimeSpentSeconds : undefined
+    });
   } catch (error) {
     res.status(500).json({ error: "Heartbeat error" });
   }
@@ -63,12 +97,18 @@ function getActiveUsersCount() {
   for (const [key, session] of activeSessions.entries()) {
     if (now - session.lastSeen < threshold) {
       count++;
-      activeList.push(session);
-    } else {
+      // Oturum süresini hesapla
+      const currentSessionDuration = Math.round((now - session.firstSeen) / 1000);
+      activeList.push({
+        ...session,
+        sessionSeconds: Math.max(session.durationSeconds || 0, currentSessionDuration)
+      });
+    } else if (now - session.lastSeen > 10 * 60 * 1000) {
+      // 10 dakikadır yanıt vermeyen eski oturumları temizle
       activeSessions.delete(key);
     }
   }
-  // En az 1 kişi (adminin kendisi veya ziyaretçi) her zaman aktif varsayılsın
+
   return {
     count: Math.max(1, count),
     activeList

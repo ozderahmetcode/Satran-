@@ -37,7 +37,17 @@ const defaultData = {
   registrations: [],
   matchRequests: [],
   directMessages: [],
-  spamReports: []
+  spamReports: [],
+  analytics: {
+    totalTimeSpentSeconds: 0,
+    totalVisits: 0,
+    hourly: {},
+    daily: {},
+    weekly: {},
+    monthly: {},
+    yearly: {},
+    activeSessions: {}
+  }
 };
 
 function initDB() {
@@ -47,6 +57,15 @@ function initDB() {
   if (!fs.existsSync(DB_FILE)) {
     fs.writeFileSync(DB_FILE, JSON.stringify(defaultData, null, 2), 'utf-8');
   }
+}
+
+function getWeekString(d = new Date()) {
+  const date = new Date(d.getTime());
+  date.setHours(0, 0, 0, 0);
+  date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+  const week1 = new Date(date.getFullYear(), 0, 4);
+  const weekNum = 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+  return `${date.getFullYear()}-H${String(weekNum).padStart(2, '0')}`;
 }
 
 function readDB() {
@@ -59,6 +78,14 @@ function readDB() {
       parsed.users.forEach(u => {
         if (u.verified === false) {
           u.verified = true;
+          changed = true;
+        }
+        if (typeof u.totalTimeSpentSeconds !== 'number') {
+          u.totalTimeSpentSeconds = 0;
+          changed = true;
+        }
+        if (typeof u.visitCount !== 'number') {
+          u.visitCount = 0;
           changed = true;
         }
       });
@@ -74,6 +101,27 @@ function readDB() {
     if (!Array.isArray(parsed.spamReports)) {
       parsed.spamReports = [];
       changed = true;
+    }
+    if (!parsed.analytics || typeof parsed.analytics !== 'object') {
+      parsed.analytics = {
+        totalTimeSpentSeconds: 0,
+        totalVisits: 0,
+        hourly: {},
+        daily: {},
+        weekly: {},
+        monthly: {},
+        yearly: {},
+        activeSessions: {}
+      };
+      changed = true;
+    } else {
+      if (typeof parsed.analytics.totalTimeSpentSeconds !== 'number') parsed.analytics.totalTimeSpentSeconds = 0;
+      if (typeof parsed.analytics.totalVisits !== 'number') parsed.analytics.totalVisits = 0;
+      if (!parsed.analytics.hourly) parsed.analytics.hourly = {};
+      if (!parsed.analytics.daily) parsed.analytics.daily = {};
+      if (!parsed.analytics.weekly) parsed.analytics.weekly = {};
+      if (!parsed.analytics.monthly) parsed.analytics.monthly = {};
+      if (!parsed.analytics.yearly) parsed.analytics.yearly = {};
     }
     if (changed) {
       fs.writeFileSync(DB_FILE, JSON.stringify(parsed, null, 2), 'utf-8');
@@ -913,5 +961,67 @@ module.exports = {
       writeDB(db);
     }
     return { success: true, spamReports: db.spamReports };
+  },
+
+  // Ziyaret & Süre Analitiği Kaydı
+  recordHeartbeatAndAnalytics: ({ clientId, userId, name, page, deltaSeconds = 0, isNewSession = false }) => {
+    const db = readDB();
+    const now = new Date();
+    const sec = Math.max(0, Math.min(60, Math.round(Number(deltaSeconds) || 0)));
+
+    // 1. Toplam geçirilen süre
+    if (sec > 0) {
+      db.analytics.totalTimeSpentSeconds = (db.analytics.totalTimeSpentSeconds || 0) + sec;
+    }
+
+    // 2. Yeni Ziyaret/Giriş Kaydı (Saatlik, Günlük, Haftalık, Aylık, Yıllık)
+    if (isNewSession) {
+      db.analytics.totalVisits = (db.analytics.totalVisits || 0) + 1;
+
+      const hourKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:00`;
+      const dayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const weekKey = getWeekString(now);
+      const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const yearKey = `${now.getFullYear()}`;
+
+      db.analytics.hourly[hourKey] = (db.analytics.hourly[hourKey] || 0) + 1;
+      db.analytics.daily[dayKey] = (db.analytics.daily[dayKey] || 0) + 1;
+      db.analytics.weekly[weekKey] = (db.analytics.weekly[weekKey] || 0) + 1;
+      db.analytics.monthly[monthKey] = (db.analytics.monthly[monthKey] || 0) + 1;
+      db.analytics.yearly[yearKey] = (db.analytics.yearly[yearKey] || 0) + 1;
+    }
+
+    // 3. Kullanıcı Bazlı Süre ve Oturum Sayısı Takibi
+    let updatedUser = null;
+    if (userId) {
+      const user = db.users.find(u => String(u.id) === String(userId));
+      if (user) {
+        if (sec > 0) {
+          user.totalTimeSpentSeconds = (user.totalTimeSpentSeconds || 0) + sec;
+        }
+        if (isNewSession) {
+          user.visitCount = (user.visitCount || 0) + 1;
+        }
+        user.lastActiveAt = now.toISOString();
+        updatedUser = {
+          id: user.id,
+          name: user.name,
+          totalTimeSpentSeconds: user.totalTimeSpentSeconds,
+          visitCount: user.visitCount
+        };
+      }
+    }
+
+    writeDB(db);
+    return {
+      success: true,
+      analytics: db.analytics,
+      updatedUser
+    };
+  },
+
+  getAnalytics: () => {
+    const db = readDB();
+    return db.analytics || {};
   }
 };

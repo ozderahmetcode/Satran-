@@ -68,11 +68,24 @@ export default function App() {
       localStorage.setItem('ozder_client_id', clientId);
     }
 
-    // Heartbeat sinyali gönder (aktif kullanıcı takibi için)
+    // Heartbeat ve Süre Takibi
+    let lastBeatTime = Date.now();
+    let isFirstSignal = true;
+
     const sendHeartbeat = () => {
       try {
+        const now = Date.now();
+        const diffSeconds = Math.round((now - lastBeatTime) / 1000);
+        lastBeatTime = now;
+
+        // Sekme arka planda çok uzun kaldıysa en fazla 30 saniye ekle
+        const deltaSeconds = isFirstSignal ? 0 : Math.min(30, Math.max(0, diffSeconds));
+        const sendAsNewSession = isFirstSignal;
+        isFirstSignal = false;
+
         const u = localStorage.getItem('currentUser');
         const parsed = u ? JSON.parse(u) : null;
+
         fetch('/api/heartbeat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -80,14 +93,16 @@ export default function App() {
             clientId,
             userId: parsed?.id || null,
             name: parsed?.name || 'Ziyaretçi',
-            page: currentPage
+            page: currentPage,
+            deltaSeconds,
+            isNewSession: sendAsNewSession
           })
         }).catch(() => {});
       } catch (e) {}
     };
 
     sendHeartbeat();
-    const heartbeatInterval = setInterval(sendHeartbeat, 15000);
+    const heartbeatInterval = setInterval(sendHeartbeat, 10000); // 10 saniyede bir hassas süre ve aktiflik sinyali
 
     // Tam Zamanlı Veri Güncelleme (Her 5 saniyede bir veritabanını yeniler)
     const interval = setInterval(() => {
@@ -213,6 +228,7 @@ export default function App() {
             onUsersUpdate={handleUsersUpdate}
             activeUsersCount={data.activeUsersCount || 1}
             activeUsersList={data.activeUsersList || []}
+            analytics={data.analytics || {}}
             onRegisterUpdate={handleRegisterUpdate}
             tournaments={data.tournaments}
             onAddTournament={handleAddTournament}
