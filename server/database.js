@@ -680,38 +680,69 @@ module.exports = {
     return { success: true, request, matchRequests: db.matchRequests };
   },
 
-  sendDirectMessage: (senderId, receiverId, text) => {
+  sendDirectMessage: (senderId, receiverId, text, senderNameFallback = '', receiverNameFallback = '') => {
     const db = readDB();
     if (!text || !text.trim()) return { error: "Mesaj boş olamaz." };
 
-    const sender = db.users.find(u => String(u.id) === String(senderId));
-    const receiver = db.users.find(u => String(u.id) === String(receiverId));
-    if (!sender || !receiver) return { error: "Kullanıcı bulunamadı." };
+    const sId = String(senderId);
+    const rId = String(receiverId);
 
-    // Engelleme kontrolü
-    if (Array.isArray(receiver.blockedUsers) && receiver.blockedUsers.includes(String(senderId))) {
-      return { error: "Bu kullanıcı tarafından engellendiğiniz için mesaj gönderilemiyor." };
-    }
-    if (Array.isArray(sender.blockedUsers) && sender.blockedUsers.includes(String(receiverId))) {
-      return { error: "Engellediğiniz kullanıcıya mesaj gönderemezsiniz. Önce engeli kaldırın." };
-    }
-
-    // Eşleşme kontrolü: İki kullanıcı arasında kabul edilmiş en az 1 matchRequest olmalıdır
-    const isMatched = db.matchRequests.some(r => 
+    // Eşleşme kontrolü: İki kullanıcı arasında kabul edilmiş en az 1 matchRequest olmalıdır (id veya isim eşleşmesiyle)
+    const matchedReq = db.matchRequests.find(r => 
       r.status === 'accepted' && 
-      ((String(r.fromUserId) === String(senderId) && String(r.toUserId) === String(receiverId)) ||
-       (String(r.fromUserId) === String(receiverId) && String(r.toUserId) === String(senderId)))
+      ((String(r.fromUserId) === sId && String(r.toUserId) === rId) ||
+       (String(r.fromUserId) === rId && String(r.toUserId) === sId) ||
+       (r.fromUserName === sId && r.toUserName === rId) ||
+       (r.fromUserName === rId && r.toUserName === sId))
     );
 
-    if (!isMatched) {
+    if (!matchedReq) {
       return { error: "Mesajlaşabilmek için oyun isteğinin kabul edilmiş olması gerekir." };
+    }
+
+    let sender = db.users.find(u => String(u.id) === sId || u.name === sId || (u.chessUsername && u.chessUsername === sId));
+    let receiver = db.users.find(u => String(u.id) === rId || u.name === rId || (u.chessUsername && u.chessUsername === rId));
+
+    // Eğer kullanıcı veritabanında yoksa (örn. sunucu restart sonrası veya isimle referans edilmişse), request bilgilerinden tamamla
+    if (!sender) {
+      const isFrom = String(matchedReq.fromUserId) === sId || matchedReq.fromUserName === sId;
+      const sName = senderNameFallback || (isFrom ? matchedReq.fromUserName : matchedReq.toUserName) || sId;
+      sender = {
+        id: sId,
+        name: sName,
+        chessUsername: isFrom ? matchedReq.fromUserChess : matchedReq.toUserChess,
+        avatar: isFrom ? matchedReq.fromUserAvatar : matchedReq.toUserAvatar,
+        blockedUsers: []
+      };
+      db.users.push(sender);
+    }
+
+    if (!receiver) {
+      const isTo = String(matchedReq.toUserId) === rId || matchedReq.toUserName === rId;
+      const rName = receiverNameFallback || (isTo ? matchedReq.toUserName : matchedReq.fromUserName) || rId;
+      receiver = {
+        id: rId,
+        name: rName,
+        chessUsername: isTo ? matchedReq.toUserChess : matchedReq.fromUserChess,
+        avatar: isTo ? matchedReq.toUserAvatar : matchedReq.fromUserAvatar,
+        blockedUsers: []
+      };
+      db.users.push(receiver);
+    }
+
+    // Engelleme kontrolü
+    if (Array.isArray(receiver.blockedUsers) && receiver.blockedUsers.includes(sId)) {
+      return { error: "Bu kullanıcı tarafından engellendiğiniz için mesaj gönderilemiyor." };
+    }
+    if (Array.isArray(sender.blockedUsers) && sender.blockedUsers.includes(rId)) {
+      return { error: "Engellediğiniz kullanıcıya mesaj gönderemezsiniz. Önce engeli kaldırın." };
     }
 
     const newMsg = {
       id: 'dm_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
-      senderId: String(senderId),
+      senderId: sId,
       senderName: sender.name,
-      receiverId: String(receiverId),
+      receiverId: rId,
       receiverName: receiver.name,
       text: text.trim(),
       timestamp: new Date().toISOString()

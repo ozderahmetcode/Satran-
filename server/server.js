@@ -420,11 +420,11 @@ app.put('/api/match-requests/:id/respond', (req, res) => {
 // Mesaj Gönderme
 app.post('/api/direct-messages', (req, res) => {
   try {
-    const { senderId, receiverId, text } = req.body;
+    const { senderId, receiverId, text, senderName, receiverName } = req.body;
     if (!senderId || !receiverId || !text) {
       return res.status(400).json({ error: "Gönderen, alıcı ve mesaj metni zorunludur." });
     }
-    const result = db.sendDirectMessage(senderId, receiverId, text);
+    const result = db.sendDirectMessage(senderId, receiverId, text, senderName, receiverName);
     if (result.error) {
       return res.status(400).json({ error: result.error });
     }
