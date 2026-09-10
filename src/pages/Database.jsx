@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 
-export default function Database({ leaders, tournaments }) {
+export default function Database({ leaders, tournaments, users = [], registrations = [] }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTournament, setSelectedTournament] = useState(null); // id of selected tournament
   const [tourTab, setTourTab] = useState('standings'); // standings | fixtures
@@ -12,18 +12,33 @@ export default function Database({ leaders, tournaments }) {
     );
   };
 
+  const getPlayerName = (playerId) => {
+    if (!playerId) return 'Bay (Boşta)';
+    const user = users.find(u => String(u.id) === String(playerId));
+    const reg = registrations.find(r => String(r.userId) === String(playerId));
+    return user?.name || reg?.name || user?.chessUsername || user?.username || reg?.chessUsername || playerId;
+  };
+
   const calculateStandings = (tournament) => {
     if (!tournament || !tournament.rounds) return [];
     
-    const playersMap = {}; // { userId: { name, rating, points, opponents: [], bh: 0 } }
+    const playersMap = {}; // { userId: { id, name, rating, points, opponents: [], bh: 0 } }
+
+    const resolvePlayer = (id) => {
+      const u = users.find(user => String(user.id) === String(id));
+      const reg = registrations.find(r => (r.tournamentId === tournament.id || !r.tournamentId) && String(r.userId) === String(id));
+      const displayName = u?.name || reg?.name || u?.chessUsername || u?.username || reg?.chessUsername || id;
+      const elo = u?.elo || 1500;
+      return { id, name: displayName, rating: elo, points: 0, opponents: [] };
+    };
 
     tournament.rounds.forEach(r => {
       r.pairings?.forEach(p => {
-        if (!p.whiteId) return; // bye without opponent, ignore for now
+        if (!p.whiteId) return;
         
         // Ensure both players exist in map
-        if (p.whiteId && !playersMap[p.whiteId]) playersMap[p.whiteId] = { id: p.whiteId, name: 'Oyuncu ' + p.whiteId, rating: 1500, points: 0, opponents: [] };
-        if (p.blackId && !playersMap[p.blackId]) playersMap[p.blackId] = { id: p.blackId, name: 'Oyuncu ' + p.blackId, rating: 1500, points: 0, opponents: [] };
+        if (p.whiteId && !playersMap[p.whiteId]) playersMap[p.whiteId] = resolvePlayer(p.whiteId);
+        if (p.blackId && !playersMap[p.blackId]) playersMap[p.blackId] = resolvePlayer(p.blackId);
 
         if (p.result === 'white' && p.whiteId) {
           playersMap[p.whiteId].points += 1;
@@ -73,11 +88,26 @@ export default function Database({ leaders, tournaments }) {
           &larr; Geri Dön
         </button>
         
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ fontFamily: 'var(--font-title)', fontSize: '28px', fontWeight: 800 }}>{tour?.title}</h2>
-          {tour?.status === 'active' && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <h2 style={{ fontFamily: 'var(--font-title)', fontSize: '28px', fontWeight: 800 }}>{tour?.title}</h2>
+            {tour?.champion && tour?.status === 'completed' && (
+              <p style={{ color: 'var(--accent-secondary)', fontWeight: 700, margin: '4px 0 0 0', fontSize: '15px' }}>
+                🏆 Şampiyon: {tour.champion}
+              </p>
+            )}
+          </div>
+          {tour?.status === 'active' ? (
             <span style={{ background: 'var(--accent-primary)', color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold' }}>
               Devam Ediyor
+            </span>
+          ) : tour?.status === 'completed' ? (
+            <span style={{ background: 'var(--gradient-gold)', color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold' }}>
+              Tamamlandı
+            </span>
+          ) : (
+            <span style={{ background: '#ef4444', color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold' }}>
+              İptal Edildi
             </span>
           )}
         </div>
@@ -101,7 +131,7 @@ export default function Database({ leaders, tournaments }) {
               <thead>
                 <tr style={{ background: 'rgba(0,0,0,0.03)', borderBottom: '1px solid var(--panel-border)', color: 'var(--text-secondary)' }}>
                   <th style={{ padding: '16px', fontWeight: 700 }}>#</th>
-                  <th style={{ padding: '16px', fontWeight: 700 }}>Oyuncu ID</th>
+                  <th style={{ padding: '16px', fontWeight: 700 }}>Oyuncu (Ad Soyad / Kullanıcı Adı)</th>
                   <th style={{ padding: '16px', fontWeight: 700 }}>Rating</th>
                   <th style={{ padding: '16px', fontWeight: 700 }}>Puan</th>
                   <th style={{ padding: '16px', fontWeight: 700 }}>BH</th>
@@ -112,9 +142,16 @@ export default function Database({ leaders, tournaments }) {
                   <tr><td colSpan="5" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>Henüz maç oynanmadı veya kayıt bulunmuyor.</td></tr>
                 ) : (
                   standings.map((player, idx) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid var(--panel-border)', background: idx % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.01)' }}>
-                      <td style={{ padding: '16px', fontWeight: 'bold' }}>{idx + 1}</td>
-                      <td style={{ padding: '16px', fontFamily: 'monospace' }}>{player.id}</td>
+                    <tr key={idx} style={{ 
+                      borderBottom: '1px solid var(--panel-border)', 
+                      background: idx === 0 ? 'rgba(245, 158, 11, 0.08)' : idx % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.01)' 
+                    }}>
+                      <td style={{ padding: '16px', fontWeight: 'bold' }}>
+                        {idx === 0 ? '🥇 1' : idx === 1 ? '🥈 2' : idx === 2 ? '🥉 3' : idx + 1}
+                      </td>
+                      <td style={{ padding: '16px', fontWeight: 600, color: idx === 0 ? 'var(--accent-secondary)' : 'inherit' }}>
+                        {player.name}
+                      </td>
                       <td style={{ padding: '16px', color: 'var(--text-secondary)' }}>{player.rating}</td>
                       <td style={{ padding: '16px', fontWeight: 'bold', color: 'var(--accent-primary)' }}>{player.points}</td>
                       <td style={{ padding: '16px', color: 'var(--text-secondary)' }}>{player.bh}</td>
@@ -136,11 +173,11 @@ export default function Database({ leaders, tournaments }) {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       {round.pairings?.map((match, midx) => (
                         <div key={midx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', padding: '12px 16px', borderRadius: '8px' }}>
-                          <span style={{ fontWeight: 600, flex: 1, textAlign: 'right' }}>{match.whiteId} (B)</span>
+                          <span style={{ fontWeight: 600, flex: 1, textAlign: 'right' }}>{getPlayerName(match.whiteId)} (B)</span>
                           <span style={{ margin: '0 16px', padding: '4px 12px', background: 'rgba(0,0,0,0.05)', borderRadius: '12px', fontWeight: 700, fontSize: '14px', color: 'var(--text-secondary)' }}>
                             {match.result === 'white' ? '1 - 0' : match.result === 'black' ? '0 - 1' : match.result === 'draw' ? '½ - ½' : 'vs'}
                           </span>
-                          <span style={{ fontWeight: 600, flex: 1, textAlign: 'left' }}>{match.blackId ? match.blackId + ' (S)' : 'BYE'}</span>
+                          <span style={{ fontWeight: 600, flex: 1, textAlign: 'left' }}>{match.blackId ? getPlayerName(match.blackId) + ' (S)' : 'BYE'}</span>
                         </div>
                       ))}
                     </div>

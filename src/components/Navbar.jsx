@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 // Paylaştığınız logoyu temsil eden özgün SVG Logo Bileşeni
 export function Logo() {
@@ -35,6 +35,11 @@ export function Logo() {
 
 export default function Navbar({ currentPage, setCurrentPage, currentUser, onLogout }) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
+
+  useEffect(() => {
+    setAvatarError(false);
+  }, [currentUser?.avatar]);
 
   const mainLinks = [
     { id: 'home', label: 'Ana Sayfa' },
@@ -110,7 +115,7 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
           <button
             onClick={() => setIsDrawerOpen(!isDrawerOpen)}
             style={{
-              background: currentUser?.avatar ? 'transparent' : 'rgba(0,0,0,0.05)',
+              background: (currentUser?.avatar && !avatarError) ? 'transparent' : 'rgba(0,0,0,0.05)',
               border: '1px solid var(--panel-border)',
               borderRadius: '50%',
               width: '42px',
@@ -120,7 +125,7 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
               justifyContent: 'center',
               cursor: 'pointer',
               color: 'var(--text-primary)',
-              fontSize: currentUser?.avatar ? 'inherit' : '18px',
+              fontSize: (currentUser?.avatar && !avatarError) ? 'inherit' : '18px',
               fontWeight: 700,
               transition: 'border-color 0.2s',
               padding: 0,
@@ -128,10 +133,15 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
             }}
           >
             {currentUser ? (
-              currentUser.avatar ? (
-                <img src={currentUser.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              (currentUser.avatar && !avatarError) ? (
+                <img 
+                  src={currentUser.avatar} 
+                  alt="" 
+                  onError={() => setAvatarError(true)} 
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                />
               ) : (
-                currentUser.name.charAt(0).toUpperCase()
+                currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'
               )
             ) : (
               '👤'
@@ -200,7 +210,7 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
                         width: '36px',
                         height: '36px',
                         borderRadius: '50%',
-                        background: currentUser.avatar ? 'transparent' : 'var(--gradient-gold)',
+                        background: (currentUser.avatar && !avatarError) ? 'transparent' : 'var(--gradient-gold)',
                         color: '#fff',
                         display: 'flex',
                         alignItems: 'center',
@@ -210,10 +220,15 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
                         overflow: 'hidden',
                         border: '1px solid rgba(0,0,0,0.08)'
                       }}>
-                        {currentUser.avatar ? (
-                          <img src={currentUser.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        {currentUser.avatar && !avatarError ? (
+                          <img 
+                            src={currentUser.avatar} 
+                            alt="" 
+                            onError={() => setAvatarError(true)} 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                          />
                         ) : (
-                          currentUser.name.charAt(0).toUpperCase()
+                          currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'
                         )}
                       </div>
                       <div style={{ overflow: 'hidden' }}>

@@ -426,6 +426,7 @@ module.exports = {
     const tournament = db.tournaments.find(t => t.id === parseInt(tournamentId));
     if (!tournament) return { error: "Turnuva bulunamadı." };
     if (tournament.status === 'cancelled') return { error: "Bu turnuva iptal edilmiştir, kayıt yapılamaz." };
+    if (tournament.status === 'completed') return { error: "Bu turnuva tamamlanmıştır, yeni kayıt kabul edilmemektedir." };
 
     const alreadyRegistered = db.registrations.some(r => r.tournamentId === parseInt(tournamentId) && String(r.userId) === String(userId));
     if (alreadyRegistered) return { error: "Bu turnuvaya zaten kayıtlısınız." };
@@ -467,6 +468,7 @@ module.exports = {
     const tournament = db.tournaments.find(t => t.id === parseInt(tournamentId));
     if (!tournament) return { error: "Turnuva bulunamadı." };
     if (tournament.status === 'cancelled') return { error: "Bu turnuva iptal edilmiştir, kayıt yapılamaz." };
+    if (tournament.status === 'completed') return { error: "Bu turnuva tamamlanmıştır, misafir eklenemez." };
 
     const currentRegs = db.registrations.filter(r => r.tournamentId === parseInt(tournamentId)).length;
     if (currentRegs >= tournament.maxQuota) return { error: "Kontenjan dolu." };
@@ -503,6 +505,18 @@ module.exports = {
 
   cancelTournamentRegistration: (tournamentId, userId) => {
     const db = readDB();
+    const tournament = db.tournaments.find(t => t.id === parseInt(tournamentId));
+    if (tournament) {
+      const isFinished = tournament.status === 'completed' || 
+        tournament.status === 'cancelled' ||
+        (tournament.champion && tournament.champion !== 'Bekleniyor...') ||
+        (tournament.rounds && tournament.rounds.length >= tournament.totalRounds && tournament.rounds.length > 0 && !tournament.rounds[tournament.rounds.length - 1]?.pairings?.some(p => p.result === 'pending'));
+      
+      if (isFinished) {
+        return { error: "Tamamlanmış veya sona ermiş turnuvalarda kayıt iptal edilemez." };
+      }
+    }
+
     db.registrations = db.registrations.filter(r => !(r.tournamentId === parseInt(tournamentId) && String(r.userId) === String(userId)));
     db.stats.registeredPlayers = db.registrations.length;
     updateLeaderboards(db);
@@ -603,6 +617,48 @@ module.exports = {
         }
       }
     });
+
+    // Eğer son tur oynandıysa ve tüm maçların sonucu girildiyse, turnuvayı otomatik olarak tamamla ve şampiyonu belirle
+    const isLastRound = parseInt(roundNumber) >= tournament.totalRounds;
+    const allMatchesCompleted = round.pairings.every(p => p.result && p.result !== 'pending');
+    if (isLastRound && allMatchesCompleted) {
+      const registrations = db.registrations.filter(r => r.tournamentId === parseInt(tournamentId));
+      const players = registrations.map(r => {
+        const user = db.users.find(u => String(u.id) === String(r.userId));
+        if (user) return user;
+        return { id: r.userId, name: r.name || "Bilinmeyen Oyuncu", elo: 1500 };
+      }).filter(Boolean);
+
+      const standings = {};
+      players.forEach(p => { standings[p.id] = 0; });
+
+      tournament.rounds.forEach(r => {
+        r.pairings.forEach(p => {
+          if (p.result === 'white') standings[p.whiteId] = (standings[p.whiteId] || 0) + 1;
+          else if (p.result === 'black') standings[p.blackId] = (standings[p.blackId] || 0) + 1;
+          else if (p.result === 'draw') {
+            standings[p.whiteId] = (standings[p.whiteId] || 0) + 0.5;
+            standings[p.blackId] = (standings[p.blackId] || 0) + 0.5;
+          }
+        });
+      });
+
+      let winnerId = null;
+      let maxScore = -1;
+      Object.keys(standings).forEach(id => {
+        if (standings[id] > maxScore) {
+          maxScore = standings[id];
+          winnerId = id;
+        }
+      });
+
+      const winnerUser = db.users.find(u => String(u.id) === String(winnerId)) || players.find(p => String(p.id) === String(winnerId));
+      tournament.champion = winnerUser ? winnerUser.name : "Belirsiz";
+      tournament.status = "completed";
+
+      // Misafir hesapları temizle
+      db.users = db.users.filter(u => !u.isGuest);
+    }
 
     updateLeaderboards(db);
     writeDB(db);

@@ -225,6 +225,8 @@ export default function App() {
           <Database 
             leaders={data.leaders} 
             tournaments={data.tournaments} 
+            users={data.users}
+            registrations={data.registrations}
           />
         );
       case 'admin':

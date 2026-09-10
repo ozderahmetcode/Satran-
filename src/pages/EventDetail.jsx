@@ -80,23 +80,26 @@ export default function EventDetail({ tournaments, registrations, users = [], cu
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
           {tournaments.map((tour) => {
             const regs = getTournamentRegistrations(tour.id);
+            const isTourFinished = tour.status === 'completed' || 
+              (tour.champion && tour.champion !== 'Bekleniyor...') ||
+              (tour.rounds && tour.rounds.length >= tour.totalRounds && tour.rounds.length > 0 && !tour.rounds[tour.rounds.length - 1]?.pairings?.some(p => p.result === 'pending'));
 
             return (
               <div key={tour.id} className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '16px', justifyContent: 'space-between' }}>
                 <div>
                   <span style={{
-                    background: tour.status === 'active' 
-                      ? 'var(--accent-primary)' 
-                      : tour.status === 'cancelled' 
+                    background: tour.status === 'cancelled' 
                       ? '#ef4444' 
-                      : 'rgba(0,0,0,0.05)',
-                    color: tour.status === 'active' || tour.status === 'cancelled' ? '#fff' : 'var(--text-secondary)',
+                      : isTourFinished 
+                      ? 'rgba(0,0,0,0.05)'
+                      : 'var(--accent-primary)',
+                    color: tour.status === 'cancelled' || !isTourFinished ? '#fff' : 'var(--text-secondary)',
                     padding: '4px 8px',
                     borderRadius: '6px',
                     fontSize: '11px',
                     fontWeight: 700
                   }}>
-                    {tour.status === 'active' ? 'KAYITLAR AÇIK' : tour.status === 'cancelled' ? 'İPTAL EDİLDİ' : 'TAMAMLANDI'}
+                    {tour.status === 'cancelled' ? 'İPTAL EDİLDİ' : isTourFinished ? 'TAMAMLANDI' : 'KAYITLAR AÇIK'}
                   </span>
                   <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', marginTop: '12px', fontWeight: 700 }}>
                     {tour.title}
@@ -129,6 +132,10 @@ export default function EventDetail({ tournaments, registrations, users = [], cu
   const isRegistered = currentUser && regs.some(r => r.userId === currentUser.id);
   const isFull = regs.length >= tour.maxQuota;
 
+  const isFinished = tour.status === 'completed' || 
+    (tour.champion && tour.champion !== 'Bekleniyor...') ||
+    (tour.rounds && tour.rounds.length >= tour.totalRounds && tour.rounds.length > 0 && !tour.rounds[tour.rounds.length - 1]?.pairings?.some(p => p.result === 'pending'));
+
   return (
     <div className="animate-fade-in" style={{ padding: '40px 0', display: 'flex', flexDirection: 'column', gap: '32px' }}>
       <button onClick={() => { setSelectedTournamentId(null); setErrorMsg(''); }} className="btn-secondary" style={{ alignSelf: 'flex-start', padding: '8px 16px', fontSize: '13px' }}>
@@ -140,8 +147,15 @@ export default function EventDetail({ tournaments, registrations, users = [], cu
         padding: '36px',
         position: 'relative'
       }}>
-        <span style={{ background: 'var(--gradient-gold)', color: '#fff', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 700 }}>
-          ETKİNLİK DETAYLARI
+        <span style={{ 
+          background: tour.status === 'cancelled' ? '#ef4444' : isFinished ? 'rgba(0,0,0,0.06)' : 'var(--gradient-gold)', 
+          color: tour.status === 'cancelled' || !isFinished ? '#fff' : 'var(--text-secondary)', 
+          padding: '4px 10px', 
+          borderRadius: '6px', 
+          fontSize: '12px', 
+          fontWeight: 700 
+        }}>
+          {tour.status === 'cancelled' ? 'İPTAL EDİLDİ' : isFinished ? '🏁 ETKİNLİK TAMAMLANDI' : 'ETKİNLİK DETAYLARI'}
         </span>
         <h1 style={{ fontFamily: 'var(--font-title)', fontSize: '32px', fontWeight: 800, marginTop: '16px' }}>
           {tour.title}
@@ -199,6 +213,53 @@ export default function EventDetail({ tournaments, registrations, users = [], cu
                 <p style={{ fontWeight: 700, margin: 0 }}>🚫 Bu etkinlik organizatör tarafından iptal edilmiştir.</p>
                 <p style={{ fontSize: '13px', margin: '6px 0 0 0', color: 'var(--text-secondary)' }}>Yeni kayıt alınmamaktadır.</p>
               </div>
+            ) : isFinished ? (
+              isRegistered ? (
+                <div style={{
+                  padding: '24px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%)',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  color: 'var(--text-primary)'
+                }}>
+                  <div style={{ fontSize: '32px', marginBottom: '8px' }}>🏁🏆</div>
+                  <p style={{ fontWeight: 800, fontSize: '17px', color: 'var(--accent-primary)', margin: 0 }}>
+                    Bu Etkinlik & Turnuva Tamamlandı
+                  </p>
+                  <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginTop: '8px', marginBottom: '4px' }}>
+                    ✓ Bu turnuvaya katıldınız.
+                  </p>
+                  {tour.champion && tour.champion !== 'Bekleniyor...' && (
+                    <p style={{ fontSize: '14px', fontWeight: 700, margin: '8px 0 0 0', color: 'var(--text-secondary)' }}>
+                      Şampiyon: <strong style={{ color: 'var(--accent-secondary)' }}>{tour.champion}</strong> ♟️
+                    </p>
+                  )}
+                  <p style={{ fontSize: '13px', margin: '10px 0 0 0', color: 'var(--text-secondary)' }}>
+                    Etkinlik ve maçlar sona erdiği için kayıt iptali veya yeni kayıt yapılamaz. Nihai sıralama ve maç sonuçlarını İstatistikler & Arşiv sayfasından inceleyebilirsiniz.
+                  </p>
+                </div>
+              ) : (
+                <div style={{
+                  padding: '24px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(217, 119, 6, 0.05) 100%)',
+                  border: '1px solid rgba(245, 158, 11, 0.3)',
+                  color: 'var(--text-primary)'
+                }}>
+                  <div style={{ fontSize: '32px', marginBottom: '8px' }}>🏁🏆</div>
+                  <p style={{ fontWeight: 800, fontSize: '17px', color: 'var(--accent-secondary)', margin: 0 }}>
+                    Bu Etkinlik & Turnuva Tamamlandı!
+                  </p>
+                  {tour.champion && tour.champion !== 'Bekleniyor...' && (
+                    <p style={{ fontSize: '14px', fontWeight: 700, margin: '8px 0 0 0', color: 'var(--text-primary)' }}>
+                      Şampiyon: <strong>{tour.champion}</strong> ♟️
+                    </p>
+                  )}
+                  <p style={{ fontSize: '13px', margin: '8px 0 0 0', color: 'var(--text-secondary)' }}>
+                    Etkinlik ve turnuva sona erdiği için yeni katılım kabul edilmemektedir. Sıralamayı ve fikstürü Arşiv sayfasından inceleyebilirsiniz.
+                  </p>
+                </div>
+              )
             ) : !currentUser ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>

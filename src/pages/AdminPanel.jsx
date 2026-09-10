@@ -171,6 +171,7 @@ export default function AdminPanel({
   // Eşleştirme Yönetimi Seçili Turnuva
   const [selectedTourId, setSelectedTourId] = useState(null);
   const [roundResults, setRoundResults] = useState({}); // { [matchKey]: result }
+  const [swissViewTab, setSwissViewTab] = useState('pairings'); // pairings | standings
 
   // Cafe Manuel Misafir Ekleme State'i
   const [guestName, setGuestName] = useState('');
@@ -1678,6 +1679,174 @@ export default function AdminPanel({
               const roundsCount = currentTour.rounds?.length || 0;
               const activeRound = currentTour.rounds?.[roundsCount - 1];
               const isRoundPending = activeRound?.pairings?.some(p => p.result === 'pending');
+              const isCompleted = currentTour.status === 'completed';
+
+              const calculateTourStandings = (tour) => {
+                if (!tour) return [];
+                const playersMap = {};
+
+                const tourRegs = registrations?.filter(r => r.tournamentId === tour.id) || [];
+                tourRegs.forEach(r => {
+                  const u = users.find(user => String(user.id) === String(r.userId));
+                  const displayName = r.name || u?.name || u?.chessUsername || u?.username || r.userId;
+                  const elo = u?.elo || 1500;
+                  playersMap[r.userId] = {
+                    id: r.userId,
+                    name: displayName,
+                    elo: elo,
+                    points: 0,
+                    wins: 0,
+                    draws: 0,
+                    losses: 0,
+                    opponents: [],
+                    bh: 0
+                  };
+                });
+
+                tour.rounds?.forEach(r => {
+                  r.pairings?.forEach(p => {
+                    [p.whiteId, p.blackId].forEach(id => {
+                      if (!id) return;
+                      if (!playersMap[id]) {
+                        const u = users.find(user => String(user.id) === String(id));
+                        const reg = tourRegs.find(regItem => String(regItem.userId) === String(id));
+                        const displayName = reg?.name || u?.name || u?.chessUsername || u?.username || id;
+                        playersMap[id] = {
+                          id: id,
+                          name: displayName,
+                          elo: u?.elo || 1500,
+                          points: 0,
+                          wins: 0,
+                          draws: 0,
+                          losses: 0,
+                          opponents: [],
+                          bh: 0
+                        };
+                      }
+                    });
+
+                    if (p.result === 'white' && p.whiteId) {
+                      if (playersMap[p.whiteId]) {
+                        playersMap[p.whiteId].points += 1;
+                        playersMap[p.whiteId].wins += 1;
+                      }
+                      if (p.blackId && playersMap[p.blackId]) playersMap[p.blackId].losses += 1;
+                    } else if (p.result === 'black') {
+                      if (p.blackId && playersMap[p.blackId]) {
+                        playersMap[p.blackId].points += 1;
+                        playersMap[p.blackId].wins += 1;
+                      }
+                      if (p.whiteId && playersMap[p.whiteId]) playersMap[p.whiteId].losses += 1;
+                    } else if (p.result === 'draw') {
+                      if (p.whiteId && playersMap[p.whiteId]) {
+                        playersMap[p.whiteId].points += 0.5;
+                        playersMap[p.whiteId].draws += 1;
+                      }
+                      if (p.blackId && playersMap[p.blackId]) {
+                        playersMap[p.blackId].points += 0.5;
+                        playersMap[p.blackId].draws += 1;
+                      }
+                    }
+
+                    if (p.whiteId && p.blackId) {
+                      if (playersMap[p.whiteId]) playersMap[p.whiteId].opponents.push(p.blackId);
+                      if (playersMap[p.blackId]) playersMap[p.blackId].opponents.push(p.whiteId);
+                    }
+                  });
+                });
+
+                const standings = Object.values(playersMap);
+                standings.forEach(p => {
+                  let bh = 0;
+                  p.opponents.forEach(oppId => {
+                    if (playersMap[oppId]) bh += playersMap[oppId].points;
+                  });
+                  p.bh = bh;
+                });
+
+                standings.sort((a, b) => {
+                  if (b.points !== a.points) return b.points - a.points;
+                  if (b.bh !== a.bh) return b.bh - a.bh;
+                  return (b.elo || 0) - (a.elo || 0);
+                });
+
+                return standings;
+              };
+
+              const tourStandings = calculateTourStandings(currentTour);
+
+              const renderStandingsTable = (title) => (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                    <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 800, margin: 0 }}>
+                      {title}
+                    </h3>
+                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                      Toplam {tourStandings.length} Oyuncu Sıralandı
+                    </span>
+                  </div>
+
+                  <div className="glass-panel" style={{ padding: 0, overflowX: 'auto', border: '1px solid var(--panel-border)' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                      <thead>
+                        <tr style={{ background: 'rgba(0,0,0,0.03)', borderBottom: '1px solid var(--panel-border)', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                          <th style={{ padding: '14px 16px', fontWeight: 700 }}>Derece</th>
+                          <th style={{ padding: '14px 16px', fontWeight: 700 }}>Oyuncu (Ad Soyad)</th>
+                          <th style={{ padding: '14px 16px', fontWeight: 700 }}>Rating</th>
+                          <th style={{ padding: '14px 16px', fontWeight: 700 }}>Toplam Puan</th>
+                          <th style={{ padding: '14px 16px', fontWeight: 700 }}>BH (Buchholz)</th>
+                          <th style={{ padding: '14px 16px', fontWeight: 700 }}>G / B / M</th>
+                          <th style={{ padding: '14px 16px', fontWeight: 700 }}>Durum</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {tourStandings.length === 0 ? (
+                          <tr><td colSpan="7" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>Henüz maç oynanmadı veya kayıt bulunmuyor.</td></tr>
+                        ) : (
+                          tourStandings.map((p, idx) => {
+                            const isFirst = idx === 0;
+                            const isLast = idx === tourStandings.length - 1 && tourStandings.length > 1;
+                            return (
+                              <tr key={p.id || idx} style={{
+                                borderBottom: '1px solid var(--panel-border)',
+                                background: isFirst ? 'rgba(245, 158, 11, 0.12)' : isLast ? 'rgba(239, 68, 68, 0.04)' : idx % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.01)'
+                              }}>
+                                <td style={{ padding: '14px 16px', fontWeight: 800 }}>
+                                  {idx === 0 ? '🥇 1.' : idx === 1 ? '🥈 2.' : idx === 2 ? '🥉 3.' : `${idx + 1}.`}
+                                </td>
+                                <td style={{ padding: '14px 16px', fontWeight: 700, color: isFirst ? 'var(--accent-secondary)' : 'inherit' }}>
+                                  {p.name}
+                                </td>
+                                <td style={{ padding: '14px 16px', color: 'var(--text-secondary)' }}>{p.elo}</td>
+                                <td style={{ padding: '14px 16px', fontWeight: 800, color: 'var(--accent-primary)', fontSize: '15px' }}>{p.points}</td>
+                                <td style={{ padding: '14px 16px', color: 'var(--text-secondary)' }}>{p.bh}</td>
+                                <td style={{ padding: '14px 16px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                                  <span style={{ color: '#10b981', fontWeight: 600 }}>{p.wins}G</span> - <span style={{ color: '#f59e0b', fontWeight: 600 }}>{p.draws}B</span> - <span style={{ color: '#ef4444', fontWeight: 600 }}>{p.losses}M</span>
+                                </td>
+                                <td style={{ padding: '14px 16px' }}>
+                                  {isFirst ? (
+                                    <span style={{ background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(217, 119, 6, 0.15))', color: '#d97706', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 800 }}>
+                                      🏆 1. (ŞAMPİYON)
+                                    </span>
+                                  ) : isLast ? (
+                                    <span style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 700 }}>
+                                      Sonuncu ({idx + 1}.)
+                                    </span>
+                                  ) : (
+                                    <span style={{ background: 'rgba(0,0,0,0.04)', color: 'var(--text-secondary)', padding: '3px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 600 }}>
+                                      {idx + 1}. Sıra
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
 
               return (
                 <div className="glass-panel animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
@@ -1687,192 +1856,306 @@ export default function AdminPanel({
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
                     <div>
-                      <h2 style={{ fontWeight: 800 }}>{currentTour.title}</h2>
-                      <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <h2 style={{ fontWeight: 800, margin: 0 }}>{currentTour.title}</h2>
+                        {isCompleted ? (
+                          <span style={{ background: 'var(--gradient-gold)', color: '#fff', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 700 }}>
+                            🏆 TAMAMLANDI
+                          </span>
+                        ) : (
+                          <span style={{ background: 'var(--accent-primary)', color: '#fff', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 700 }}>
+                            🟢 DEVAM EDİYOR
+                          </span>
+                        )}
+                      </div>
+                      <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '6px' }}>
                         Toplam Tur: {currentTour.totalRounds} • Mevcut Tur: {roundsCount} / {currentTour.totalRounds} • Katılımcı: {registrations.filter(r => r.tournamentId === currentTour.id).length} Kişi
                       </p>
                     </div>
                   </div>
 
-                  {/* Cafeden Manuel / Misafir Katılımcı Ekleme Alanı */}
-                  <div style={{
-                    background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(217, 119, 6, 0.03) 100%)',
-                    border: '1px solid rgba(245, 158, 11, 0.25)',
-                    borderRadius: '12px',
-                    padding: '20px'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                      <span style={{ fontSize: '20px' }}>☕</span>
-                      <h4 style={{ fontWeight: 700, fontSize: '16px', color: '#f59e0b', margin: 0 }}>
-                        Cafeden Manuel Oyuncu / Misafir Ekle
-                      </h4>
-                      <span style={{ fontSize: '11px', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
-                        Geçici Turnuva Katılımı
-                      </span>
-                    </div>
-                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-                      Kafede olup siteye üye olmadan turnuvaya katılmak isteyen oyuncuları anında ekleyebilirsiniz. Maç sonuçları katılımcıların ELO'sunu normal etkiler; turnuva bittiğinde misafir hesaplar otomatik temizlenir.
-                    </p>
-                    
-                    <form onSubmit={(e) => handleAddGuestParticipant(e, currentTour.id)} style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                      <div style={{ flex: '2', minWidth: '200px' }}>
-                        <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-                          Oyuncu Adı Soyadı *
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="Örn: Ahmet Can"
-                          value={guestName}
-                          onChange={(e) => setGuestName(e.target.value)}
-                          style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px 12px', color: 'var(--text-primary)', outline: 'none', fontSize: '13px' }}
-                        />
+                  {/* Tamamlanmış Turnuva Görünümü: Şampiyon Kartı ve Sıralama Tablosu */}
+                  {isCompleted ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+                      <div style={{
+                        background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.08) 100%)',
+                        border: '1px solid rgba(245, 158, 11, 0.35)',
+                        borderRadius: '16px',
+                        padding: '28px',
+                        textAlign: 'center'
+                      }}>
+                        <div style={{ fontSize: '48px', marginBottom: '8px' }}>🏆</div>
+                        <h3 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--accent-secondary)', margin: 0 }}>
+                          Turnuva Başarıyla Tamamlandı!
+                        </h3>
+                        <p style={{ fontSize: '18px', fontWeight: 800, marginTop: '10px', color: 'var(--text-primary)' }}>
+                          Şampiyon: <span style={{ color: 'var(--accent-primary)' }}>{currentTour.champion}</span> 🥇
+                        </p>
+                        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '6px', margin: 0 }}>
+                          Tüm turlar oynandı, puanlar hesaplandı ve etkinlik resmen sonlandı.
+                        </p>
                       </div>
-                      <div style={{ flex: '1', minWidth: '130px' }}>
-                        <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-                          Başlangıç ELO
-                        </label>
-                        <input
-                          type="number"
-                          placeholder="1500"
-                          value={guestElo}
-                          onChange={(e) => setGuestElo(e.target.value)}
-                          style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px 12px', color: 'var(--text-primary)', outline: 'none', fontSize: '13px' }}
-                        />
-                      </div>
-                      <div>
-                        <button
-                          type="submit"
-                          disabled={guestLoading}
-                          className="btn-primary"
-                          style={{
-                            padding: '10px 20px',
-                            fontSize: '13px',
-                            background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                            border: 'none',
-                            cursor: guestLoading ? 'not-allowed' : 'pointer'
-                          }}
-                        >
-                          {guestLoading ? 'Ekleniyor...' : '+ Misafiri Turnuvaya Ekle'}
-                        </button>
-                      </div>
-                    </form>
 
-                    {/* Turnuvaya Kayıtlı Oyuncu Listesi Özeti */}
-                    <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px dashed rgba(245, 158, 11, 0.2)' }}>
-                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 }}>Mevcut Katılımcılar ({registrations.filter(r => r.tournamentId === currentTour.id).length}): </span>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
-                        {registrations.filter(r => r.tournamentId === currentTour.id).map((r, i) => {
-                          const u = users.find(user => user.id === r.userId);
-                          const isGuest = u?.isGuest || r.isGuest || r.name?.includes('(Misafir)');
-                          return (
-                            <span key={i} style={{
-                              fontSize: '12px',
-                              padding: '3px 8px',
-                              borderRadius: '6px',
-                              background: isGuest ? 'rgba(245, 158, 11, 0.15)' : 'rgba(255,255,255,0.06)',
-                              color: isGuest ? '#f59e0b' : 'var(--text-primary)',
-                              border: isGuest ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid var(--panel-border)',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px'
-                            }}>
-                              {isGuest ? '☕' : '👤'} {r.name || u?.name} ({u?.elo || 1500})
-                            </span>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
+                      {/* 1. den Sonuncuya Sıralama Tablosu */}
+                      {renderStandingsTable('🏁 Turnuva Nihai Sıralaması (Kim Birinci, Kim Sonuncu)')}
 
-                  {/* Round Pairing Control */}
-                  {roundsCount === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '32px' }}>
-                      <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>Turnuva henüz başlatılmadı. Cafeden gelen misafirleri ekledikten sonra 1. Tur eşleştirmelerini başlatabilirsiniz.</p>
-                      <button onClick={() => handleGeneratePairings(currentTour.id)} className="btn-primary">
-                        1. Tur Eşleştirmelerini Oluştur
-                      </button>
-                    </div>
-                  ) : (
-                    <div>
-                      <h3 style={{ borderBottom: '1px solid var(--panel-border)', paddingBottom: '12px', marginBottom: '20px' }}>
-                        Tur #{roundsCount} Eşleştirmeleri
-                      </h3>
-
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        {activeRound.pairings.map((pairing, idx) => {
-                          const wUser = users.find(u => u.id === pairing.whiteId) || { name: 'Bay (Boşta)' };
-                          const bUser = users.find(u => u.id === pairing.blackId) || { name: 'Bay (Boşta)' };
-                          const matchKey = `${pairing.whiteId}-${pairing.blackId}`;
-
-                          return (
-                            <div key={idx} style={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'center',
-                              background: 'rgba(255,255,255,0.02)',
-                              padding: '16px 20px',
-                              borderRadius: '12px',
-                              border: '1px solid var(--panel-border)',
-                              flexWrap: 'wrap',
-                              gap: '12px'
-                            }}>
-                              <div style={{ display: 'flex', gap: '20px', alignItems: 'center', flex: 1 }}>
-                                <div style={{ width: '45%' }}>
-                                  <strong style={{ color: 'var(--text-primary)' }}>⚪ Beyaz:</strong> {wUser.name} <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>({wUser.elo || 1500} ELO)</span>
-                                </div>
-                                <div style={{ fontSize: '18px' }}>vs</div>
-                                <div style={{ width: '45%' }}>
-                                  <strong style={{ color: 'var(--text-secondary)' }}>⚫ Siyah:</strong> {bUser.name} <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>({bUser.elo || 1500} ELO)</span>
+                      {/* Geçmiş Tur Eşleşmelerini İnceleme */}
+                      {roundsCount > 0 && (
+                        <div style={{ borderTop: '1px solid var(--panel-border)', paddingTop: '24px' }}>
+                          <h4 style={{ fontFamily: 'var(--font-title)', fontWeight: 700, marginBottom: '16px', color: 'var(--text-secondary)' }}>
+                            📋 Oynanan Turlar ve Maç Sonuçları
+                          </h4>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                            {currentTour.rounds.map((round, rIdx) => (
+                              <div key={rIdx} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--panel-border)', borderRadius: '10px', padding: '16px' }}>
+                                <strong style={{ display: 'block', marginBottom: '12px', color: 'var(--accent-secondary)' }}>Tur {round.roundNumber}</strong>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                  {round.pairings?.map((match, mIdx) => {
+                                    const wU = users.find(u => u.id === match.whiteId) || registrations.find(r => r.userId === match.whiteId) || { name: match.whiteId };
+                                    const bU = users.find(u => u.id === match.blackId) || registrations.find(r => r.userId === match.blackId) || { name: match.blackId };
+                                    return (
+                                      <div key={mIdx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-color)', padding: '10px 14px', borderRadius: '6px', fontSize: '13px' }}>
+                                        <span style={{ fontWeight: 600, flex: 1, textAlign: 'right' }}>⚪ {wU.name}</span>
+                                        <span style={{ margin: '0 16px', padding: '3px 10px', background: 'rgba(0,0,0,0.05)', borderRadius: '8px', fontWeight: 800 }}>
+                                          {match.result === 'white' ? '1 - 0' : match.result === 'black' ? '0 - 1' : match.result === 'draw' ? '½ - ½' : 'vs'}
+                                        </span>
+                                        <span style={{ fontWeight: 600, flex: 1, textAlign: 'left' }}>⚫ {match.blackId ? bU.name : 'Bay (Boşta)'}</span>
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    /* Aktif Turnuva Görünümü */
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                      {/* Navigasyon Sekmesi: Eşleştirmeler vs Canlı Sıralama */}
+                      <div style={{ display: 'flex', borderBottom: '1px solid var(--panel-border)' }}>
+                        <button
+                          onClick={() => setSwissViewTab('pairings')}
+                          style={{
+                            flex: 1,
+                            padding: '14px',
+                            background: swissViewTab === 'pairings' ? 'rgba(0,0,0,0.04)' : 'transparent',
+                            border: 'none',
+                            borderBottom: swissViewTab === 'pairings' ? '2px solid var(--accent-primary)' : 'none',
+                            color: swissViewTab === 'pairings' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                            fontWeight: 700,
+                            fontFamily: 'var(--font-title)',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          ♟️ {roundsCount === 0 ? 'Turnuvayı Başlat' : `Tur #${roundsCount} Eşleştirmeleri`}
+                        </button>
+                        <button
+                          onClick={() => setSwissViewTab('standings')}
+                          style={{
+                            flex: 1,
+                            padding: '14px',
+                            background: swissViewTab === 'standings' ? 'rgba(0,0,0,0.04)' : 'transparent',
+                            border: 'none',
+                            borderBottom: swissViewTab === 'standings' ? '2px solid var(--accent-primary)' : 'none',
+                            color: swissViewTab === 'standings' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                            fontWeight: 700,
+                            fontFamily: 'var(--font-title)',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          📊 Canlı Sıralama & Puan Durumu ({tourStandings.length})
+                        </button>
+                      </div>
 
-                              {pairing.blackId === null ? (
-                                <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: 'var(--accent-primary)', padding: '6px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: 600 }}>Bay Geçti (1 Puan)</span>
-                              ) : (
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                  {[
-                                    { id: 'white', label: 'Beyaz Kazandı' },
-                                    { id: 'draw', label: 'Berabere' },
-                                    { id: 'black', label: 'Siyah Kazandı' }
-                                  ].map(btn => (
-                                    <button
-                                      key={btn.id}
-                                      onClick={() => setRoundResults({ ...roundResults, [matchKey]: btn.id })}
-                                      className={(roundResults[matchKey] || pairing.result) === btn.id ? "btn-primary" : "btn-secondary"}
-                                      style={{ padding: '6px 12px', fontSize: '12px' }}
-                                    >
-                                      {btn.label}
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
+                      {swissViewTab === 'standings' ? (
+                        renderStandingsTable('📊 Güncel Puan Durumu ve Sıralama (1. den Sonuncuya)')
+                      ) : (
+                        <>
+                          {/* Cafeden Manuel / Misafir Katılımcı Ekleme Alanı */}
+                          <div style={{
+                            background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(217, 119, 6, 0.03) 100%)',
+                            border: '1px solid rgba(245, 158, 11, 0.25)',
+                            borderRadius: '12px',
+                            padding: '20px'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                              <span style={{ fontSize: '20px' }}>☕</span>
+                              <h4 style={{ fontWeight: 700, fontSize: '16px', color: '#f59e0b', margin: 0 }}>
+                                Cafeden Manuel Oyuncu / Misafir Ekle
+                              </h4>
+                              <span style={{ fontSize: '11px', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                                Geçici Turnuva Katılımı
+                              </span>
                             </div>
-                          );
-                        })}
-                      </div>
+                            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+                              Kafede olup siteye üye olmadan turnuvaya katılmak isteyen oyuncuları anında ekleyebilirsiniz. Maç sonuçları katılımcıların ELO'sunu normal etkiler; turnuva bittiğinde misafir hesaplar otomatik temizlenir.
+                            </p>
+                            
+                            <form onSubmit={(e) => handleAddGuestParticipant(e, currentTour.id)} style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                              <div style={{ flex: '2', minWidth: '200px' }}>
+                                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                                  Oyuncu Adı Soyadı *
+                                </label>
+                                <input
+                                  type="text"
+                                  required
+                                  placeholder="Örn: Ahmet Can"
+                                  value={guestName}
+                                  onChange={(e) => setGuestName(e.target.value)}
+                                  style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px 12px', color: 'var(--text-primary)', outline: 'none', fontSize: '13px' }}
+                                />
+                              </div>
+                              <div style={{ flex: '1', minWidth: '130px' }}>
+                                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                                  Başlangıç ELO
+                                </label>
+                                <input
+                                  type="number"
+                                  placeholder="1500"
+                                  value={guestElo}
+                                  onChange={(e) => setGuestElo(e.target.value)}
+                                  style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px 12px', color: 'var(--text-primary)', outline: 'none', fontSize: '13px' }}
+                                />
+                              </div>
+                              <div>
+                                <button
+                                  type="submit"
+                                  disabled={guestLoading}
+                                  className="btn-primary"
+                                  style={{
+                                    padding: '10px 20px',
+                                    fontSize: '13px',
+                                    background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                                    border: 'none',
+                                    cursor: guestLoading ? 'not-allowed' : 'pointer'
+                                  }}
+                                >
+                                  {guestLoading ? 'Ekleniyor...' : '+ Misafiri Turnuvaya Ekle'}
+                                </button>
+                              </div>
+                            </form>
 
-                      {/* Submit / Next Round Button */}
-                      <div style={{ marginTop: '32px', display: 'flex', gap: '16px' }}>
-                        {isRoundPending ? (
-                          <button
-                            onClick={() => handleSubmitResults(currentTour.id, roundsCount, activeRound.pairings)}
-                            className="btn-primary"
-                          >
-                            Tur Sonuçlarını Onayla ve ELO Hesapla
-                          </button>
-                        ) : (
-                          currentTour.status === 'active' && (
-                            <button
-                              onClick={() => handleGeneratePairings(currentTour.id)}
-                              className="btn-primary"
-                              style={{ background: 'var(--gradient-gold)' }}
-                            >
-                              {roundsCount === currentTour.totalRounds ? "Turnuvayı Kapat ve Şampiyonu Belirle" : `${roundsCount + 1}. Tur Eşleştirmelerini Oluştur`}
-                            </button>
-                          )
-                        )}
-                      </div>
+                            {/* Turnuvaya Kayıtlı Oyuncu Listesi Özeti */}
+                            <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px dashed rgba(245, 158, 11, 0.2)' }}>
+                              <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 }}>Mevcut Katılımcılar ({registrations.filter(r => r.tournamentId === currentTour.id).length}): </span>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
+                                {registrations.filter(r => r.tournamentId === currentTour.id).map((r, i) => {
+                                  const u = users.find(user => user.id === r.userId);
+                                  const isGuest = u?.isGuest || r.isGuest || r.name?.includes('(Misafir)');
+                                  return (
+                                    <span key={i} style={{
+                                      fontSize: '12px',
+                                      padding: '3px 8px',
+                                      borderRadius: '6px',
+                                      background: isGuest ? 'rgba(245, 158, 11, 0.15)' : 'rgba(255,255,255,0.06)',
+                                      color: isGuest ? '#f59e0b' : 'var(--text-primary)',
+                                      border: isGuest ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid var(--panel-border)',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px'
+                                    }}>
+                                      {isGuest ? '☕' : '👤'} {r.name || u?.name} ({u?.elo || 1500})
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Round Pairing Control */}
+                          {roundsCount === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '32px' }}>
+                              <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>Turnuva henüz başlatılmadı. Cafeden gelen misafirleri ekledikten sonra 1. Tur eşleştirmelerini başlatabilirsiniz.</p>
+                              <button onClick={() => handleGeneratePairings(currentTour.id)} className="btn-primary">
+                                1. Tur Eşleştirmelerini Oluştur
+                              </button>
+                            </div>
+                          ) : (
+                            <div>
+                              <h3 style={{ borderBottom: '1px solid var(--panel-border)', paddingBottom: '12px', marginBottom: '20px' }}>
+                                Tur #{roundsCount} Eşleştirmeleri
+                              </h3>
+
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                {activeRound.pairings.map((pairing, idx) => {
+                                  const wUser = users.find(u => u.id === pairing.whiteId) || registrations.find(r => r.userId === pairing.whiteId) || { name: 'Bay (Boşta)' };
+                                  const bUser = users.find(u => u.id === pairing.blackId) || registrations.find(r => r.userId === pairing.blackId) || { name: 'Bay (Boşta)' };
+                                  const matchKey = `${pairing.whiteId}-${pairing.blackId}`;
+
+                                  return (
+                                    <div key={idx} style={{
+                                      display: 'flex',
+                                      justifyContent: 'space-between',
+                                      alignItems: 'center',
+                                      background: 'rgba(255,255,255,0.02)',
+                                      padding: '16px 20px',
+                                      borderRadius: '12px',
+                                      border: '1px solid var(--panel-border)',
+                                      flexWrap: 'wrap',
+                                      gap: '12px'
+                                    }}>
+                                      <div style={{ display: 'flex', gap: '20px', alignItems: 'center', flex: 1 }}>
+                                        <div style={{ width: '45%' }}>
+                                          <strong style={{ color: 'var(--text-primary)' }}>⚪ Beyaz:</strong> {wUser.name} <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>({wUser.elo || 1500} ELO)</span>
+                                        </div>
+                                        <div style={{ fontSize: '18px' }}>vs</div>
+                                        <div style={{ width: '45%' }}>
+                                          <strong style={{ color: 'var(--text-secondary)' }}>⚫ Siyah:</strong> {bUser.name} <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>({bUser.elo || 1500} ELO)</span>
+                                        </div>
+                                      </div>
+
+                                      {pairing.blackId === null ? (
+                                        <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: 'var(--accent-primary)', padding: '6px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: 600 }}>Bay Geçti (1 Puan)</span>
+                                      ) : (
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                          {[
+                                            { id: 'white', label: 'Beyaz Kazandı' },
+                                            { id: 'draw', label: 'Berabere' },
+                                            { id: 'black', label: 'Siyah Kazandı' }
+                                          ].map(btn => (
+                                            <button
+                                              key={btn.id}
+                                              onClick={() => setRoundResults({ ...roundResults, [matchKey]: btn.id })}
+                                              className={(roundResults[matchKey] || pairing.result) === btn.id ? "btn-primary" : "btn-secondary"}
+                                              style={{ padding: '6px 12px', fontSize: '12px' }}
+                                            >
+                                              {btn.label}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+
+                              {/* Submit / Next Round Button */}
+                              <div style={{ marginTop: '32px', display: 'flex', gap: '16px' }}>
+                                {isRoundPending ? (
+                                  <button
+                                    onClick={() => handleSubmitResults(currentTour.id, roundsCount, activeRound.pairings)}
+                                    className="btn-primary"
+                                  >
+                                    Tur Sonuçlarını Onayla ve ELO Hesapla
+                                  </button>
+                                ) : (
+                                  currentTour.status === 'active' && (
+                                    <button
+                                      onClick={() => handleGeneratePairings(currentTour.id)}
+                                      className="btn-primary"
+                                      style={{ background: 'var(--gradient-gold)' }}
+                                    >
+                                      {roundsCount === currentTour.totalRounds ? "🏆 Turnuvayı Kapat ve Şampiyonu Belirle" : `${roundsCount + 1}. Tur Eşleştirmelerini Oluştur`}
+                                    </button>
+                                  )
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
                     </div>
                   )}
                 </div>

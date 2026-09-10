@@ -614,7 +614,12 @@ export default function Matchmaking({
                       boxShadow: '0 6px 16px rgba(0,0,0,0.08)'
                     }}>
                       {p.avatar ? (
-                        <img src={p.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <img 
+                          src={p.avatar} 
+                          alt="" 
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }} 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                        />
                       ) : (
                         p.name.charAt(0).toUpperCase()
                       )}

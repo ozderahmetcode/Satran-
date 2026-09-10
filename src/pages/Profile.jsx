@@ -11,6 +11,7 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
     avatarUrl: currentUser?.avatar || ''
   });
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
 
   // Password change states
@@ -30,12 +31,14 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
     if (currentUser) {
       setProfileData({
         name: currentUser.name || '',
+        email: currentUser.email || '',
         phone: currentUser.phone || '',
-        chessPlatform: currentUser.chessPlatform || 'chess.com',
+        chessPlatform: currentUser.chessPlatform || 'lichess',
         chessUsername: currentUser.chessUsername || '',
         bio: currentUser.bio || 'Satranç tutkunu. OZDER etkinliklerine katılıyor.',
         avatarUrl: currentUser.avatar || ''
       });
+      setAvatarError(false);
     }
   }, [currentUser]);
 
@@ -337,7 +340,7 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
             width: '100px',
             height: '100px',
             borderRadius: '50%',
-            background: (profileData.avatarUrl || currentUser.avatar) ? 'transparent' : 'var(--gradient-gold)',
+            background: ((profileData.avatarUrl || currentUser.avatar) && !avatarError) ? 'transparent' : 'var(--gradient-gold)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -346,17 +349,18 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
             color: '#fff',
             boxShadow: '0 4px 20px rgba(217, 119, 6, 0.2)',
             overflow: 'hidden',
-            border: (profileData.avatarUrl || currentUser.avatar) ? '2px solid var(--accent-primary)' : 'none',
+            border: ((profileData.avatarUrl || currentUser.avatar) && !avatarError) ? '2px solid var(--accent-primary)' : 'none',
             position: 'relative'
           }}>
-            {(profileData.avatarUrl || currentUser.avatar) ? (
+            {((profileData.avatarUrl || currentUser.avatar) && !avatarError) ? (
               <img 
                 src={profileData.avatarUrl || currentUser.avatar} 
-                alt="Avatar" 
+                alt="" 
+                onError={() => setAvatarError(true)}
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
               />
             ) : (
-              currentUser.name.charAt(0).toUpperCase()
+              currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'
             )}
 
             {/* Yükleme veya Üzerine Gelme Efekti */}
