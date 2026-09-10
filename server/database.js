@@ -123,6 +123,7 @@ function readDB() {
       if (!parsed.analytics.monthly) parsed.analytics.monthly = {};
       if (!parsed.analytics.yearly) parsed.analytics.yearly = {};
     }
+    updateLeaderboards(parsed);
     if (changed) {
       fs.writeFileSync(DB_FILE, JSON.stringify(parsed, null, 2), 'utf-8');
     }
@@ -152,42 +153,177 @@ function calculateEloChange(ratingA, ratingB, scoreA) {
 }
 
 function updateLeaderboards(db) {
-  // Yalnızca turnuvalara katılmış ve maç yapmış oyuncuları filtrele
-  const activeUsers = db.users.filter(u => {
-    return db.registrations.some(r => String(r.userId) === String(u.id));
-  });
-
-  const sortedByElo = [...activeUsers].sort((a, b) => (b.elo || 1500) - (a.elo || 1500));
-
-  // Şampiyonlar (Sadece gerçek kupası olanlar, şu an kupa sistemi yoksa boş kalır)
-  db.leaders.champions = sortedByElo.filter(u => u.titles > 0).map(u => ({
-    name: u.name,
-    titles: u.titles || 0,
-    points: u.elo || 1500
-  }));
-
-  // En aktif oyuncular
-  db.leaders.activePlayers = sortedByElo.slice(0, 5).map(u => {
-    const matches = (u.matchesPlayed || 0);
-    return {
-      name: u.name,
-      matches: matches,
-      winRate: matches > 0 ? `%${Math.round(( (u.matchesWon || 0) / matches) * 100)}` : '%0'
+  if (!db.leaders || typeof db.leaders !== 'object') {
+    db.leaders = {
+      champions: [],
+      activePlayers: [],
+      highestWinRates: [],
+      winStreaks: []
     };
-  }).filter(u => u.matches > 0);
+  }
 
-  // En yüksek ELO
-  db.leaders.highestWinRates = sortedByElo.slice(0, 5).map(u => ({
-    name: u.name,
-    rate: u.elo || 1500,
-    matches: (u.matchesPlayed || 0)
-  })).filter(u => u.matches > 0);
+  // 1. ŞAMPİYONLAR:
+  // Tamamlanan turnuvalardaki şampiyonları tara (iptal edilenleri hariç tut)
+  const championStats = {};
+  if (Array.isArray(db.tournaments)) {
+    db.tournaments.forEach(t => {
+      // İptal edilenleri hariç tut; sadece tamamlanan veya şampiyonu belirlenmiş olanları al
+      const isCompleted = t.status === 'completed' || (t.champion && t.champion !== 'Bekleniyor...' && t.champion !== 'Belirsiz');
+      if (t.status !== 'cancelled' && isCompleted) {
+        const champName = t.champion;
+        if (champName && champName !== 'Bekleniyor...' && champName !== 'Belirsiz') {
+          const matchedUser = db.users?.find(u => u.name === champName || u.chessUsername === champName || u.username === champName);
+          const elo = matchedUser?.elo || 1500;
+          if (!championStats[champName]) {
+            championStats[champName] = {
+              name: champName,
+              titles: 1,
+              points: elo
+            };
+          } else {
+            championStats[champName].titles += 1;
+            if (matchedUser?.elo) championStats[champName].points = matchedUser.elo;
+          }
+        }
+      }
+    });
+  }
 
-  // Galibiyet Serisi
-  db.leaders.winStreaks = sortedByElo.slice(0, 5).map(u => ({
-    name: u.name,
-    streak: u.currentStreak || 0
-  })).filter(u => u.streak > 0);
+  db.leaders.champions = Object.values(championStats)
+    .sort((a, b) => b.titles !== a.titles ? b.titles - a.titles : b.points - a.points);
+
+  // 2. OYUNCU İSTATİSTİKLERİ:
+  // Maç sayıları, galibiyetler, galibiyet serileri
+  const playerStats = {};
+
+  if (Array.isArray(db.users)) {
+    db.users.forEach(u => {
+      playerStats[String(u.id)] = {
+        id: String(u.id),
+        name: u.name || u.chessUsername || u.username || 'Oyuncu',
+        elo: u.elo || 1500,
+        matchesPlayed: 0,
+        matchesWon: 0,
+        currentStreak: 0,
+        maxStreak: 0
+      };
+    });
+  }
+
+  if (Array.isArray(db.registrations)) {
+    db.registrations.forEach(r => {
+      const uid = String(r.userId);
+      if (!playerStats[uid]) {
+        playerStats[uid] = {
+          id: uid,
+          name: r.name || r.chessUsername || uid,
+          elo: 1500,
+          matchesPlayed: 0,
+          matchesWon: 0,
+          currentStreak: 0,
+          maxStreak: 0
+        };
+      }
+    });
+  }
+
+  // Turnuvalardaki oynanmış maçları (result !== 'pending') tara (İptal olan turnuvaları hariç tut)
+  let totalGamesCount = 0;
+  if (Array.isArray(db.tournaments)) {
+    db.tournaments.forEach(t => {
+      if (t.status === 'cancelled') return;
+      t.rounds?.forEach(round => {
+        round.pairings?.forEach(p => {
+          if (!p.result || p.result === 'pending') return;
+          totalGamesCount += 1;
+
+          const wId = String(p.whiteId);
+          const bId = p.blackId ? String(p.blackId) : null;
+
+          if (wId && !playerStats[wId]) {
+            const reg = db.registrations?.find(r => String(r.userId) === wId);
+            playerStats[wId] = { id: wId, name: reg?.name || wId, elo: 1500, matchesPlayed: 0, matchesWon: 0, currentStreak: 0, maxStreak: 0 };
+          }
+          if (bId && !playerStats[bId]) {
+            const reg = db.registrations?.find(r => String(r.userId) === bId);
+            playerStats[bId] = { id: bId, name: reg?.name || bId, elo: 1500, matchesPlayed: 0, matchesWon: 0, currentStreak: 0, maxStreak: 0 };
+          }
+
+          if (playerStats[wId]) playerStats[wId].matchesPlayed += 1;
+          if (bId && playerStats[bId]) playerStats[bId].matchesPlayed += 1;
+
+          if (p.result === 'white') {
+            if (playerStats[wId]) {
+              playerStats[wId].matchesWon += 1;
+              playerStats[wId].currentStreak += 1;
+              if (playerStats[wId].currentStreak > playerStats[wId].maxStreak) {
+                playerStats[wId].maxStreak = playerStats[wId].currentStreak;
+              }
+            }
+            if (bId && playerStats[bId]) {
+              playerStats[bId].currentStreak = 0;
+            }
+          } else if (p.result === 'black') {
+            if (bId && playerStats[bId]) {
+              playerStats[bId].matchesWon += 1;
+              playerStats[bId].currentStreak += 1;
+              if (playerStats[bId].currentStreak > playerStats[bId].maxStreak) {
+                playerStats[bId].maxStreak = playerStats[bId].currentStreak;
+              }
+            }
+            if (playerStats[wId]) {
+              playerStats[wId].currentStreak = 0;
+            }
+          } else if (p.result === 'draw') {
+            if (playerStats[wId]) playerStats[wId].currentStreak = 0;
+            if (bId && playerStats[bId]) playerStats[bId].currentStreak = 0;
+          }
+        });
+      });
+    });
+  }
+
+  const allPlayers = Object.values(playerStats);
+
+  // 3. EN AKTİF OYUNCULAR (En çok maç yapanlar)
+  db.leaders.activePlayers = allPlayers
+    .filter(p => p.matchesPlayed > 0)
+    .sort((a, b) => b.matchesPlayed !== a.matchesPlayed ? b.matchesPlayed - a.matchesPlayed : b.matchesWon - a.matchesWon)
+    .slice(0, 5)
+    .map(p => ({
+      name: p.name,
+      matches: p.matchesPlayed,
+      winRate: p.matchesPlayed > 0 ? `%${Math.round((p.matchesWon / p.matchesPlayed) * 100)}` : '%0'
+    }));
+
+  // 4. EN YÜKSEK ELO PUANI
+  const activeOrRegPool = allPlayers.filter(p => p.matchesPlayed > 0 || db.registrations?.some(r => String(r.userId) === p.id));
+  const eloPool = activeOrRegPool.length > 0 ? activeOrRegPool : allPlayers;
+  db.leaders.highestWinRates = eloPool
+    .sort((a, b) => (b.elo || 1500) - (a.elo || 1500))
+    .slice(0, 5)
+    .map(p => ({
+      name: p.name,
+      rate: p.elo || 1500,
+      matches: p.matchesPlayed
+    }));
+
+  // 5. EN UZUN GALİBİYET SERİSİ
+  db.leaders.winStreaks = allPlayers
+    .filter(p => p.maxStreak > 0 || p.currentStreak > 0)
+    .sort((a, b) => Math.max(b.maxStreak, b.currentStreak) - Math.max(a.maxStreak, a.currentStreak))
+    .slice(0, 5)
+    .map(p => ({
+      name: p.name,
+      streak: Math.max(p.maxStreak, p.currentStreak)
+    }));
+
+  // İstatistikleri de güncelle
+  if (db.stats) {
+    db.stats.gamesPlayed = totalGamesCount;
+    db.stats.organizedTournaments = db.tournaments ? db.tournaments.filter(t => t.status !== 'cancelled').length : 0;
+    db.stats.registeredPlayers = db.registrations ? db.registrations.length : 0;
+  }
 }
 
 module.exports = {
