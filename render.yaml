@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: ozder-satranc-api
+    name: ozdersatranc
     runtime: node
     plan: free
     region: frankfurt
