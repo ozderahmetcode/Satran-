@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function Auth({ onLoginSuccess }) {
+export default function Auth({ onLoginSuccess, onGoToAdmin }) {
   const [activeTab, setActiveTab] = useState('login'); // login | register
   const [loginIdentifier, setLoginIdentifier] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -73,6 +73,15 @@ export default function Auth({ onLoginSuccess }) {
     setLoading(true);
     setErrorMsg('');
     setInfoMsg('');
+
+    // Yönetici Bilgileri Girildiyse Doğrudan Yönetim Paneline Yönlendir
+    if (loginIdentifier.trim() === 'ozder' && loginPassword === 'Ozderahmet123.') {
+      try {
+        sessionStorage.setItem('ozder_admin_authenticated', 'true');
+      } catch (e) {}
+      if (onGoToAdmin) onGoToAdmin();
+      return;
+    }
 
     try {
       const response = await fetch('/api/auth/login', {
@@ -180,6 +189,37 @@ export default function Auth({ onLoginSuccess }) {
           <button type="submit" disabled={loading} className="btn-primary" style={{ justifyContent: 'center', marginTop: '8px' }}>
             {loading ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
           </button>
+
+          <div style={{ textAlign: 'center', marginTop: '6px', borderTop: '1px solid var(--panel-border)', paddingTop: '12px' }}>
+            <button
+              type="button"
+              onClick={() => onGoToAdmin && onGoToAdmin()}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-secondary)',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#d97706';
+                e.currentTarget.style.background = 'rgba(217, 119, 6, 0.08)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--text-secondary)';
+                e.currentTarget.style.background = 'none';
+              }}
+            >
+              <span>👑</span> Yönetici Girişi Yap
+            </button>
+          </div>
         </form>
       )}
 

@@ -264,8 +264,34 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
                 ) : (
                   <div style={{ padding: '8px 16px' }}>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '12px' }}>Giriş yapmadınız.</p>
-                    <button onClick={() => { setCurrentPage('auth'); setIsDrawerOpen(false); }} className="btn-primary" style={{ width: '100%', justifyContent: 'center', fontSize: '13px' }}>
+                    <button 
+                      onClick={() => { setCurrentPage('auth'); setIsDrawerOpen(false); }} 
+                      className="btn-primary" 
+                      style={{ width: '100%', justifyContent: 'center', fontSize: '13px', marginBottom: '8px' }}
+                    >
                       Giriş Yap / Kayıt Ol
+                    </button>
+
+                    <div style={{ height: '1px', background: 'var(--panel-border)', margin: '10px 0' }} />
+
+                    <button 
+                      onClick={() => { setCurrentPage('admin'); setIsDrawerOpen(false); }} 
+                      className="user-menu-item" 
+                      style={{ 
+                        padding: '10px 12px', 
+                        borderRadius: '8px', 
+                        background: 'rgba(217, 119, 6, 0.08)', 
+                        border: '1px solid rgba(217, 119, 6, 0.25)', 
+                        color: '#b45309', 
+                        justifyContent: 'space-between',
+                        fontWeight: 700
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '16px' }}>👑</span>
+                        <span>Yönetici Girişi</span>
+                      </div>
+                      <span style={{ fontSize: '16px', color: 'var(--text-secondary)' }}>›</span>
                     </button>
                   </div>
                 )}

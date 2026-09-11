@@ -251,6 +251,7 @@ export default function App() {
         return (
           <Auth 
             onLoginSuccess={handleLoginSuccess}
+            onGoToAdmin={() => setCurrentPage('admin')}
           />
         );
       case 'profile':
