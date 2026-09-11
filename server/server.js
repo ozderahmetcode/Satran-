@@ -560,6 +560,9 @@ app.put('/api/spam-reports/:id/resolve', (req, res) => {
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: "Rapor güncellenirken hata oluştu." });
+  }
+});
+
 // Admin: Veritabanı Tam Yedeğini İndir (JSON)
 app.get('/api/admin/backup', (req, res) => {
   try {
