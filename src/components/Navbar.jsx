@@ -35,6 +35,7 @@ export function Logo() {
 
 export default function Navbar({ currentPage, setCurrentPage, currentUser, onLogout }) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
 
   useEffect(() => {
@@ -42,13 +43,19 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
   }, [currentUser?.avatar]);
 
   const mainLinks = [
-    { id: 'home', label: 'Ana Sayfa' },
-    { id: 'event', label: 'Etkinlikler' },
-    { id: 'database', label: 'İstatistikler & Arşiv' },
-    { id: 'matchmaking', label: 'Rakip Bul' },
-    { id: 'faq', label: 'Merak Edilenler' },
-    { id: 'contact', label: 'İletişim' }
+    { id: 'home', label: 'Ana Sayfa', icon: '🏠' },
+    { id: 'event', label: 'Etkinlikler', icon: '🏆' },
+    { id: 'database', label: 'İstatistikler & Arşiv', icon: '📊' },
+    { id: 'matchmaking', label: 'Rakip Bul', icon: '⚔️' },
+    { id: 'faq', label: 'Merak Edilenler', icon: '❓' },
+    { id: 'contact', label: 'İletişim', icon: '📞' }
   ];
+
+  const handleNavClick = (pageId) => {
+    setCurrentPage(pageId);
+    setIsDrawerOpen(false);
+    setIsMobileMenuOpen(false);
+  };
 
   return (
     <nav style={{
@@ -66,21 +73,21 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
         alignItems: 'center'
       }}>
         {/* Sol: Logo */}
-        <div onClick={() => { setCurrentPage('home'); setIsDrawerOpen(false); }} style={{ cursor: 'pointer', justifySelf: 'start' }}>
+        <div onClick={() => handleNavClick('home')} style={{ cursor: 'pointer', justifySelf: 'start' }}>
           <Logo />
         </div>
 
-        {/* Orta: Masaüstü Menü Linkleri (Mobilde CSS ile Gizlenecek) */}
+        {/* Orta: Masaüstü Menü Linkleri (992px ve altında CSS ile gizlenir) */}
         <div className="desktop-nav" style={{
           display: 'flex',
-          gap: '32px',
+          gap: '28px',
           justifyContent: 'center',
           alignItems: 'center'
         }}>
           {mainLinks.map((item) => (
             <button
               key={item.id}
-              onClick={() => { setCurrentPage(item.id); setIsDrawerOpen(false); }}
+              onClick={() => handleNavClick(item.id)}
               style={{
                 background: 'none',
                 border: 'none',
@@ -110,10 +117,42 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
           ))}
         </div>
 
-        {/* Sağ: Profil İkonu & Dropdown */}
-        <div style={{ position: 'relative' }}>
+        {/* Sağ: İkonlar (Profil İkonu & Mobil Menü Hamburger Butonu) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', position: 'relative' }}>
+          
+          {/* Mobil Menü Hamburger Butonu (992px ve altı telefon/tabletler için) */}
           <button
-            onClick={() => setIsDrawerOpen(!isDrawerOpen)}
+            className="mobile-menu-btn"
+            onClick={() => {
+              setIsMobileMenuOpen(!isMobileMenuOpen);
+              setIsDrawerOpen(false);
+            }}
+            aria-label="Mobil Menüyü Aç"
+            style={{
+              background: isMobileMenuOpen ? 'rgba(14, 165, 233, 0.12)' : 'rgba(0,0,0,0.04)',
+              border: '1px solid var(--panel-border)',
+              borderRadius: '10px',
+              width: '42px',
+              height: '42px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: 'var(--text-primary)',
+              fontSize: '20px',
+              fontWeight: 800,
+              transition: 'all 0.2s ease'
+            }}
+          >
+            {isMobileMenuOpen ? '✕' : '☰'}
+          </button>
+
+          {/* Profil İkonu Button */}
+          <button
+            onClick={() => {
+              setIsDrawerOpen(!isDrawerOpen);
+              setIsMobileMenuOpen(false);
+            }}
             style={{
               background: (currentUser?.avatar && !avatarError) ? 'transparent' : 'rgba(0,0,0,0.05)',
               border: '1px solid var(--panel-border)',
@@ -148,10 +187,9 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
             )}
           </button>
 
-          {/* Profil Dropdown (Dark Theme) */}
+          {/* Profil Dropdown */}
           {isDrawerOpen && (
             <>
-              {/* Invisible Backdrop for click-outside */}
               <div 
                 onClick={() => setIsDrawerOpen(false)}
                 style={{
@@ -243,12 +281,11 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
                       </div>
                     </div>
                     
-                    <button onClick={() => { setCurrentPage('profile'); setIsDrawerOpen(false); }} className="user-menu-item">
+                    <button onClick={() => handleNavClick('profile')} className="user-menu-item">
                       <span style={{ fontSize: '16px' }}>⚙️</span> Hesap Ayarları
                     </button>
                     
-                    {/* Admin Item */}
-                    <button onClick={() => { setCurrentPage('admin'); setIsDrawerOpen(false); }} className="user-menu-item" style={{ justifyContent: 'space-between' }}>
+                    <button onClick={() => handleNavClick('admin')} className="user-menu-item" style={{ justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                          <span style={{ fontSize: '16px' }}>👑</span> Yönetici Paneli
                       </div>
@@ -265,7 +302,7 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
                   <div style={{ padding: '8px 16px' }}>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '12px' }}>Giriş yapmadınız.</p>
                     <button 
-                      onClick={() => { setCurrentPage('auth'); setIsDrawerOpen(false); }} 
+                      onClick={() => handleNavClick('auth')} 
                       className="btn-primary" 
                       style={{ width: '100%', justifyContent: 'center', fontSize: '13px', marginBottom: '8px' }}
                     >
@@ -275,7 +312,7 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
                     <div style={{ height: '1px', background: 'var(--panel-border)', margin: '10px 0' }} />
 
                     <button 
-                      onClick={() => { setCurrentPage('admin'); setIsDrawerOpen(false); }} 
+                      onClick={() => handleNavClick('admin')} 
                       className="user-menu-item" 
                       style={{ 
                         padding: '10px 12px', 
@@ -301,7 +338,91 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
         </div>
       </div>
 
+      {/* MOBİL GEZİNTİ ÇEKMECESİ (Mobil & Tablet cihazlar için tam ekran genişliğinde açılır menü) */}
+      {isMobileMenuOpen && (
+        <>
+          <div 
+            onClick={() => setIsMobileMenuOpen(false)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(15, 23, 42, 0.4)',
+              backdropFilter: 'blur(4px)',
+              zIndex: 99990
+            }}
+          />
 
+          <div 
+            className="mobile-nav-drawer"
+            style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              right: 0,
+              background: '#ffffff',
+              borderBottom: '1px solid var(--panel-border)',
+              boxShadow: '0 20px 30px rgba(0,0,0,0.15)',
+              zIndex: 99995,
+              padding: '16px 24px 24px 24px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              animation: 'slideDownMobile 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+            }}
+          >
+            <style>{`
+              @keyframes slideDownMobile {
+                from { opacity: 0; transform: translateY(-12px); }
+                to { opacity: 1; transform: translateY(0); }
+              }
+              .mobile-link-btn {
+                display: flex;
+                align-items: center;
+                gap: 14px;
+                padding: 12px 16px;
+                background: rgba(248, 250, 252, 0.8);
+                border: 1px solid var(--panel-border);
+                border-radius: 10px;
+                color: var(--text-primary);
+                font-family: var(--font-title);
+                font-size: 15px;
+                font-weight: 600;
+                text-align: left;
+                cursor: pointer;
+                width: 100%;
+                transition: all 0.2s ease;
+              }
+              .mobile-link-btn.active {
+                background: rgba(14, 165, 233, 0.1);
+                border-color: var(--accent-primary);
+                color: var(--accent-primary);
+                font-weight: 700;
+              }
+            `}</style>
+
+            {mainLinks.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => handleNavClick(item.id)}
+                className={`mobile-link-btn ${currentPage === item.id ? 'active' : ''}`}
+              >
+                <span style={{ fontSize: '18px' }}>{item.icon}</span>
+                <span>{item.label}</span>
+              </button>
+            ))}
+
+            {!currentUser && (
+              <button
+                onClick={() => handleNavClick('auth')}
+                className="btn-primary"
+                style={{ width: '100%', justifyContent: 'center', marginTop: '12px', padding: '14px', fontSize: '15px' }}
+              >
+                🔑 Giriş Yap / Kayıt Ol
+              </button>
+            )}
+          </div>
+        </>
+      )}
     </nav>
   );
 }
