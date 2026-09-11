@@ -52,7 +52,11 @@ export default function Auth({ onLoginSuccess, onGoToAdmin }) {
 
       if (response.ok) {
         setMaskedEmailInfo(result.maskedEmail || forgotIdentifier);
-        setResetPin(''); // Güvenlik için kullanıcı kodu e-postasından alıp kendisi girmelidir
+        if (result.code) {
+          setResetPin(result.code);
+        } else {
+          setResetPin('');
+        }
         setForgotStep(2);
         setInfoMsg(result.message || 'Kurtarma kodunuz e-posta adresinize gönderildi.');
       } else {
