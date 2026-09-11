@@ -150,32 +150,94 @@ async function sendPasswordResetEmail(toEmail, recipientName, resetCode) {
 }
 
 /**
+ * Soket Seviyesinde Ham TCP Bağlantı Testi
+ */
+function testRawTcp(host, port, timeoutMs = 7000) {
+  return new Promise((resolve) => {
+    const net = require('net');
+    const start = Date.now();
+    let resolved = false;
+
+    try {
+      const socket = net.createConnection({ host, port, family: 4 });
+      socket.setTimeout(timeoutMs);
+
+      socket.on('connect', () => {
+        if (!resolved) {
+          resolved = true;
+          const time = Date.now() - start;
+          socket.destroy();
+          resolve({ status: 'CONNECTED', timeMs: time });
+        }
+      });
+
+      socket.on('timeout', () => {
+        if (!resolved) {
+          resolved = true;
+          socket.destroy();
+          resolve({ status: 'TIMEOUT', timeMs: Date.now() - start });
+        }
+      });
+
+      socket.on('error', (err) => {
+        if (!resolved) {
+          resolved = true;
+          resolve({ status: 'ERROR', message: err.message, code: err.code, timeMs: Date.now() - start });
+        }
+      });
+    } catch (e) {
+      resolve({ status: 'EXCEPTION', message: e.message });
+    }
+  });
+}
+
+/**
  * Teşhis Fonksiyonu: SMTP Bağlantısını ve Portları Test Et
  */
 async function testSmtpConnection() {
   const results = {
     isConfigured: isSmtpConfigured(),
-    user: process.env.SMTP_USER || null,
-    port465: null,
-    port587: null
+    user: (process.env.SMTP_USER || '').trim(),
+    dnsLookup: null,
+    tcp_google_443: null,
+    tcp_smtp_465: null,
+    tcp_smtp_587: null,
+    nodemailer_465: null,
+    nodemailer_587: null
   };
 
-  if (!results.isConfigured) return results;
-
   try {
-    const t465 = createDirectTransport(465, true);
-    await t465.verify();
-    results.port465 = 'OK';
-  } catch (err) {
-    results.port465 = err.message;
+    const addresses = await new Promise((res, rej) => {
+      dns.resolve4('smtp.gmail.com', (err, addrs) => err ? rej(err) : res(addrs));
+    });
+    results.dnsLookup = addresses;
+  } catch (e) {
+    results.dnsLookup = `DNS Error: ${e.message}`;
   }
 
-  try {
-    const t587 = createDirectTransport(587, false);
-    await t587.verify();
-    results.port587 = 'OK';
-  } catch (err) {
-    results.port587 = err.message;
+  // Kontrol: Render dışarı HTTPS (443) açabiliyor mu?
+  results.tcp_google_443 = await testRawTcp('google.com', 443, 5000);
+  // Port 465 testi
+  results.tcp_smtp_465 = await testRawTcp('smtp.gmail.com', 465, 6000);
+  // Port 587 testi
+  results.tcp_smtp_587 = await testRawTcp('smtp.gmail.com', 587, 6000);
+
+  if (results.isConfigured) {
+    try {
+      const t465 = createDirectTransport(465, true);
+      await t465.verify();
+      results.nodemailer_465 = 'OK';
+    } catch (err) {
+      results.nodemailer_465 = err.message;
+    }
+
+    try {
+      const t587 = createDirectTransport(587, false);
+      await t587.verify();
+      results.nodemailer_587 = 'OK';
+    } catch (err) {
+      results.nodemailer_587 = err.message;
+    }
   }
 
   return results;
@@ -186,3 +248,4 @@ module.exports = {
   sendPasswordResetEmail,
   testSmtpConnection
 };
+
