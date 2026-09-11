@@ -235,6 +235,25 @@ app.get('/api/health/smtp', async (req, res) => {
   }
 });
 
+// Canlı E-Posta Gönderim Test Uç Noktası
+app.post('/api/health/test-email', async (req, res) => {
+  try {
+    const { toEmail } = req.body;
+    if (!toEmail || !toEmail.trim()) {
+      return res.status(400).json({ error: "Lütfen hedef test e-posta adresi belirtin." });
+    }
+    const testCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const result = await emailService.sendPasswordResetEmail(toEmail.trim(), 'Test Alıcı', testCode);
+    res.json({
+      toEmail: toEmail.trim(),
+      testCode,
+      result
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // API Rotaları
 app.get('/api/data', (req, res) => {
   try {
@@ -455,20 +474,25 @@ app.post('/api/auth/forgot-password', authBruteForceCheck, async (req, res) => {
     }
 
     if (emailResult.success) {
+      console.log(`[Şifre Kurtarma] E-posta başarıyla iletildi (${emailResult.provider || 'smtp'}): ${user.email}`);
       return res.json({
         success: true,
-        message: `6 haneli doğrulama kodu ${maskedEmail} adresinize gönderildi. Lütfen gelen kutunuzu kontrol edin.`,
+        sent: true,
+        provider: emailResult.provider || 'smtp',
+        message: `6 haneli doğrulama kodu ${maskedEmail} adresinize gönderildi. Lütfen gelen kutunuzu (ve spam klasörünüzü) kontrol edin.`,
         maskedEmail
       });
     }
 
-    // Bulut güvenlik duvarı SMTP portlarını engelliyorsa talebi sistemce onayla
-    console.log(`[Şifre Kurtarma] Bulut engeli nedeniyle talep onaylandı. Kod: ${code}`);
+    // Bulut güvenlik duvarı SMTP portlarını engelliyorsa veya servis başarısızsa
+    console.warn(`[Şifre Kurtarma] E-posta gönderilemedi (${emailResult.code || 'FAIL'}): ${emailResult.error}`);
     return res.json({
       success: true,
+      sent: false,
       autoApproved: true,
       code: code,
-      message: `✓ Şifre kurtarma talebiniz başarıyla onaylandı! Kodunuz otomatik tanımlandı.`,
+      warning: 'Render.com bulut güvenlik duvarı SMTP portlarını engellediği için e-posta doğrudan iletilemedi. E-postaların anında gelmesi için Render paneline BREVO_API_KEY ekleyiniz.',
+      message: `✓ Şifre kurtarma talebiniz onaylandı! Güvenlik kodunuz: ${code}`,
       maskedEmail
     });
   } catch (error) {

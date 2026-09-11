@@ -23,6 +23,7 @@ export default function Auth({ onLoginSuccess, onGoToAdmin }) {
   const [forgotIdentifier, setForgotIdentifier] = useState('');
   const [forgotStep, setForgotStep] = useState(1); // 1: E-posta/Kullanıcı Adı, 2: Kod ve Yeni Şifre
   const [resetPin, setResetPin] = useState('');
+  const [autoApprovedCode, setAutoApprovedCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [maskedEmailInfo, setMaskedEmailInfo] = useState('');
@@ -54,8 +55,10 @@ export default function Auth({ onLoginSuccess, onGoToAdmin }) {
         setMaskedEmailInfo(result.maskedEmail || forgotIdentifier);
         if (result.code) {
           setResetPin(result.code);
+          setAutoApprovedCode(result.code);
         } else {
           setResetPin('');
+          setAutoApprovedCode('');
         }
         setForgotStep(2);
         setInfoMsg(result.message || 'Kurtarma kodunuz e-posta adresinize gönderildi.');
@@ -431,20 +434,37 @@ export default function Auth({ onLoginSuccess, onGoToAdmin }) {
             </form>
           ) : (
             <form onSubmit={handleResetPassword} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{
-                background: 'rgba(14, 165, 233, 0.08)',
-                border: '1px solid rgba(14, 165, 233, 0.25)',
-                borderRadius: '10px',
-                padding: '14px',
-                textAlign: 'center'
-              }}>
-                <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-primary)', fontWeight: 600 }}>
-                  ✉️ 6 haneli güvenlik kodu <strong>{maskedEmailInfo}</strong> adresine gönderildi.
-                </p>
-                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                  Lütfen gelen kutunuzu (ve gerekiyorsa spam klasörünüzü) kontrol edip gelen kodu aşağıdaki alana girin.
-                </p>
-              </div>
+              {autoApprovedCode ? (
+                <div style={{
+                  background: 'rgba(34, 197, 94, 0.08)',
+                  border: '1px solid rgba(34, 197, 94, 0.3)',
+                  borderRadius: '10px',
+                  padding: '14px',
+                  textAlign: 'center'
+                }}>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#15803d', fontWeight: 700 }}>
+                    ✓ Güvenlik Kodunuz: <span style={{ letterSpacing: '3px', fontSize: '17px', background: '#dcfce7', padding: '3px 10px', borderRadius: '6px', fontWeight: 800 }}>{autoApprovedCode}</span>
+                  </p>
+                  <p style={{ margin: '6px 0 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    Kod aşağıdaki alana otomatik tanımlandı. Şimdi yeni şifrenizi belirleyebilirsiniz.
+                  </p>
+                </div>
+              ) : (
+                <div style={{
+                  background: 'rgba(14, 165, 233, 0.08)',
+                  border: '1px solid rgba(14, 165, 233, 0.25)',
+                  borderRadius: '10px',
+                  padding: '14px',
+                  textAlign: 'center'
+                }}>
+                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-primary)', fontWeight: 600 }}>
+                    ✉️ 6 haneli güvenlik kodu <strong>{maskedEmailInfo}</strong> adresine gönderildi.
+                  </p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    Lütfen gelen kutunuzu (ve gerekiyorsa spam klasörünüzü) kontrol edip gelen kodu aşağıdaki alana girin.
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>
