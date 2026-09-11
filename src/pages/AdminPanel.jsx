@@ -1,15 +1,15 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { sanitizeUrl, sanitizeChessUsername } from '../utils/security';
 
 export default function AdminPanel({ 
-  registrations, 
+  registrations = [], 
   users = [], 
   onUsersUpdate, 
   activeUsersCount = 1, 
   activeUsersList = [], 
   analytics = {},
   onRegisterUpdate, 
-  tournaments, 
+  tournaments = [], 
   onAddTournament, 
   messages = [], 
   onMessagesUpdate,
