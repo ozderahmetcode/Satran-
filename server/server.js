@@ -700,12 +700,26 @@ app.post('/api/tournaments/:id/guest', (req, res) => {
   }
 });
 
-app.post('/api/tournaments', (req, res) => {
+app.post('/api/tournaments', upload.single('eventImageFile'), (req, res) => {
   try {
-    const { title, date, time, location, fee, maxQuota, totalRounds, imageUrl } = req.body;
+    const { title, date, time, location, fee, maxQuota, totalRounds } = req.body;
 
     if (!title || !date || !time || !location || !maxQuota) {
       return res.status(400).json({ error: "Lütfen zorunlu alanları doldurun." });
+    }
+
+    let finalImageUrl = req.body.imageUrl;
+    if (req.file) {
+      if (req.file.path && (req.file.path.startsWith('http://') || req.file.path.startsWith('https://'))) {
+        finalImageUrl = req.file.path; // Cloudinary URL
+      } else if (req.file.filename) {
+        finalImageUrl = `/uploads/${req.file.filename}`; // Local path
+      } else if (req.file.path) {
+        finalImageUrl = req.file.path;
+      }
+    }
+    if (!finalImageUrl) {
+      finalImageUrl = '/event_default.jpg';
     }
 
     const tournaments = db.createTournament({ 
@@ -716,7 +730,7 @@ app.post('/api/tournaments', (req, res) => {
       fee: fee || "Ücretsiz", 
       maxQuota: parseInt(maxQuota), 
       totalRounds: totalRounds || 5,
-      imageUrl: imageUrl || "/event_default.jpg"
+      imageUrl: finalImageUrl
     });
     res.status(201).json({ success: true, tournaments });
   } catch (error) {
@@ -725,10 +739,21 @@ app.post('/api/tournaments', (req, res) => {
 });
 
 // Turnuva Güncelleme / Düzenleme
-app.put('/api/tournaments/:id', (req, res) => {
+app.put('/api/tournaments/:id', upload.single('eventImageFile'), (req, res) => {
   try {
     const { id } = req.params;
-    const { title, date, time, location, fee, maxQuota, totalRounds, status, imageUrl } = req.body;
+    const { title, date, time, location, fee, maxQuota, totalRounds, status } = req.body;
+
+    let finalImageUrl = req.body.imageUrl;
+    if (req.file) {
+      if (req.file.path && (req.file.path.startsWith('http://') || req.file.path.startsWith('https://'))) {
+        finalImageUrl = req.file.path; // Cloudinary URL
+      } else if (req.file.filename) {
+        finalImageUrl = `/uploads/${req.file.filename}`; // Local path
+      } else if (req.file.path) {
+        finalImageUrl = req.file.path;
+      }
+    }
 
     const result = db.updateTournament(id, {
       title,
@@ -739,7 +764,7 @@ app.put('/api/tournaments/:id', (req, res) => {
       maxQuota,
       totalRounds,
       status,
-      imageUrl
+      ...(finalImageUrl ? { imageUrl: finalImageUrl } : {})
     });
 
     if (result.error) {

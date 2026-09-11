@@ -414,6 +414,8 @@ export default function AdminPanel({
     totalRounds: '5',
     imageUrl: '/event_default.jpg'
   });
+  const [createImageFile, setCreateImageFile] = useState(null);
+  const [editImageFile, setEditImageFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState({ type: '', text: '' });
 
@@ -592,15 +594,27 @@ export default function AdminPanel({
     if (!editingTour) return;
 
     try {
+      const bodyData = new FormData();
+      bodyData.append('title', editFormData.title);
+      bodyData.append('date', editFormData.date);
+      bodyData.append('time', editFormData.time);
+      bodyData.append('location', editFormData.location);
+      bodyData.append('fee', editFormData.fee);
+      bodyData.append('maxQuota', editFormData.maxQuota);
+      bodyData.append('totalRounds', editFormData.totalRounds);
+      bodyData.append('status', editFormData.status);
+      if (editFormData.imageUrl) bodyData.append('imageUrl', editFormData.imageUrl);
+      if (editImageFile) bodyData.append('eventImageFile', editImageFile);
+
       const response = await fetch(`/api/tournaments/${editingTour.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editFormData)
+        body: bodyData
       });
       const result = await response.json();
       if (response.ok) {
         onAddTournament(result.tournaments);
         setEditingTour(null);
+        setEditImageFile(null);
         alert("Turnuva bilgileri başarıyla güncellendi!");
       } else {
         alert(result.error || "Güncelleme başarısız.");
@@ -1471,8 +1485,33 @@ export default function AdminPanel({
                 </div>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Etkinlik Görsel URL (Opsiyonel)</label>
-                <input type="text" placeholder="/event_default.jpg veya https://..." value={formData.imageUrl || ''} onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })} style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }} />
+                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px', fontWeight: 600 }}>
+                  🖼️ Etkinlik Görseli (Bilgisayar veya Telefondan Fotoğraf Seç)
+                </label>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={(e) => setCreateImageFile(e.target.files?.[0] || null)}
+                  style={{ 
+                    width: '100%', 
+                    background: 'var(--bg-color)', 
+                    border: '1px solid var(--panel-border)', 
+                    borderRadius: '8px', 
+                    padding: '8px 12px', 
+                    color: 'var(--text-primary)', 
+                    fontSize: '13px',
+                    cursor: 'pointer' 
+                  }} 
+                />
+                {createImageFile ? (
+                  <p style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px', fontWeight: 600 }}>
+                    ✓ Seçilen Fotoğraf: {createImageFile.name}
+                  </p>
+                ) : (
+                  <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                    Seçilmezse varsayılan kafe satranç görseli kullanılacaktır.
+                  </p>
+                )}
               </div>
               <button type="submit" disabled={loading} className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>Etkinlik Yayınla</button>
             </form>
@@ -1797,14 +1836,35 @@ export default function AdminPanel({
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Etkinlik Görsel URL (Opsiyonel)</label>
-                <input
-                  type="text"
-                  placeholder="/event_default.jpg veya https://..."
-                  value={editFormData.imageUrl || ''}
-                  onChange={(e) => setEditFormData({ ...editFormData, imageUrl: e.target.value })}
-                  style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }}
+                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px', fontWeight: 600 }}>
+                  🖼️ Etkinlik Görseli Güncelle (Bilgisayar veya Telefondan Fotoğraf Seç)
+                </label>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={(e) => setEditImageFile(e.target.files?.[0] || null)}
+                  style={{ 
+                    width: '100%', 
+                    background: 'var(--bg-color)', 
+                    border: '1px solid var(--panel-border)', 
+                    borderRadius: '8px', 
+                    padding: '8px 12px', 
+                    color: 'var(--text-primary)', 
+                    fontSize: '13px',
+                    cursor: 'pointer' 
+                  }} 
                 />
+                {editImageFile ? (
+                  <p style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px', fontWeight: 600 }}>
+                    ✓ Yeni Fotoğraf Seçildi: {editImageFile.name}
+                  </p>
+                ) : (
+                  editFormData.imageUrl && (
+                    <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                      Mevcut Görsel: {editFormData.imageUrl}
+                    </p>
+                  )
+                )}
               </div>
 
               <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
