@@ -438,6 +438,12 @@ app.post('/api/auth/forgot-password', authBruteForceCheck, async (req, res) => {
     // E-posta gönderim servisini tetikle
     const emailResult = await emailService.sendPasswordResetEmail(user.email, user.name, code);
 
+    if (!emailResult.success) {
+      return res.status(500).json({ 
+        error: `E-posta gönderilemedi: ${emailResult.error || 'SMTP Hatası'}. Lütfen geçerli bir e-posta girdiğinizden emin olun.` 
+      });
+    }
+
     // E-posta maskeleme (güvenlik ve gizlilik için, örn: a***n@gmail.com)
     let maskedEmail = user.email;
     if (user.email.includes('@')) {
@@ -450,18 +456,12 @@ app.post('/api/auth/forgot-password', authBruteForceCheck, async (req, res) => {
 
     res.json({
       success: true,
-      message: emailResult.sent 
-        ? `Doğrulama kodu ${maskedEmail} adresinize iletildi. Lütfen gelen kutunuzu kontrol edin.`
-        : `Doğrulama kodunuz başarıyla oluşturuldu.`,
-      maskedEmail,
-      smtpActive: emailResult.sent,
-      // SMTP tanımlı değilse kullanıcıyı bekletmemek için kodu güvenle ekrana da yansıtıyoruz
-      fallbackCode: emailResult.sent ? undefined : code,
-      note: emailResult.sent ? undefined : "SMTP henüz tanımlanmadığı için doğrulama PIN kodunuz ekrana ve Yönetici Güvenlik Günlüğüne yansıtılmıştır."
+      message: `6 haneli doğrulama kodu ${maskedEmail} adresinize gönderildi. Lütfen gelen kutunuzu (ve spam klasörünüzü) kontrol edin.`,
+      maskedEmail
     });
   } catch (error) {
     console.error('[Şifremi Unuttum Hatası]:', error);
-    res.status(500).json({ error: "Şifre kurtarma kodu oluşturulurken sunucu hatası oluştu." });
+    res.status(500).json({ error: "Şifre kurtarma işlemi sırasında sunucu hatası oluştu." });
   }
 });
 

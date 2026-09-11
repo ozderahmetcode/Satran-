@@ -25,7 +25,6 @@ export default function Auth({ onLoginSuccess, onGoToAdmin }) {
   const [resetPin, setResetPin] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [fallbackPinCode, setFallbackPinCode] = useState('');
   const [maskedEmailInfo, setMaskedEmailInfo] = useState('');
 
   const handleRequestResetCode = async (e) => {
@@ -53,12 +52,9 @@ export default function Auth({ onLoginSuccess, onGoToAdmin }) {
 
       if (response.ok) {
         setMaskedEmailInfo(result.maskedEmail || forgotIdentifier);
-        if (result.fallbackCode) {
-          setFallbackPinCode(result.fallbackCode);
-          setResetPin(result.fallbackCode); // Kullanıcı dostu otomatik doldurma
-        }
+        setResetPin(''); // Güvenlik için kullanıcı kodu e-postasından alıp kendisi girmelidir
         setForgotStep(2);
-        setInfoMsg(result.message || 'Kurtarma kodunuz oluşturuldu.');
+        setInfoMsg(result.message || 'Kurtarma kodunuz e-posta adresinize gönderildi.');
       } else {
         setErrorMsg(result.error || 'Şifre kurtarma talebi başarısız.');
       }
@@ -114,7 +110,6 @@ export default function Auth({ onLoginSuccess, onGoToAdmin }) {
         setResetPin('');
         setNewPassword('');
         setConfirmPassword('');
-        setFallbackPinCode('');
       } else {
         setErrorMsg(result.error || 'Şifre sıfırlama başarısız.');
       }
@@ -432,33 +427,24 @@ export default function Auth({ onLoginSuccess, onGoToAdmin }) {
             </form>
           ) : (
             <form onSubmit={handleResetPassword} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {fallbackPinCode && (
-                <div style={{
-                  background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%)',
-                  border: '1px dashed var(--accent-primary)',
-                  borderRadius: '10px',
-                  padding: '14px',
-                  textAlign: 'center'
-                }}>
-                  <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent-primary)', textTransform: 'uppercase' }}>
-                    💡 Güvenlik PIN Kodunuz
-                  </div>
-                  <div style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '6px', fontFamily: 'monospace', color: 'var(--text-primary)', margin: '6px 0' }}>
-                    {fallbackPinCode}
-                  </div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                    (SMTP e-posta henüz tanımlanmadığı için güvenlik PIN kodunuz otomatik olarak ekrana yansıtılmıştır)
-                  </div>
-                </div>
-              )}
-
-              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
-                Hesap: <strong>{maskedEmailInfo}</strong>
-              </p>
+              <div style={{
+                background: 'rgba(14, 165, 233, 0.08)',
+                border: '1px solid rgba(14, 165, 233, 0.25)',
+                borderRadius: '10px',
+                padding: '14px',
+                textAlign: 'center'
+              }}>
+                <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-primary)', fontWeight: 600 }}>
+                  ✉️ 6 haneli güvenlik kodu <strong>{maskedEmailInfo}</strong> adresine gönderildi.
+                </p>
+                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  Lütfen gelen kutunuzu (ve gerekiyorsa spam klasörünüzü) kontrol edip gelen kodu aşağıdaki alana girin.
+                </p>
+              </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                  6 Haneli Doğrulama Kodu
+                  E-postanıza Gelen 6 Haneli Kod
                 </label>
                 <input
                   type="text"

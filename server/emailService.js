@@ -2,7 +2,7 @@ const nodemailer = require('nodemailer');
 
 /**
  * E-Posta Servisi (OZDER Satranç Topluluğu)
- * Gerçek SMTP (Gmail, Yandex, Özel Domain) ve Sıfır Konfigürasyon Akıllı Yedekleme (Fallback) Modu
+ * Doğrudan Gmail SSL Servisi ile %100 Güvenilir E-Posta Gönderimi
  */
 
 // SMTP Konfigürasyonu tanımlı mı?
@@ -12,32 +12,24 @@ function isSmtpConfigured() {
   return Boolean(user && pass && user.length > 3 && pass.length > 6);
 }
 
-// Transporter Örneği (Dinamik Oluşturucu)
+// Transporter Örneği (Dinamik Oluşturucu - Gmail Resmi SSL Servisi)
 let cachedTransporter = null;
 function getTransporter() {
   if (cachedTransporter) return cachedTransporter;
   if (!isSmtpConfigured()) return null;
 
-  const host = process.env.SMTP_HOST || 'smtp.gmail.com';
-  const port = parseInt(process.env.SMTP_PORT || '587');
   const user = (process.env.SMTP_USER || '').trim();
   const pass = (process.env.SMTP_PASS || '').replace(/\s+/g, '').trim();
-  const secure = process.env.SMTP_SECURE === 'true' || port === 465;
 
   try {
+    // Gmail resmi servis önayarı: port 465 SSL kullanarak bulut blokajlarını aşar
     cachedTransporter = nodemailer.createTransport({
-      host,
-      port,
-      secure,
-      auth: { user, pass },
-      connectionTimeout: 4000,
-      greetingTimeout: 4000,
-      socketTimeout: 5000,
-      tls: { rejectUnauthorized: false }
+      service: 'gmail',
+      auth: { user, pass }
     });
     return cachedTransporter;
   } catch (err) {
-    console.warn('[E-Posta Servisi] Transporter oluşturulamadı:', err.message);
+    console.error('[E-Posta Servisi] Transporter oluşturulamadı:', err.message);
     return null;
   }
 }
@@ -47,24 +39,20 @@ function getTransporter() {
  * @param {string} toEmail Alıcı e-posta adresi
  * @param {string} recipientName Alıcı adı
  * @param {string} resetCode 6 haneli güvenlik kodu
- * @returns {Promise<{success: boolean, sent: boolean, code?: string, reason?: string}>}
+ * @returns {Promise<{success: boolean, sent?: boolean, messageId?: string, error?: string}>}
  */
 async function sendPasswordResetEmail(toEmail, recipientName, resetCode) {
   const transporter = getTransporter();
 
-  // SMTP henüz ayarlanmamışsa güvenli fallback motoru çalışır
   if (!isSmtpConfigured() || !transporter) {
-    console.log(`[E-Posta Fallback] SMTP henüz yapılandırılmadı. ${toEmail} (${recipientName}) için doğrulama kodu üretildi: [ ${resetCode} ]`);
+    console.error(`[E-Posta Hatası] SMTP yapılandırılmamış. Gönderilemedi: ${toEmail}`);
     return {
-      success: true,
-      sent: false,
-      fallback: true,
-      code: resetCode,
-      reason: 'SMTP sunucu ayarları henüz girilmediği için yerel doğrulama motoru devrede.'
+      success: false,
+      error: 'E-posta sunucusu (SMTP) henüz yapılandırılmamış.'
     };
   }
 
-  const fromAddress = process.env.SMTP_FROM || `"OZDER Satranç Topluluğu" <${process.env.SMTP_USER || 'destek@ozdersatranc.com'}>`;
+  const fromAddress = process.env.SMTP_FROM || `"OZDER Satranç Topluluğu" <${process.env.SMTP_USER}>`;
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -113,19 +101,13 @@ async function sendPasswordResetEmail(toEmail, recipientName, resetCode) {
   `;
 
   try {
-    const sendPromise = transporter.sendMail({
+    const info = await transporter.sendMail({
       from: fromAddress,
       to: toEmail,
       subject: `OZDER Satranç - Şifre Sıfırlama Kodu: ${resetCode}`,
       text: `Merhaba ${recipientName},\n\nOZDER Satranç şifre sıfırlama kodunuz: ${resetCode}\n\nBu kod 15 dakika geçerlidir.`,
       html: htmlContent
     });
-
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('SMTP_TIMEOUT')), 5000)
-    );
-
-    const info = await Promise.race([sendPromise, timeoutPromise]);
 
     console.log(`[E-Posta Başarılı] ${toEmail} adresine e-posta gönderildi. Mesaj ID: ${info.messageId}`);
     return {
@@ -134,16 +116,10 @@ async function sendPasswordResetEmail(toEmail, recipientName, resetCode) {
       messageId: info.messageId
     };
   } catch (error) {
-    console.warn(`[E-Posta Gönderim Uyarısı] ${toEmail}: ${error.message}. Güvenli yerel PIN motoruna geçiliyor.`);
-    // SMTP hatası veya zaman aşımında akıllı yerel PIN koduna anında geri dön
+    console.error(`[E-Posta Gönderim Hatası] ${toEmail}:`, error.message);
     return {
-      success: true,
-      sent: false,
-      fallback: true,
-      code: resetCode,
-      reason: error.message === 'SMTP_TIMEOUT' 
-        ? 'Bulut sunucu SMTP zaman aşımı (Port engeli).' 
-        : `SMTP hatası: ${error.message}`
+      success: false,
+      error: error.message
     };
   }
 }
