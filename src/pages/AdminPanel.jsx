@@ -553,7 +553,7 @@ export default function AdminPanel({
           <input
             type="text"
             required
-            placeholder="Yönetici Adı (admin, ozder, ozderahmet)"
+            placeholder="Kullanıcı Adı"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px 16px', color: 'var(--text-primary)', outline: 'none', textAlign: 'center' }}
@@ -561,7 +561,7 @@ export default function AdminPanel({
           <input
             type="password"
             required
-            placeholder="Yönetici Giriş Şifresi"
+            placeholder="Şifre"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px 16px', color: 'var(--text-primary)', outline: 'none', textAlign: 'center' }}
