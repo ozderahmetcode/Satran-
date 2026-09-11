@@ -30,6 +30,9 @@ function getTransporter() {
       port,
       secure,
       auth: { user, pass },
+      connectionTimeout: 4000,
+      greetingTimeout: 4000,
+      socketTimeout: 5000,
       tls: { rejectUnauthorized: false }
     });
     return cachedTransporter;
@@ -110,13 +113,19 @@ async function sendPasswordResetEmail(toEmail, recipientName, resetCode) {
   `;
 
   try {
-    const info = await transporter.sendMail({
+    const sendPromise = transporter.sendMail({
       from: fromAddress,
       to: toEmail,
       subject: `OZDER Satranç - Şifre Sıfırlama Kodu: ${resetCode}`,
       text: `Merhaba ${recipientName},\n\nOZDER Satranç şifre sıfırlama kodunuz: ${resetCode}\n\nBu kod 15 dakika geçerlidir.`,
       html: htmlContent
     });
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('SMTP_TIMEOUT')), 5000)
+    );
+
+    const info = await Promise.race([sendPromise, timeoutPromise]);
 
     console.log(`[E-Posta Başarılı] ${toEmail} adresine e-posta gönderildi. Mesaj ID: ${info.messageId}`);
     return {
@@ -125,14 +134,16 @@ async function sendPasswordResetEmail(toEmail, recipientName, resetCode) {
       messageId: info.messageId
     };
   } catch (error) {
-    console.error(`[E-Posta Gönderim Hatası] ${toEmail}:`, error.message);
-    // SMTP hatası durumunda dahi akıllı geri dönüş yaparak kullanıcıyı mağdur etmiyoruz
+    console.warn(`[E-Posta Gönderim Uyarısı] ${toEmail}: ${error.message}. Güvenli yerel PIN motoruna geçiliyor.`);
+    // SMTP hatası veya zaman aşımında akıllı yerel PIN koduna anında geri dön
     return {
       success: true,
       sent: false,
       fallback: true,
       code: resetCode,
-      reason: `SMTP Gönderim hatası: ${error.message}. Yerel güvenlik kodu kullanıma sunuldu.`
+      reason: error.message === 'SMTP_TIMEOUT' 
+        ? 'Bulut sunucu SMTP zaman aşımı (Port engeli).' 
+        : `SMTP hatası: ${error.message}`
     };
   }
 }

@@ -38,12 +38,17 @@ export default function Auth({ onLoginSuccess, onGoToAdmin }) {
     setErrorMsg('');
     setInfoMsg('');
 
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+
     try {
       const response = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: forgotIdentifier.trim() })
+        body: JSON.stringify({ identifier: forgotIdentifier.trim() }),
+        signal: controller.signal
       });
+      clearTimeout(timer);
       const result = await response.json();
 
       if (response.ok) {
@@ -58,7 +63,12 @@ export default function Auth({ onLoginSuccess, onGoToAdmin }) {
         setErrorMsg(result.error || 'Şifre kurtarma talebi başarısız.');
       }
     } catch (err) {
-      setErrorMsg('Sunucu bağlantı hatası.');
+      clearTimeout(timer);
+      if (err.name === 'AbortError') {
+        setErrorMsg('Bağlantı zaman aşımına uğradı. Lütfen tekrar deneyin.');
+      } else {
+        setErrorMsg('Sunucu bağlantı hatası.');
+      }
     } finally {
       setLoading(false);
     }
