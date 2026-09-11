@@ -110,8 +110,9 @@ window.fetch = async function (input, init = {}) {
   return response;
 };
 
-// Uygulama başlarken CSRF tokenini arka planda hazırla
+// Uygulama başlarken CSRF tokenini ve Render.com arka plan uyanıklığını hazırla
 getCsrfToken().catch(() => {});
+originalFetch(`${API_BASE_URL || ''}/api/health`, { method: 'GET' }).catch(() => {});
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

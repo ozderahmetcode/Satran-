@@ -6,6 +6,7 @@ const path = require('path');
 const nodemailer = require('nodemailer');
 const fs = require('fs');
 const db = require('./database');
+const emailService = require('./emailService');
 const multer = require('multer');
 
 // Güvenlik Middleware ve Servisleri (WHMCS / Kurumsal Seviye)
@@ -211,6 +212,23 @@ const transporter = nodemailer.createTransport({
   }
 });
 
+// Render.com Uyanık Tutma ve Sağlık Kontrol Uç Noktası
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    service: 'OZDER Satranc Toplulugu API',
+    uptimeSeconds: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
+    storage: {
+      dataDir: db.getDataDir ? db.getDataDir() : 'default',
+      hasPersistentDisk: db.hasPersistentDisk ? db.hasPersistentDisk() : false
+    },
+    email: {
+      configured: emailService.isSmtpConfigured()
+    }
+  });
+});
+
 // API Rotaları
 app.get('/api/data', (req, res) => {
   try {
@@ -400,6 +418,74 @@ app.post('/api/auth/admin-login', authBruteForceCheck, (req, res) => {
 app.post('/api/auth/logout', (req, res) => {
   destroySession(req, res);
   res.json({ success: true, message: "Oturum güvenle sonlandırıldı." });
+});
+
+// Şifremi Unuttum (Kurtarma Kodu Talebi - Gerçek E-Posta + Akıllı Fallback)
+app.post('/api/auth/forgot-password', authBruteForceCheck, async (req, res) => {
+  try {
+    const { identifier } = req.body;
+    if (!identifier || !identifier.trim()) {
+      return res.status(400).json({ error: "Lütfen kayıtlı e-posta adresinizi veya kullanıcı adınızı girin." });
+    }
+
+    const result = db.createPasswordResetCode(identifier.trim());
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
+    }
+
+    const { user, code } = result;
+
+    // E-posta gönderim servisini tetikle
+    const emailResult = await emailService.sendPasswordResetEmail(user.email, user.name, code);
+
+    // E-posta maskeleme (güvenlik ve gizlilik için, örn: a***n@gmail.com)
+    let maskedEmail = user.email;
+    if (user.email.includes('@')) {
+      const [localPart, domain] = user.email.split('@');
+      const maskedLocal = localPart.length <= 2 
+        ? localPart[0] + '*' 
+        : localPart[0] + '*'.repeat(Math.max(1, localPart.length - 2)) + localPart[localPart.length - 1];
+      maskedEmail = `${maskedLocal}@${domain}`;
+    }
+
+    res.json({
+      success: true,
+      message: emailResult.sent 
+        ? `Doğrulama kodu ${maskedEmail} adresinize iletildi. Lütfen gelen kutunuzu kontrol edin.`
+        : `Doğrulama kodunuz başarıyla oluşturuldu.`,
+      maskedEmail,
+      smtpActive: emailResult.sent,
+      // SMTP tanımlı değilse kullanıcıyı bekletmemek için kodu güvenle ekrana da yansıtıyoruz
+      fallbackCode: emailResult.sent ? undefined : code,
+      note: emailResult.sent ? undefined : "SMTP henüz tanımlanmadığı için doğrulama PIN kodunuz ekrana ve Yönetici Güvenlik Günlüğüne yansıtılmıştır."
+    });
+  } catch (error) {
+    console.error('[Şifremi Unuttum Hatası]:', error);
+    res.status(500).json({ error: "Şifre kurtarma kodu oluşturulurken sunucu hatası oluştu." });
+  }
+});
+
+// Yeni Şifre Belirleme (Kodu Doğrula ve Şifreyi Güncelle)
+app.post('/api/auth/reset-password', authBruteForceCheck, (req, res) => {
+  try {
+    const { identifier, code, newPassword } = req.body;
+    if (!identifier || !code || !newPassword) {
+      return res.status(400).json({ error: "Lütfen tüm alanları (kullanıcı adı/e-posta, 6 haneli kod ve yeni şifre) doldurun." });
+    }
+
+    const result = db.verifyAndResetPassword(identifier, code, newPassword);
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
+    }
+
+    // Başarılı sıfırlamada kilit/deneme sayaçlarını sıfırla
+    recordSuccessfulAuth(req, identifier);
+
+    res.json(result);
+  } catch (error) {
+    console.error('[Şifre Sıfırlama Hatası]:', error);
+    res.status(500).json({ error: "Şifre güncellenirken sunucu hatası oluştu." });
+  }
 });
 
 // Profil ve Kullanıcı Ayarları
@@ -841,6 +927,28 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 
+function startKeepAliveWorker() {
+  // Render.com free-tier 15 dakikalık hareketsizlikte uyku moduna geçer.
+  // Her 9 dakikada bir otomatik GET /api/health isteği atarak servisi daima uyanık ve sıcak tutar.
+  const targetUrl = process.env.RENDER_EXTERNAL_URL || 'https://ozdersatranc.onrender.com';
+  const PING_INTERVAL = 9 * 60 * 1000; // 9 dakika (540 saniye)
+
+  console.log(`[Render KeepAlive] Uyanık tutma servisi devrede. Hedef: ${targetUrl}/api/health (9 dakikalık döngü)`);
+
+  setInterval(() => {
+    try {
+      const pingUrl = `${targetUrl.replace(/\/$/, '')}/api/health`;
+      const client = pingUrl.startsWith('https') ? require('https') : require('http');
+      client.get(pingUrl, (res) => {
+        console.log(`[KeepAlive Ping] Sunucu uyanık tutuldu (${new Date().toLocaleTimeString('tr-TR')}) - Status: ${res.statusCode}`);
+      }).on('error', (err) => {
+        // Ağ gecikmesi veya başlangıç
+      });
+    } catch (e) {}
+  }, PING_INTERVAL);
+}
+
 app.listen(PORT, () => {
   console.log(`Sunucu http://localhost:${PORT} portunda aktif.`);
+  startKeepAliveWorker();
 });

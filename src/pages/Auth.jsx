@@ -19,6 +19,102 @@ export default function Auth({ onLoginSuccess, onGoToAdmin }) {
   const [errorMsg, setErrorMsg] = useState('');
   const [infoMsg, setInfoMsg] = useState('');
 
+  // Şifre Kurtarma & Sıfırlama State'leri
+  const [forgotIdentifier, setForgotIdentifier] = useState('');
+  const [forgotStep, setForgotStep] = useState(1); // 1: E-posta/Kullanıcı Adı, 2: Kod ve Yeni Şifre
+  const [resetPin, setResetPin] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [fallbackPinCode, setFallbackPinCode] = useState('');
+  const [maskedEmailInfo, setMaskedEmailInfo] = useState('');
+
+  const handleRequestResetCode = async (e) => {
+    e.preventDefault();
+    if (!forgotIdentifier.trim()) {
+      setErrorMsg('Lütfen kayıtlı e-posta adresinizi veya kullanıcı adınızı girin.');
+      return;
+    }
+    setLoading(true);
+    setErrorMsg('');
+    setInfoMsg('');
+
+    try {
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: forgotIdentifier.trim() })
+      });
+      const result = await response.json();
+
+      if (response.ok) {
+        setMaskedEmailInfo(result.maskedEmail || forgotIdentifier);
+        if (result.fallbackCode) {
+          setFallbackPinCode(result.fallbackCode);
+          setResetPin(result.fallbackCode); // Kullanıcı dostu otomatik doldurma
+        }
+        setForgotStep(2);
+        setInfoMsg(result.message || 'Kurtarma kodunuz oluşturuldu.');
+      } else {
+        setErrorMsg(result.error || 'Şifre kurtarma talebi başarısız.');
+      }
+    } catch (err) {
+      setErrorMsg('Sunucu bağlantı hatası.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    if (!resetPin.trim() || resetPin.trim().length !== 6) {
+      setErrorMsg('Lütfen 6 haneli doğrulama PIN kodunu girin.');
+      return;
+    }
+    if (!newPassword || newPassword.length < 6) {
+      setErrorMsg('Yeni şifreniz en az 6 karakter olmalıdır.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setErrorMsg('Girdiğiniz şifreler birbiriyle uyuşmuyor.');
+      return;
+    }
+
+    setLoading(true);
+    setErrorMsg('');
+    setInfoMsg('');
+
+    try {
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          identifier: forgotIdentifier.trim(),
+          code: resetPin.trim(),
+          newPassword: newPassword
+        })
+      });
+      const result = await response.json();
+
+      if (response.ok) {
+        setInfoMsg('✓ Şifreniz başarıyla yenilendi! Yeni şifrenizle giriş yapabilirsiniz.');
+        setLoginIdentifier(forgotIdentifier.trim());
+        setLoginPassword(newPassword);
+        setActiveTab('login');
+        setForgotStep(1);
+        setResetPin('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setFallbackPinCode('');
+      } else {
+        setErrorMsg(result.error || 'Şifre sıfırlama başarısız.');
+      }
+    } catch (err) {
+      setErrorMsg('Sunucu bağlantı hatası.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleRegister = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -166,6 +262,23 @@ export default function Auth({ onLoginSuccess, onGoToAdmin }) {
           >
             Üye Ol
           </button>
+          {activeTab === 'forgot' && (
+            <button
+              style={{
+                flex: 1,
+                background: 'none',
+                border: 'none',
+                padding: '12px 0',
+                color: 'var(--accent-primary)',
+                fontWeight: 700,
+                fontSize: '15px',
+                cursor: 'default',
+                borderBottom: '2px solid var(--accent-primary)'
+              }}
+            >
+              Şifre Kurtarma
+            </button>
+          )}
         </div>
 
       {errorMsg && (
@@ -197,9 +310,32 @@ export default function Auth({ onLoginSuccess, onGoToAdmin }) {
             />
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-              Şifre
-            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                Şifre
+              </label>
+              <button
+                type="button"
+                onClick={() => { 
+                  setActiveTab('forgot'); 
+                  setErrorMsg(''); 
+                  setInfoMsg(''); 
+                  setForgotStep(1); 
+                  setForgotIdentifier(loginIdentifier); 
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--accent-primary)',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  padding: 0
+                }}
+              >
+                Şifremi Unuttum?
+              </button>
+            </div>
             <input
               type="password"
               required
@@ -244,6 +380,136 @@ export default function Auth({ onLoginSuccess, onGoToAdmin }) {
             </button>
           </div>
         </form>
+      )}
+
+      {/* Forgot Password Screen */}
+      {activeTab === 'forgot' && (
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+            <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '18px', fontWeight: 700, margin: 0 }}>
+              {forgotStep === 1 ? '🔑 Şifre Kurtarma' : '🔒 Yeni Şifre Belirleme'}
+            </h3>
+            <button
+              type="button"
+              onClick={() => { setActiveTab('login'); setErrorMsg(''); setInfoMsg(''); setForgotStep(1); }}
+              style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '13px', cursor: 'pointer', fontWeight: 600 }}
+            >
+              ← Giriş Ekranına Dön
+            </button>
+          </div>
+
+          {forgotStep === 1 ? (
+            <form onSubmit={handleRequestResetCode} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                Kayıtlı kullanıcı adınızı veya e-posta adresinizi girin. Size 6 haneli bir kurtarma kodu oluşturacağız.
+              </p>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                  Kullanıcı Adı veya E-posta
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="örn: ahmet veya ahmet@gmail.com"
+                  value={forgotIdentifier}
+                  onChange={(e) => setForgotIdentifier(e.target.value)}
+                  style={{ width: '100%', background: '#fff', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px', color: 'var(--text-primary)', outline: 'none' }}
+                />
+              </div>
+              <button type="submit" disabled={loading} className="btn-primary" style={{ justifyContent: 'center', marginTop: '6px' }}>
+                {loading ? 'Kod Oluşturuluyor...' : 'Kurtarma Kodu Gönder'}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleResetPassword} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {fallbackPinCode && (
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%)',
+                  border: '1px dashed var(--accent-primary)',
+                  borderRadius: '10px',
+                  padding: '14px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent-primary)', textTransform: 'uppercase' }}>
+                    💡 Güvenlik PIN Kodunuz
+                  </div>
+                  <div style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '6px', fontFamily: 'monospace', color: 'var(--text-primary)', margin: '6px 0' }}>
+                    {fallbackPinCode}
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                    (SMTP e-posta henüz tanımlanmadığı için güvenlik PIN kodunuz otomatik olarak ekrana yansıtılmıştır)
+                  </div>
+                </div>
+              )}
+
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
+                Hesap: <strong>{maskedEmailInfo}</strong>
+              </p>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                  6 Haneli Doğrulama Kodu
+                </label>
+                <input
+                  type="text"
+                  required
+                  maxLength={6}
+                  placeholder="6 haneli PIN (örn: 123456)"
+                  value={resetPin}
+                  onChange={(e) => setResetPin(e.target.value.replace(/\D/g, ''))}
+                  style={{ width: '100%', background: '#fff', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px', fontSize: '18px', letterSpacing: '4px', textAlign: 'center', fontWeight: 700, outline: 'none' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                  Yeni Şifre
+                </label>
+                <input
+                  type="password"
+                  required
+                  placeholder="En az 6 karakter"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  style={{ width: '100%', background: '#fff', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px', color: 'var(--text-primary)', outline: 'none' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                  Yeni Şifre (Tekrar)
+                </label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Şifrenizi tekrar yazın"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  style={{ width: '100%', background: '#fff', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px', color: 'var(--text-primary)', outline: 'none' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => setForgotStep(1)}
+                  className="btn-secondary"
+                  style={{ flex: 1, justifyContent: 'center' }}
+                >
+                  Geri
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="btn-primary"
+                  style={{ flex: 2, justifyContent: 'center' }}
+                >
+                  {loading ? 'Güncelleniyor...' : 'Şifremi Yenile'}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
       )}
 
       {/* Register Screen */}

@@ -1,8 +1,15 @@
 const fs = require('fs');
 const path = require('path');
 
-const DATA_DIR = path.join(__dirname, 'data');
+// Render.com Kalıcı Disk ve Yerel Geliştirme Dizin Algılama
+const RENDER_DISK = process.env.RENDER_DISK_PATH || (fs.existsSync('/var/data') ? '/var/data' : null);
+const DATA_DIR = RENDER_DISK ? path.join(RENDER_DISK, 'satranc_data') : path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
+const BACKUP_FILE = path.join(DATA_DIR, 'db_backup_latest.json');
+const SNAPSHOTS_DIR = path.join(DATA_DIR, 'auto_backups');
+
+let memoryCache = null;
+let writeCounter = 0;
 
 // Sıfırdan başlayacak temiz veritabanı şablonu (OZDER satranç topluluğu)
 const defaultData = {
@@ -39,6 +46,7 @@ const defaultData = {
   directMessages: [],
   spamReports: [],
   securityLogs: [],
+  passwordResets: [],
   analytics: {
     totalTimeSpentSeconds: 0,
     totalVisits: 0,
@@ -55,8 +63,60 @@ function initDB() {
   if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
+  if (!fs.existsSync(SNAPSHOTS_DIR)) {
+    fs.mkdirSync(SNAPSHOTS_DIR, { recursive: true });
+  }
+
+  let needsRecovery = false;
   if (!fs.existsSync(DB_FILE)) {
+    needsRecovery = true;
+  } else {
+    try {
+      const stats = fs.statSync(DB_FILE);
+      if (stats.size === 0) needsRecovery = true;
+    } catch (e) {
+      needsRecovery = true;
+    }
+  }
+
+  if (needsRecovery) {
+    // 1. En güncel yedek dosyasından (db_backup_latest.json) kurtarmayı dene
+    if (fs.existsSync(BACKUP_FILE)) {
+      try {
+        const backupRaw = fs.readFileSync(BACKUP_FILE, 'utf-8');
+        if (backupRaw && backupRaw.trim().length > 10) {
+          JSON.parse(backupRaw); // doğrula
+          fs.writeFileSync(DB_FILE, backupRaw, 'utf-8');
+          console.log('[Veritabanı Kurtarma] db.json en son yedekten (db_backup_latest.json) başarıyla geri yüklendi.');
+          return;
+        }
+      } catch (e) {
+        console.warn('[Veritabanı Kurtarma] db_backup_latest.json okunamadı:', e.message);
+      }
+    }
+
+    // 2. Anlık otomatik yedeklerden (snapshots) en sonuncusunu bulmayı dene
+    try {
+      const files = fs.readdirSync(SNAPSHOTS_DIR).filter(f => f.startsWith('snapshot_') && f.endsWith('.json'));
+      if (files.length > 0) {
+        files.sort().reverse(); // en yeni snapshot
+        const latestSnap = path.join(SNAPSHOTS_DIR, files[0]);
+        const snapRaw = fs.readFileSync(latestSnap, 'utf-8');
+        JSON.parse(snapRaw);
+        fs.writeFileSync(DB_FILE, snapRaw, 'utf-8');
+        console.log(`[Veritabanı Kurtarma] db.json ${files[0]} yedeğinden başarıyla kurtarıldı.`);
+        return;
+      }
+    } catch (e) {
+      console.warn('[Veritabanı Kurtarma] Snapshots kontrolü hatası:', e.message);
+    }
+
+    // 3. Hiçbir yedek bulunamazsa varsayılan verilerle başlat
+    console.log('[Veritabanı Başlatma] Yeni db.json oluşturuluyor...');
     fs.writeFileSync(DB_FILE, JSON.stringify(defaultData, null, 2), 'utf-8');
+    try {
+      fs.writeFileSync(BACKUP_FILE, JSON.stringify(defaultData, null, 2), 'utf-8');
+    } catch (e) {}
   }
 }
 
@@ -107,6 +167,10 @@ function readDB() {
       parsed.securityLogs = [];
       changed = true;
     }
+    if (!Array.isArray(parsed.passwordResets)) {
+      parsed.passwordResets = [];
+      changed = true;
+    }
     if (!parsed.analytics || typeof parsed.analytics !== 'object') {
       parsed.analytics = {
         totalTimeSpentSeconds: 0,
@@ -130,11 +194,13 @@ function readDB() {
     }
     updateLeaderboards(parsed);
     if (changed) {
-      fs.writeFileSync(DB_FILE, JSON.stringify(parsed, null, 2), 'utf-8');
+      writeDB(parsed);
     }
+    memoryCache = parsed;
     return parsed;
   } catch (error) {
     console.error("Veritabanı okuma hatası:", error);
+    if (memoryCache) return memoryCache;
     return defaultData;
   }
 }
@@ -142,7 +208,37 @@ function readDB() {
 function writeDB(data) {
   initDB();
   try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
+    const rawData = JSON.stringify(data, null, 2);
+    // 1. Güvenli atomik yazma (.tmp yazılıp rename edilir)
+    const tmpFile = `${DB_FILE}.tmp`;
+    fs.writeFileSync(tmpFile, rawData, 'utf-8');
+    fs.renameSync(tmpFile, DB_FILE);
+
+    // 2. Eş zamanlı en güncel yedek dosyasına kopyala
+    try {
+      fs.writeFileSync(BACKUP_FILE, rawData, 'utf-8');
+    } catch (err) {
+      console.warn('[Yedekleme Uyarısı] db_backup_latest yazılamadı:', err.message);
+    }
+
+    // 3. Periyodik Snapshot Rotasyonu (Her 15 yazmada bir)
+    writeCounter++;
+    if (writeCounter % 15 === 0) {
+      try {
+        const snapFile = path.join(SNAPSHOTS_DIR, `snapshot_${Date.now()}.json`);
+        fs.writeFileSync(snapFile, rawData, 'utf-8');
+        // 10'dan fazla snapshot varsa en eskilerini temizle
+        const allSnaps = fs.readdirSync(SNAPSHOTS_DIR).filter(f => f.startsWith('snapshot_') && f.endsWith('.json')).sort();
+        while (allSnaps.length > 10) {
+          const oldFile = allSnaps.shift();
+          try { fs.unlinkSync(path.join(SNAPSHOTS_DIR, oldFile)); } catch (e) {}
+        }
+      } catch (e) {
+        console.warn('[Snapshot Hatası]:', e.message);
+      }
+    }
+
+    memoryCache = data;
     return true;
   } catch (error) {
     console.error("Veritabanı yazma hatası:", error);
@@ -1332,6 +1428,148 @@ module.exports = {
     db.securityLogs = (db.securityLogs || []).filter(log => log.id !== id);
     writeDB(db);
     return db.securityLogs;
+  },
+
+  // ================= DEPOLAMA VE DİSK DURUMU =================
+  getDataDir: () => DATA_DIR,
+  hasPersistentDisk: () => Boolean(RENDER_DISK),
+
+  // ================= ŞİFRE SIFIRLAMA VE KURTARMA SİSTEMİ =================
+  createPasswordResetCode: (identifier) => {
+    const db = readDB();
+    const cleanId = (identifier || '').trim().toLowerCase();
+
+    // Kullanıcıyı e-posta veya kullanıcı adı ile bul
+    const user = db.users.find(u => 
+      (u.email && u.email.trim().toLowerCase() === cleanId) || 
+      (u.username && u.username.trim().toLowerCase() === cleanId)
+    );
+
+    if (!user) {
+      return { error: "Bu kullanıcı adı veya e-posta ile kayıtlı bir hesap bulunamadı." };
+    }
+
+    if (!Array.isArray(db.passwordResets)) {
+      db.passwordResets = [];
+    }
+
+    // 6 Haneli Kriptografik Güvenli PIN Kodu (Örn: 482915)
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 15 * 60 * 1000; // 15 dakika geçerli
+
+    // Eski kullanılmamış talepleri temizle
+    db.passwordResets = db.passwordResets.filter(r => r.userId !== user.id || r.used);
+
+    const resetRecord = {
+      id: 'reset_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+      userId: user.id,
+      email: user.email,
+      username: user.username,
+      code,
+      expiresAt,
+      createdAt: new Date().toISOString(),
+      used: false
+    };
+
+    db.passwordResets.push(resetRecord);
+
+    // Güvenlik Günlüğüne de kaydet (Yönetici panelinden izlenebilir)
+    if (Array.isArray(db.securityLogs)) {
+      db.securityLogs.unshift({
+        id: 'sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+        timestamp: new Date().toISOString(),
+        type: 'ŞİFRE_KURTARMA_KODU',
+        severity: 'LOW',
+        ip: 'Sistem',
+        userAgent: 'Internal/Auth',
+        method: 'POST',
+        path: '/api/auth/forgot-password',
+        details: `Kullanıcı: ${user.username} (${user.email}) için 15 dakika geçerli kod üretildi: [ ${code} ]`,
+        threatPayload: `PIN: ${code}`
+      });
+      if (db.securityLogs.length > 500) db.securityLogs = db.securityLogs.slice(0, 500);
+    }
+
+    writeDB(db);
+
+    return {
+      success: true,
+      code,
+      user: {
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        email: user.email
+      }
+    };
+  },
+
+  verifyAndResetPassword: (identifier, code, newPassword) => {
+    const db = readDB();
+    const cleanId = (identifier || '').trim().toLowerCase();
+    const cleanCode = (code || '').trim();
+
+    if (!cleanCode || cleanCode.length !== 6) {
+      return { error: "Lütfen 6 haneli doğrulama kodunu eksiksiz girin." };
+    }
+
+    if (!newPassword || newPassword.length < 6) {
+      return { error: "Yeni şifre en az 6 karakter uzunluğunda olmalıdır." };
+    }
+
+    const user = db.users.find(u => 
+      (u.email && u.email.trim().toLowerCase() === cleanId) || 
+      (u.username && u.username.trim().toLowerCase() === cleanId)
+    );
+
+    if (!user) {
+      return { error: "Kullanıcı bulunamadı." };
+    }
+
+    if (!Array.isArray(db.passwordResets)) {
+      db.passwordResets = [];
+    }
+
+    // Aktif, süresi dolmamış ve kullanılmamış talebi bul
+    const now = Date.now();
+    const resetRecord = db.passwordResets.find(r => 
+      r.userId === user.id && 
+      r.code === cleanCode && 
+      !r.used && 
+      r.expiresAt > now
+    );
+
+    if (!resetRecord) {
+      return { error: "Girdiğiniz güvenlik kodu geçersiz veya 15 dakikalık süresi dolmuş. Lütfen tekrar kod isteyin." };
+    }
+
+    // Şifreyi güncelle ve kodu kullanıldı olarak işaretle
+    user.password = newPassword;
+    resetRecord.used = true;
+
+    // Başarılı sıfırlama güvenlik günlüğü
+    if (Array.isArray(db.securityLogs)) {
+      db.securityLogs.unshift({
+        id: 'sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+        timestamp: new Date().toISOString(),
+        type: 'ŞİFRE_BAŞARIYLA_GÜNCELLENDİ',
+        severity: 'LOW',
+        ip: 'Sistem',
+        userAgent: 'Internal/Auth',
+        method: 'POST',
+        path: '/api/auth/reset-password',
+        details: `Kullanıcı: ${user.username} (${user.email}) şifresini başarıyla yeniledi.`,
+        threatPayload: ''
+      });
+      if (db.securityLogs.length > 500) db.securityLogs = db.securityLogs.slice(0, 500);
+    }
+
+    writeDB(db);
+
+    return {
+      success: true,
+      message: "Şifreniz başarıyla sıfırlandı! Artık yeni şifreniz ile giriş yapabilirsiniz."
+    };
   }
 };
 
