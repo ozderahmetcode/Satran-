@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { sanitizeUrl, sanitizeChessUsername } from '../utils/security';
 
 export default function Matchmaking({ 
   currentUser, 
@@ -628,7 +629,7 @@ export default function Matchmaking({
                     <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{p.name}</h3>
                     {p.chessUsername ? (
                       <a
-                        href={p.chessPlatform === 'lichess' ? `https://lichess.org/@/${p.chessUsername}` : `https://www.chess.com/member/${p.chessUsername}`}
+                        href={sanitizeUrl(p.chessPlatform === 'lichess' ? `https://lichess.org/@/${sanitizeChessUsername(p.chessUsername)}` : `https://www.chess.com/member/${sanitizeChessUsername(p.chessUsername)}`)}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{
@@ -1003,7 +1004,7 @@ export default function Matchmaking({
                         {activeChatUser.name}
                         {activeChatUser.chessUsername && (
                           <a
-                            href={activeChatUser.chessPlatform === 'lichess' ? `https://lichess.org/@/${activeChatUser.chessUsername}` : `https://www.chess.com/member/${activeChatUser.chessUsername}`}
+                            href={sanitizeUrl(activeChatUser.chessPlatform === 'lichess' ? `https://lichess.org/@/${sanitizeChessUsername(activeChatUser.chessUsername)}` : `https://www.chess.com/member/${sanitizeChessUsername(activeChatUser.chessUsername)}`)}
                             target="_blank"
                             rel="noopener noreferrer"
                             style={{

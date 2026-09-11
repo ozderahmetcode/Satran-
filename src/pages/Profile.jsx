@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { sanitizeUrl, sanitizeChessUsername } from '../utils/security';
 
 export default function Profile({ currentUser, registrations, tournaments, onUpdateProfile }) {
   const [activeSubTab, setActiveSubTab] = useState('stats'); // stats | history | settings
@@ -435,7 +436,7 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
             </span>
             {currentUser.chessUsername && (
               <a
-                href={currentUser.chessPlatform === 'lichess' ? `https://lichess.org/@/${currentUser.chessUsername}` : `https://www.chess.com/member/${currentUser.chessUsername}`}
+                href={sanitizeUrl(currentUser.chessPlatform === 'lichess' ? `https://lichess.org/@/${sanitizeChessUsername(currentUser.chessUsername)}` : `https://www.chess.com/member/${sanitizeChessUsername(currentUser.chessUsername)}`)}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{

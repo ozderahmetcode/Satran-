@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const cookieParser = require('cookie-parser');
 const path = require('path');
 const nodemailer = require('nodemailer');
 const fs = require('fs');
@@ -27,9 +29,90 @@ const upload = multer({ storage: storage });
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+// 1. Güvenlik Başlıkları (CSP, X-Content-Type-Options: nosniff, Frame Deny, vb.)
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'", "https://ozdersatranc.onrender.com", "https://ozdersatranc.web.app", "https://satranc-b83d1.web.app"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+      imgSrc: ["'self'", "data:", "blob:", "https:"],
+      connectSrc: ["'self'", "https://ozdersatranc.onrender.com", "https://ozdersatranc.web.app", "https://satranc-b83d1.web.app"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      frameAncestors: ["'none'"]
+    }
+  },
+  xContentTypeOptions: true, // X-Content-Type-Options: nosniff
+  xFrameOptions: { action: 'deny' },
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  crossOriginEmbedderPolicy: false
+}));
+
+app.use(cookieParser());
+app.use(cors({
+  origin: [
+    'https://ozdersatranc.web.app',
+    'https://satranc-b83d1.web.app',
+    'https://ozdersatranc.onrender.com',
+    'http://localhost:5173',
+    'http://localhost:5000'
+  ],
+  credentials: true
+}));
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
+
+// 2. Girdi Dezenfeksiyonu & Open-Redirect Koruması Middleware
+function sanitizeInput(data) {
+  if (typeof data === 'string') {
+    return data
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/on\w+\s*=\s*(['"]).*?\1/gi, '')
+      .replace(/(javascript|vbscript|data):/gi, '$1_disabled:');
+  } else if (Array.isArray(data)) {
+    return data.map(sanitizeInput);
+  } else if (data !== null && typeof data === 'object') {
+    const res = {};
+    for (const k of Object.keys(data)) {
+      res[k] = sanitizeInput(data[k]);
+    }
+    return res;
+  }
+  return data;
+}
+
+app.use((req, res, next) => {
+  if (req.body && typeof req.body === 'object') req.body = sanitizeInput(req.body);
+  if (req.query && typeof req.query === 'object') req.query = sanitizeInput(req.query);
+  if (req.params && typeof req.params === 'object') req.params = sanitizeInput(req.params);
+
+  // Güvenli Yönlendirme (Open-Redirect Engeli)
+  const originalRedirect = res.redirect.bind(res);
+  res.safeRedirect = function (targetUrl) {
+    if (!targetUrl || typeof targetUrl !== 'string') return originalRedirect('/');
+    const trimmed = targetUrl.trim();
+    if (/^(javascript|data|vbscript):/i.test(trimmed)) {
+      console.warn('[Güvenlik Engeli] Zararlı şema yönlendirmesi engellendi:', trimmed);
+      return originalRedirect('/');
+    }
+    if (trimmed.startsWith('/') && !trimmed.startsWith('//')) {
+      return originalRedirect(trimmed);
+    }
+    try {
+      const parsed = new URL(trimmed);
+      const safeOrigins = ['ozdersatranc.web.app', 'satranc-b83d1.web.app', 'ozdersatranc.onrender.com', 'localhost'];
+      if (safeOrigins.includes(parsed.hostname)) {
+        return originalRedirect(trimmed);
+      }
+    } catch (e) {}
+    console.warn('[Güvenlik Engeli] Yetkisiz harici open-redirect engellendi:', trimmed);
+    return originalRedirect('/');
+  };
+
+  next();
+});
 
 // Statik yükleme klasörü
 app.use('/uploads', express.static(uploadsDir));
@@ -228,10 +311,34 @@ app.post('/api/auth/login', (req, res) => {
     if (result.error) {
       return res.status(400).json({ error: result.error, requiresVerification: result.requiresVerification });
     }
+    // Güvenli Oturum Çerezi (HttpOnly, Secure, SameSite=Lax)
+    const sessionToken = Buffer.from(JSON.stringify({
+      id: result.user.id,
+      email: result.user.email,
+      iat: Date.now()
+    })).toString('base64');
+
+    res.cookie('ozder_session', sessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 gün geçerli
+    });
+
     res.json({ success: true, user: result.user });
   } catch (error) {
     res.status(500).json({ error: "Giriş yapılırken bir hata oluştu." });
   }
+});
+
+// Güvenli Çıkış (Oturum Çerezini Sıfırla)
+app.post('/api/auth/logout', (req, res) => {
+  res.clearCookie('ozder_session', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax'
+  });
+  res.json({ success: true, message: "Oturum güvenle sonlandırıldı." });
 });
 
 // Profil ve Kullanıcı Ayarları

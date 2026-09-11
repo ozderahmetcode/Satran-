@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { sanitizeUrl, sanitizeChessUsername } from '../utils/security';
 
 export default function Database({ leaders, tournaments, users = [], registrations = [] }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -245,8 +246,9 @@ export default function Database({ leaders, tournaments, users = [], registratio
     const matchedUser = users?.find(u => u.name === playerName || u.chessUsername === playerName || u.username === playerName);
     if (!matchedUser || !matchedUser.chessUsername) return null;
     const platform = matchedUser.chessPlatform === 'lichess' ? 'lichess' : 'chess.com';
-    const chUser = matchedUser.chessUsername;
-    const url = platform === 'lichess' ? `https://lichess.org/@/${chUser}` : `https://www.chess.com/member/${chUser}`;
+    const chUser = sanitizeChessUsername(matchedUser.chessUsername);
+    const rawUrl = platform === 'lichess' ? `https://lichess.org/@/${chUser}` : `https://www.chess.com/member/${chUser}`;
+    const url = sanitizeUrl(rawUrl);
     return (
       <a
         href={url}

@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { sanitizeUrl, sanitizeChessUsername } from '../utils/security';
 
 export default function AdminPanel({ 
   registrations, 
@@ -874,7 +875,7 @@ export default function AdminPanel({
                           <td style={{ padding: '12px 10px' }}>
                             {u.chessUsername ? (
                               <a
-                                href={u.chessPlatform === 'lichess' ? `https://lichess.org/@/${u.chessUsername}` : `https://www.chess.com/member/${u.chessUsername}`}
+                                href={sanitizeUrl(u.chessPlatform === 'lichess' ? `https://lichess.org/@/${sanitizeChessUsername(u.chessUsername)}` : `https://www.chess.com/member/${sanitizeChessUsername(u.chessUsername)}`)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 style={{
@@ -1240,7 +1241,7 @@ export default function AdminPanel({
                             {matchedUser.chessUsername ? (
                               <div style={{ marginTop: '3px' }}>
                                 <a
-                                  href={matchedUser.chessPlatform === 'lichess' ? `https://lichess.org/@/${matchedUser.chessUsername}` : `https://www.chess.com/member/${matchedUser.chessUsername}`}
+                                  href={sanitizeUrl(matchedUser.chessPlatform === 'lichess' ? `https://lichess.org/@/${sanitizeChessUsername(matchedUser.chessUsername)}` : `https://www.chess.com/member/${sanitizeChessUsername(matchedUser.chessUsername)}`)}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   style={{

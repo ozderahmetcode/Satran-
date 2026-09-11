@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { sanitizeUrl, sanitizeChessUsername } from '../utils/security';
 
 export default function EventDetail({ tournaments, registrations, users = [], currentUser, onRegisterUpdate, onGoToAuth }) {
   const [selectedTournamentId, setSelectedTournamentId] = useState(null);
@@ -333,7 +334,7 @@ export default function EventDetail({ tournaments, registrations, users = [], cu
                         <div style={{ fontSize: '14px', fontWeight: 600 }}>{idx + 1}. {displayName}</div>
                         {chessUsername && (
                           <a
-                            href={chessPlatform === 'lichess' ? `https://lichess.org/@/${chessUsername}` : `https://www.chess.com/member/${chessUsername}`}
+                            href={sanitizeUrl(chessPlatform === 'lichess' ? `https://lichess.org/@/${sanitizeChessUsername(chessUsername)}` : `https://www.chess.com/member/${sanitizeChessUsername(chessUsername)}`)}
                             target="_blank"
                             rel="noopener noreferrer"
                             style={{
