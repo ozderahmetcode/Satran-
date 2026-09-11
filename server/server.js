@@ -126,6 +126,7 @@ app.get('/api/csrf-token', handleGetCsrfToken);
 app.use(csrfProtectionMiddleware);
 
 // Statik yükleme klasörü
+const uploadsDir = path.join(__dirname, 'public/uploads');
 app.use('/uploads', express.static(uploadsDir));
 
 // Canlı / Aktif Kullanıcı Takibi (Son 35 saniye içinde sinyal gönderenler)
