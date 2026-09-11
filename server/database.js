@@ -435,12 +435,22 @@ function updateLeaderboards(db) {
       streak: Math.max(p.maxStreak, p.currentStreak)
     }));
 
-  // İstatistikleri de güncelle
-  if (db.stats) {
-    db.stats.gamesPlayed = totalGamesCount;
-    db.stats.organizedTournaments = db.tournaments ? db.tournaments.filter(t => t.status !== 'cancelled').length : 0;
-    db.stats.registeredPlayers = db.registrations ? db.registrations.length : 0;
+  // İstatistikleri güncelle (Kayıtlı Üyeler, Katılımcı Sayısı, Oynanan Maç, Düzenlenen Turnuva)
+  if (!db.stats || typeof db.stats !== 'object') {
+    db.stats = {};
   }
+  const registeredUsersCount = Array.isArray(db.users) ? db.users.length : 0;
+  const uniqueParticipantsCount = Array.isArray(db.registrations) 
+    ? new Set(db.registrations.map(r => String(r.userId))).size 
+    : 0;
+
+  db.stats.gamesPlayed = totalGamesCount;
+  db.stats.organizedTournaments = db.tournaments ? db.tournaments.filter(t => t.status !== 'cancelled').length : 0;
+  db.stats.registeredUsers = registeredUsersCount;
+  db.stats.totalParticipants = uniqueParticipantsCount;
+  db.stats.totalRegistrations = Array.isArray(db.registrations) ? db.registrations.length : 0;
+  // Geriye dönük uyumluluk
+  db.stats.registeredPlayers = registeredUsersCount;
 }
 
 module.exports = {

@@ -67,30 +67,36 @@ export default function Home({ stats, leaders, setCurrentPage }) {
       {/* Stats Section */}
       <section className="glass-panel" style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-        gap: '40px',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: '24px',
         textAlign: 'center',
         background: '#ffffff',
         border: '1px solid var(--panel-border)',
         boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01)'
       }}>
         <div>
-          <h3 style={{ fontSize: '48px', fontFamily: 'var(--font-title)', fontWeight: 800, color: 'var(--accent-primary)' }}>
-            {stats?.organizedTournaments || '0'}
+          <h3 style={{ fontSize: '44px', fontFamily: 'var(--font-title)', fontWeight: 800, color: 'var(--accent-primary)' }}>
+            {stats?.organizedTournaments ?? 0}
           </h3>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '15px', fontWeight: 600 }}>Düzenlenen Turnuva & Buluşma</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 600 }}>Düzenlenen Turnuva & Buluşma</p>
         </div>
         <div>
-          <h3 style={{ fontSize: '48px', fontFamily: 'var(--font-title)', fontWeight: 800, color: '#10b981' }}>
-            {stats?.gamesPlayed || '0'}
+          <h3 style={{ fontSize: '44px', fontFamily: 'var(--font-title)', fontWeight: 800, color: '#10b981' }}>
+            {stats?.gamesPlayed ?? 0}
           </h3>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '15px', fontWeight: 600 }}>Oynanan Maç</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 600 }}>Oynanan Maç</p>
         </div>
         <div>
-          <h3 style={{ fontSize: '48px', fontFamily: 'var(--font-title)', fontWeight: 800, color: 'var(--accent-secondary)' }}>
-            {stats?.registeredPlayers || '0'}
+          <h3 style={{ fontSize: '44px', fontFamily: 'var(--font-title)', fontWeight: 800, color: '#3b82f6' }}>
+            {stats?.registeredUsers ?? stats?.registeredPlayers ?? 0}
           </h3>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '15px', fontWeight: 600 }}>Kayıtlı Oyuncu</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 600 }}>Kayıtlı Üye</p>
+        </div>
+        <div>
+          <h3 style={{ fontSize: '44px', fontFamily: 'var(--font-title)', fontWeight: 800, color: 'var(--accent-secondary)' }}>
+            {stats?.totalParticipants ?? stats?.totalRegistrations ?? 0}
+          </h3>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 600 }}>Turnuva Katılımcı Sayısı</p>
         </div>
       </section>
 
