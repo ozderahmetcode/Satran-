@@ -39,24 +39,51 @@ const {
 } = require('./middleware/rateLimiter');
 const { encodeHtml, encodeHtmlAttr } = require('./middleware/encoder');
 
-// Cloudinary Yapılandırması
+// Cloudinary & Dosya Yükleme Yapılandırması
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
-});
+const uploadsDir = path.join(__dirname, 'public/uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: 'ozder_avatars',
-    allowedFormats: ['jpg', 'png', 'jpeg', 'webp'],
-  },
+const hasCloudinary = Boolean(
+  process.env.CLOUDINARY_CLOUD_NAME && 
+  process.env.CLOUDINARY_API_KEY && 
+  process.env.CLOUDINARY_API_SECRET
+);
+
+let uploadStorage;
+if (hasCloudinary) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+  });
+
+  uploadStorage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+      folder: 'ozder_avatars',
+      allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
+    },
+  });
+} else {
+  console.log('[Depolama Uyarısı] Cloudinary bilgileri eksik, yerel disk yüklemesi kullanılacak.');
+  uploadStorage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, uploadsDir),
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+      cb(null, 'avatar_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8) + ext);
+    }
+  });
+}
+
+const upload = multer({ 
+  storage: uploadStorage,
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
-const upload = multer({ storage: storage });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -126,7 +153,6 @@ app.get('/api/csrf-token', handleGetCsrfToken);
 app.use(csrfProtectionMiddleware);
 
 // Statik yükleme klasörü
-const uploadsDir = path.join(__dirname, 'public/uploads');
 app.use('/uploads', express.static(uploadsDir));
 
 // Canlı / Aktif Kullanıcı Takibi (Son 35 saniye içinde sinyal gönderenler)
@@ -535,12 +561,22 @@ app.post('/api/users/:id/profile', upload.single('avatarFile'), async (req, res)
     
     let avatarUrl = req.body.avatarUrl; // Keep existing if not changed
     if (req.file) {
-      avatarUrl = req.file.path; // Cloudinary'den gelen kalıcı URL
+      if (req.file.path && (req.file.path.startsWith('http://') || req.file.path.startsWith('https://'))) {
+        avatarUrl = req.file.path; // Cloudinary güvenli HTTPS bağlantısı
+      } else if (req.file.filename) {
+        avatarUrl = `/uploads/${req.file.filename}`; // Yerel depolama göreli yolu
+      } else if (req.file.path) {
+        avatarUrl = req.file.path;
+      }
     }
     
     let parsedSettings = undefined;
     if (matchmakingSettings) {
-      parsedSettings = JSON.parse(matchmakingSettings);
+      try {
+        parsedSettings = typeof matchmakingSettings === 'string' ? JSON.parse(matchmakingSettings) : matchmakingSettings;
+      } catch (e) {
+        parsedSettings = undefined;
+      }
     }
     
     const result = await db.updateUserProfile(id, { 
@@ -964,6 +1000,17 @@ app.use(express.static(path.join(__dirname, '../dist')));
 // Tüm istekleri React Router'a yönlendir
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../dist/index.html'));
+});
+
+// Genel Hata Yakalama Middleware (Unhandled Errors, Multer Limits vb.)
+app.use((err, req, res, next) => {
+  console.error('[Sunucu Hatası]:', err);
+  if (res.headersSent) {
+    return next(err);
+  }
+  res.status(err.status || 500).json({
+    error: err.message || "Sunucu tarafında beklenmeyen bir hata oluştu."
+  });
 });
 
 function startKeepAliveWorker() {

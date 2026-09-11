@@ -58,7 +58,12 @@ export default function App() {
     // Varsa yerel tarayıcı oturumunu geri yükle
     const savedUser = localStorage.getItem('currentUser');
     if (savedUser) {
-      setCurrentUser(JSON.parse(savedUser));
+      try {
+        setCurrentUser(JSON.parse(savedUser));
+      } catch (e) {
+        console.warn('Geçersiz yerel oturum verisi temizlendi');
+        localStorage.removeItem('currentUser');
+      }
     }
 
     // Client kimliği oluştur / al
