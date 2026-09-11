@@ -192,10 +192,17 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
             <>
               <div 
                 onClick={() => setIsDrawerOpen(false)}
+                onTouchStart={() => setIsDrawerOpen(false)}
                 style={{
                   position: 'fixed',
-                  inset: 0,
-                  zIndex: 99998
+                  top: 0,
+                  left: 0,
+                  width: '100vw',
+                  height: '100vh',
+                  zIndex: 99998,
+                  cursor: 'pointer',
+                  pointerEvents: 'auto',
+                  touchAction: 'manipulation'
                 }}
               />
               
@@ -343,12 +350,20 @@ export default function Navbar({ currentPage, setCurrentPage, currentUser, onLog
         <>
           <div 
             onClick={() => setIsMobileMenuOpen(false)}
+            onTouchStart={() => setIsMobileMenuOpen(false)}
             style={{
               position: 'fixed',
-              inset: 0,
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
               background: 'rgba(15, 23, 42, 0.4)',
               backdropFilter: 'blur(4px)',
-              zIndex: 99990
+              WebkitBackdropFilter: 'blur(4px)',
+              zIndex: 99990,
+              cursor: 'pointer',
+              pointerEvents: 'auto',
+              touchAction: 'manipulation'
             }}
           />
 
