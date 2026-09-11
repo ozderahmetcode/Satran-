@@ -445,8 +445,14 @@ app.post('/api/auth/forgot-password', authBruteForceCheck, async (req, res) => {
     const emailResult = await emailService.sendPasswordResetEmail(user.email, user.name, code);
 
     if (!emailResult.success) {
-      return res.status(500).json({ 
-        error: `E-posta gönderilemedi: ${emailResult.error || 'SMTP Hatası'}. Lütfen geçerli bir e-posta girdiğinizden emin olun.` 
+      console.warn('[Şifre Kurtarma Uyarısı] E-posta gönderilemedi:', emailResult.error);
+      const errMsg = emailResult.code === 'PORT_BLOCKED_BY_HOST'
+        ? 'Sunucu bulut güvenlik duvarı (Render.com) giden SMTP portlarını (465/587) engelliyor. E-posta için HTTPS destekli RESEND_API_KEY veya BREVO_API_KEY tanımlanmalıdır. Lütfen yönetici ile iletişime geçiniz.'
+        : `E-posta gönderilemedi: ${emailResult.error || 'SMTP Hatası'}.`;
+
+      return res.status(503).json({ 
+        error: errMsg,
+        code: emailResult.code || 'EMAIL_FAILED'
       });
     }
 

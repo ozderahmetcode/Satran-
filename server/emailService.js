@@ -1,7 +1,9 @@
 const nodemailer = require('nodemailer');
 const dns = require('dns');
+const net = require('net');
+const https = require('https');
 
-// Docker / Render / Linux ortamında IPv6 siyah delik (blackhole) zaman aşımını engellemek için
+// Docker / Render / Linux ortamında IPv6 siyah delik zaman aşımlarını engellemek için
 // DNS çözümlemesini zorunlu IPv4 (IPv4-first) olarak ayarla.
 if (dns.setDefaultResultOrder) {
   dns.setDefaultResultOrder('ipv4first');
@@ -9,18 +11,158 @@ if (dns.setDefaultResultOrder) {
 
 /**
  * E-Posta Servisi (OZDER Satranç Topluluğu)
- * IPv4 Zorlamalı, Akıllı Port Fallback'li (465 SSL -> 587 STARTTLS) E-Posta Motoru
+ * Hibrit E-Posta Motoru:
+ * 1. Resend API (HTTPS Port 443 - Bulut Güvenlik Duvarlarını %100 Aşar)
+ * 2. Brevo API (HTTPS Port 443)
+ * 3. Doğrudan Gmail SMTP (Port 465 SSL / Port 587 STARTTLS) - Hızlı port kontrolü ile
  */
 
 function isSmtpConfigured() {
   const user = (process.env.SMTP_USER || '').trim();
   const pass = (process.env.SMTP_PASS || '').replace(/\s+/g, '').trim();
-  return Boolean(user && pass && user.length > 3 && pass.length > 6);
+  const hasResend = Boolean(process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.trim());
+  const hasBrevo = Boolean(process.env.BREVO_API_KEY && process.env.BREVO_API_KEY.trim());
+  return Boolean(hasResend || hasBrevo || (user && pass && user.length > 3 && pass.length > 6));
 }
 
 /**
- * Belirtilen port ve güvenlik ayarları ile tek kullanımlık (stateless/taze) Transporter oluşturur.
- * Havuz (pool: true) yerine doğrudan soket kullanımı container ortamlarında ölü soket kilitlenmelerini önler.
+ * Soket Seviyesinde Hızlı Ham TCP Bağlantı Kontrolü
+ */
+function checkPortOpen(host, port, timeoutMs = 2500) {
+  return new Promise((resolve) => {
+    const socket = net.createConnection({ host, port, family: 4 });
+    let resolved = false;
+
+    socket.setTimeout(timeoutMs);
+
+    socket.on('connect', () => {
+      if (!resolved) {
+        resolved = true;
+        socket.destroy();
+        resolve(true);
+      }
+    });
+
+    socket.on('timeout', () => {
+      if (!resolved) {
+        resolved = true;
+        socket.destroy();
+        resolve(false);
+      }
+    });
+
+    socket.on('error', () => {
+      if (!resolved) {
+        resolved = true;
+        resolve(false);
+      }
+    });
+  });
+}
+
+/**
+ * Resend HTTPS REST API üzerinden E-Posta Gönderimi (Port 443 - Engel Tanımaz)
+ */
+async function sendViaResend(apiKey, toEmail, recipientName, resetCode, htmlContent) {
+  return new Promise((resolve, reject) => {
+    const postData = JSON.stringify({
+      from: 'OZDER Satranc <onboarding@resend.dev>',
+      to: [toEmail],
+      subject: `OZDER Satranç - Şifre Sıfırlama Kodu: ${resetCode}`,
+      html: htmlContent,
+      text: `Merhaba ${recipientName},\n\nOZDER Satranç şifre sıfırlama kodunuz: ${resetCode}\n\nBu kod 15 dakika geçerlidir.`
+    });
+
+    const options = {
+      hostname: 'api.resend.com',
+      port: 443,
+      path: '/emails',
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey.trim()}`,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData)
+      },
+      timeout: 10000
+    };
+
+    const req = https.request(options, (res) => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(body);
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            resolve({ success: true, sent: true, messageId: parsed.id });
+          } else {
+            reject(new Error(parsed.message || `Resend HTTP ${res.statusCode}`));
+          }
+        } catch (e) {
+          reject(new Error(`Resend Yanıtı Ayrıştırılamadı: ${body}`));
+        }
+      });
+    });
+
+    req.on('error', (err) => reject(err));
+    req.on('timeout', () => { req.destroy(); reject(new Error('Resend API zaman aşımı')); });
+    req.write(postData);
+    req.end();
+  });
+}
+
+/**
+ * Brevo (Sendinblue) HTTPS REST API üzerinden E-Posta Gönderimi (Port 443)
+ */
+async function sendViaBrevo(apiKey, toEmail, recipientName, resetCode, htmlContent) {
+  return new Promise((resolve, reject) => {
+    const senderEmail = (process.env.SMTP_USER || 'info@ozdersatranc.com').trim();
+    const postData = JSON.stringify({
+      sender: { name: 'OZDER Satranç Topluluğu', email: senderEmail },
+      to: [{ email: toEmail, name: recipientName || 'Satranç Sever' }],
+      subject: `OZDER Satranç - Şifre Sıfırlama Kodu: ${resetCode}`,
+      htmlContent: htmlContent,
+      textContent: `Merhaba ${recipientName},\n\nOZDER Satranç şifre sıfırlama kodunuz: ${resetCode}\n\nBu kod 15 dakika geçerlidir.`
+    });
+
+    const options = {
+      hostname: 'api.brevo.com',
+      port: 443,
+      path: '/v3/smtp/email',
+      method: 'POST',
+      headers: {
+        'api-key': apiKey.trim(),
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData)
+      },
+      timeout: 10000
+    };
+
+    const req = https.request(options, (res) => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(body);
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            resolve({ success: true, sent: true, messageId: parsed.messageId });
+          } else {
+            reject(new Error(parsed.message || `Brevo HTTP ${res.statusCode}`));
+          }
+        } catch (e) {
+          reject(new Error(`Brevo Yanıtı Ayrıştırılamadı: ${body}`));
+        }
+      });
+    });
+
+    req.on('error', (err) => reject(err));
+    req.on('timeout', () => { req.destroy(); reject(new Error('Brevo API zaman aşımı')); });
+    req.write(postData);
+    req.end();
+  });
+}
+
+/**
+ * Belirtilen port ile tek kullanımlık Nodemailer Transporter oluşturur
  */
 function createDirectTransport(port, secure) {
   const user = (process.env.SMTP_USER || '').trim();
@@ -31,10 +173,10 @@ function createDirectTransport(port, secure) {
     port: port,
     secure: secure,
     auth: { user, pass },
-    family: 4, // Linux container ortamında IPv4'e zorla
-    connectionTimeout: 6000, // 6 saniye bağlantı zaman aşımı
-    greetingTimeout: 6000,   // 6 saniye karşılama zaman aşımı
-    socketTimeout: 8000,     // 8 saniye soket zaman aşımı
+    family: 4,
+    connectionTimeout: 4000,
+    greetingTimeout: 4000,
+    socketTimeout: 6000,
     tls: {
       rejectUnauthorized: false
     }
@@ -42,18 +184,18 @@ function createDirectTransport(port, secure) {
 }
 
 /**
- * Şifre Sıfırlama E-Postası Gönder (Akıllı Port Failover ile)
+ * Şifre Sıfırlama E-Postası Gönder (Hibrit & Zaman Aşımı Korumalı)
  * @param {string} toEmail Alıcı e-posta adresi
  * @param {string} recipientName Alıcı adı
  * @param {string} resetCode 6 haneli güvenlik kodu
- * @returns {Promise<{success: boolean, sent?: boolean, messageId?: string, error?: string}>}
+ * @returns {Promise<{success: boolean, sent?: boolean, messageId?: string, error?: string, code?: string}>}
  */
 async function sendPasswordResetEmail(toEmail, recipientName, resetCode) {
   if (!isSmtpConfigured()) {
-    console.error(`[E-Posta Hatası] SMTP yapılandırılmamış. Gönderilemedi: ${toEmail}`);
     return {
       success: false,
-      error: 'E-posta sunucusu (SMTP) henüz yapılandırılmamış.'
+      error: 'E-posta servisi henüz yapılandırılmamış.',
+      code: 'NOT_CONFIGURED'
     };
   }
 
@@ -106,139 +248,101 @@ async function sendPasswordResetEmail(toEmail, recipientName, resetCode) {
     </html>
   `;
 
-  const mailOptions = {
-    from: fromAddress,
-    to: toEmail,
-    subject: `OZDER Satranç - Şifre Sıfırlama Kodu: ${resetCode}`,
-    text: `Merhaba ${recipientName},\n\nOZDER Satranç şifre sıfırlama kodunuz: ${resetCode}\n\nBu kod 15 dakika geçerlidir.`,
-    html: htmlContent
-  };
-
-  // 1. Önce Port 465 (SSL) ile dene
-  try {
-    console.log(`[E-Posta] Port 465 (SSL/IPv4) ile gönderiliyor: ${toEmail}`);
-    const transport465 = createDirectTransport(465, true);
-    const info = await transport465.sendMail(mailOptions);
-    console.log(`[E-Posta Başarılı - Port 465] ${toEmail} adresine e-posta ulaştı. ID: ${info.messageId}`);
-    return {
-      success: true,
-      sent: true,
-      messageId: info.messageId
-    };
-  } catch (err465) {
-    console.warn(`[E-Posta Uyarısı] Port 465 başarısız oldu (${err465.message}). Port 587 (STARTTLS) deneniyor...`);
-    
-    // 2. Port 465 başarısız olursa hemen Port 587 (STARTTLS) ile dene
+  // 1. ÖNCELİK: Resend HTTPS REST API (Port 443)
+  if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.trim()) {
     try {
-      console.log(`[E-Posta] Port 587 (STARTTLS/IPv4) ile deneniyor: ${toEmail}`);
-      const transport587 = createDirectTransport(587, false);
-      const info = await transport587.sendMail(mailOptions);
-      console.log(`[E-Posta Başarılı - Port 587] ${toEmail} adresine e-posta ulaştı. ID: ${info.messageId}`);
-      return {
-        success: true,
-        sent: true,
-        messageId: info.messageId
-      };
-    } catch (err587) {
-      console.error(`[E-Posta Hatası - Port 587 de başarısız] ${toEmail}:`, err587.message);
-      return {
-        success: false,
-        error: `E-posta gönderimi başarısız oldu (465: ${err465.message}, 587: ${err587.message})`
-      };
+      console.log(`[E-Posta] Resend HTTPS API (Port 443) ile gönderiliyor: ${toEmail}`);
+      const res = await sendViaResend(process.env.RESEND_API_KEY, toEmail, recipientName, resetCode, htmlContent);
+      console.log(`[E-Posta Başarılı - Resend] ${toEmail} ID: ${res.messageId}`);
+      return res;
+    } catch (e) {
+      console.warn(`[E-Posta] Resend başarısız: ${e.message}`);
     }
   }
-}
 
-/**
- * Soket Seviyesinde Ham TCP Bağlantı Testi
- */
-function testRawTcp(host, port, timeoutMs = 7000) {
-  return new Promise((resolve) => {
-    const net = require('net');
-    const start = Date.now();
-    let resolved = false;
-
+  // 2. ÖNCELİK: Brevo HTTPS REST API (Port 443)
+  if (process.env.BREVO_API_KEY && process.env.BREVO_API_KEY.trim()) {
     try {
-      const socket = net.createConnection({ host, port, family: 4 });
-      socket.setTimeout(timeoutMs);
-
-      socket.on('connect', () => {
-        if (!resolved) {
-          resolved = true;
-          const time = Date.now() - start;
-          socket.destroy();
-          resolve({ status: 'CONNECTED', timeMs: time });
-        }
-      });
-
-      socket.on('timeout', () => {
-        if (!resolved) {
-          resolved = true;
-          socket.destroy();
-          resolve({ status: 'TIMEOUT', timeMs: Date.now() - start });
-        }
-      });
-
-      socket.on('error', (err) => {
-        if (!resolved) {
-          resolved = true;
-          resolve({ status: 'ERROR', message: err.message, code: err.code, timeMs: Date.now() - start });
-        }
-      });
+      console.log(`[E-Posta] Brevo HTTPS API (Port 443) ile gönderiliyor: ${toEmail}`);
+      const res = await sendViaBrevo(process.env.BREVO_API_KEY, toEmail, recipientName, resetCode, htmlContent);
+      console.log(`[E-Posta Başarılı - Brevo] ${toEmail} ID: ${res.messageId}`);
+      return res;
     } catch (e) {
-      resolve({ status: 'EXCEPTION', message: e.message });
+      console.warn(`[E-Posta] Brevo başarısız: ${e.message}`);
     }
-  });
+  }
+
+  // 3. ÖNCELİK: Doğrudan Gmail SMTP (Port 465 SSL / Port 587 STARTTLS)
+  // Önce hızlıca portun açık olup olmadığını kontrol et (2 saniye limit).
+  // Bu sayede Render.com gibi SMTP portlarını engelleyen ortamlarda kullanıcı asla 25-40 saniye beklemez!
+  console.log('[E-Posta] SMTP Port 465/587 erişilebilirliği test ediliyor...');
+  const port465Open = await checkPortOpen('smtp.gmail.com', 465, 2000);
+  let port587Open = false;
+
+  if (port465Open) {
+    try {
+      console.log(`[E-Posta] Port 465 (SSL/IPv4) ile gönderiliyor: ${toEmail}`);
+      const transport465 = createDirectTransport(465, true);
+      const info = await transport465.sendMail({
+        from: fromAddress,
+        to: toEmail,
+        subject: `OZDER Satranç - Şifre Sıfırlama Kodu: ${resetCode}`,
+        text: `Merhaba ${recipientName},\n\nOZDER Satranç şifre sıfırlama kodunuz: ${resetCode}\n\nBu kod 15 dakika geçerlidir.`,
+        html: htmlContent
+      });
+      console.log(`[E-Posta Başarılı - Port 465] ${toEmail} ID: ${info.messageId}`);
+      return { success: true, sent: true, messageId: info.messageId };
+    } catch (err465) {
+      console.warn(`[E-Posta] Port 465 hata verdi: ${err465.message}`);
+    }
+  } else {
+    // Port 465 kapalıysa Port 587'yi hızlıca kontrol et
+    port587Open = await checkPortOpen('smtp.gmail.com', 587, 2000);
+    if (port587Open) {
+      try {
+        console.log(`[E-Posta] Port 587 (STARTTLS/IPv4) ile gönderiliyor: ${toEmail}`);
+        const transport587 = createDirectTransport(587, false);
+        const info = await transport587.sendMail({
+          from: fromAddress,
+          to: toEmail,
+          subject: `OZDER Satranç - Şifre Sıfırlama Kodu: ${resetCode}`,
+          text: `Merhaba ${recipientName},\n\nOZDER Satranç şifre sıfırlama kodunuz: ${resetCode}\n\nBu kod 15 dakika geçerlidir.`,
+          html: htmlContent
+        });
+        console.log(`[E-Posta Başarılı - Port 587] ${toEmail} ID: ${info.messageId}`);
+        return { success: true, sent: true, messageId: info.messageId };
+      } catch (err587) {
+        console.warn(`[E-Posta] Port 587 hata verdi: ${err587.message}`);
+      }
+    }
+  }
+
+  // Hem Port 465 hem Port 587 kapalıysa (Render.com free tier kısıtlaması)
+  console.error('[E-Posta Uyarısı] Sunucu güvenlik duvarı (Render.com) giden SMTP portlarını (465/587) engelliyor.');
+  return {
+    success: false,
+    code: 'PORT_BLOCKED_BY_HOST',
+    error: 'Sunucu güvenlik duvarı giden SMTP portlarını (465/587) engelliyor.'
+  };
 }
 
 /**
- * Teşhis Fonksiyonu: SMTP Bağlantısını ve Portları Test Et
+ * Teşhis Fonksiyonu: SMTP ve HTTPS API Bağlantı Testi
  */
 async function testSmtpConnection() {
   const results = {
     isConfigured: isSmtpConfigured(),
     user: (process.env.SMTP_USER || '').trim(),
-    dnsLookup: null,
+    hasResend: Boolean(process.env.RESEND_API_KEY),
+    hasBrevo: Boolean(process.env.BREVO_API_KEY),
     tcp_google_443: null,
     tcp_smtp_465: null,
-    tcp_smtp_587: null,
-    nodemailer_465: null,
-    nodemailer_587: null
+    tcp_smtp_587: null
   };
 
-  try {
-    const addresses = await new Promise((res, rej) => {
-      dns.resolve4('smtp.gmail.com', (err, addrs) => err ? rej(err) : res(addrs));
-    });
-    results.dnsLookup = addresses;
-  } catch (e) {
-    results.dnsLookup = `DNS Error: ${e.message}`;
-  }
-
-  // Kontrol: Render dışarı HTTPS (443) açabiliyor mu?
-  results.tcp_google_443 = await testRawTcp('google.com', 443, 5000);
-  // Port 465 testi
-  results.tcp_smtp_465 = await testRawTcp('smtp.gmail.com', 465, 6000);
-  // Port 587 testi
-  results.tcp_smtp_587 = await testRawTcp('smtp.gmail.com', 587, 6000);
-
-  if (results.isConfigured) {
-    try {
-      const t465 = createDirectTransport(465, true);
-      await t465.verify();
-      results.nodemailer_465 = 'OK';
-    } catch (err) {
-      results.nodemailer_465 = err.message;
-    }
-
-    try {
-      const t587 = createDirectTransport(587, false);
-      await t587.verify();
-      results.nodemailer_587 = 'OK';
-    } catch (err) {
-      results.nodemailer_587 = err.message;
-    }
-  }
+  results.tcp_google_443 = await checkPortOpen('google.com', 443, 2500) ? 'OPEN' : 'BLOCKED';
+  results.tcp_smtp_465 = await checkPortOpen('smtp.gmail.com', 465, 2500) ? 'OPEN' : 'BLOCKED';
+  results.tcp_smtp_587 = await checkPortOpen('smtp.gmail.com', 587, 2500) ? 'OPEN' : 'BLOCKED';
 
   return results;
 }
@@ -248,4 +352,3 @@ module.exports = {
   sendPasswordResetEmail,
   testSmtpConnection
 };
-
