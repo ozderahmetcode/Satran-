@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 
 export default function AdminPanel({ 
   registrations, 
@@ -25,7 +25,90 @@ export default function AdminPanel({
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
-  const [activeTab, setActiveTab] = useState('users'); // users | analytics | registrations | events | tournaments | messages | spam
+  const [activeTab, setActiveTab] = useState('users'); // users | analytics | registrations | events | tournaments | messages | spam | backup
+
+  // Veritabanı Yedekleme & Geri Yükleme State'leri
+  const restoreFileInputRef = useRef(null);
+  const [isDownloadingBackup, setIsDownloadingBackup] = useState(false);
+  const [isRestoringBackup, setIsRestoringBackup] = useState(false);
+  const [backupStatus, setBackupStatus] = useState({ type: '', text: '' });
+
+  const handleDownloadBackup = async () => {
+    try {
+      setIsDownloadingBackup(true);
+      setBackupStatus({ type: '', text: '' });
+      const response = await fetch('/api/admin/backup');
+      if (!response.ok) throw new Error('Yedek alınamadı.');
+      const data = await response.json();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const nowStr = new Date().toISOString().split('T')[0];
+      a.href = url;
+      a.download = `ozdersatranc_yedek_${nowStr}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setBackupStatus({ type: 'success', text: `Yedek (${nowStr}) başarıyla indirildi!` });
+    } catch (err) {
+      setBackupStatus({ type: 'error', text: 'Yedek indirilirken bir hata oluştu.' });
+    } finally {
+      setIsDownloadingBackup(false);
+    }
+  };
+
+  const handleFileSelectForRestore = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const parsed = JSON.parse(event.target.result);
+        const uCount = Array.isArray(parsed.users) ? parsed.users.length : 0;
+        const tCount = Array.isArray(parsed.tournaments) ? parsed.tournaments.length : 0;
+        const rCount = Array.isArray(parsed.registrations) ? parsed.registrations.length : 0;
+
+        const confirmed = window.confirm(
+          `⚠️ DİKKAT: Seçilen Yedek Dosyasında Bulunan Veriler:\n\n` +
+          `• ${uCount} Kayıtlı Kullanıcı\n` +
+          `• ${tCount} Turnuva\n` +
+          `• ${rCount} Turnuva Başvurusu\n\n` +
+          `Bu işlem mevcut veritabanındaki kayıtların üzerine yazacaktır.\nDevam etmek istediğinize emin misiniz?`
+        );
+
+        if (!confirmed) {
+          if (restoreFileInputRef.current) restoreFileInputRef.current.value = '';
+          return;
+        }
+
+        setIsRestoringBackup(true);
+        setBackupStatus({ type: '', text: '' });
+        const res = await fetch('/api/admin/restore', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(parsed)
+        });
+        const result = await res.json();
+        if (res.ok) {
+          setBackupStatus({ type: 'success', text: 'Veritabanı yedeği başarıyla geri yüklendi!' });
+          if (onReloadData) await onReloadData();
+          alert('Harika! Veritabanı yedeği başarıyla geri yüklendi.');
+        } else {
+          setBackupStatus({ type: 'error', text: result.error || 'Geri yükleme başarısız oldu.' });
+          alert('Hata: ' + (result.error || 'Geri yükleme başarısız.'));
+        }
+      } catch (err) {
+        setBackupStatus({ type: 'error', text: 'Geçersiz JSON dosyası seçildi.' });
+        alert('Seçilen dosya geçerli bir OZDER JSON yedek dosyası değil.');
+      } finally {
+        setIsRestoringBackup(false);
+        if (restoreFileInputRef.current) restoreFileInputRef.current.value = '';
+      }
+    };
+    reader.readAsText(file);
+  };
 
   // Süreyi okunabilir formata dönüştüren yardımcı (saniye -> Saat, Dakika, Saniye)
   const formatDuration = (totalSeconds) => {
@@ -497,18 +580,29 @@ export default function AdminPanel({
             Katılımcı listelerini yönetin, turnuvaları eşleştirin ve mesajları okuyun.
           </p>
         </div>
-        <button 
-          onClick={() => {
-            setIsAuthenticated(false);
-            try {
-              sessionStorage.removeItem('ozder_admin_authenticated');
-            } catch (e) {}
-          }} 
-          className="btn-secondary" 
-          style={{ padding: '8px 16px', fontSize: '13px' }}
-        >
-          Güvenli Çıkış
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button 
+            onClick={handleDownloadBackup}
+            disabled={isDownloadingBackup}
+            className="btn-secondary" 
+            style={{ padding: '8px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
+            title="Tüm veritabanı yedeğini anında bilgisayara indir"
+          >
+            📥 {isDownloadingBackup ? 'İndiriliyor...' : 'Hızlı Yedek İndir'}
+          </button>
+          <button 
+            onClick={() => {
+              setIsAuthenticated(false);
+              try {
+                sessionStorage.removeItem('ozder_admin_authenticated');
+              } catch (e) {}
+            }} 
+            className="btn-secondary" 
+            style={{ padding: '8px 16px', fontSize: '13px' }}
+          >
+            Güvenli Çıkış
+          </button>
+        </div>
       </section>
 
       {/* KPI / Dashboard Metrik Kartları */}
@@ -583,7 +677,8 @@ export default function AdminPanel({
           { id: 'events', label: `Etkinlik & Turnuva Yönetimi (${tournaments.length}) 📅` },
           { id: 'tournaments', label: 'Eşleştirme Sistemi ♟️' },
           { id: 'messages', label: `Gelen Mesajlar (${messages.length}) ✉️` },
-          { id: 'spam', label: `Spam & Şikayetler (${spamReports.filter(s => s.status === 'pending').length} bekleyen) ⚠️` }
+          { id: 'spam', label: `Spam & Şikayetler (${spamReports.filter(s => s.status === 'pending').length} bekleyen) ⚠️` },
+          { id: 'backup', label: '💾 Veritabanı & Yedekleme' }
         ].map(tab => (
           <button
             key={tab.id}
@@ -2322,6 +2417,150 @@ export default function AdminPanel({
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Tab Content: Database Backup & Restore */}
+      {activeTab === 'backup' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Status Message */}
+          {backupStatus.text && (
+            <div style={{
+              padding: '14px 20px',
+              borderRadius: '10px',
+              fontWeight: 600,
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: backupStatus.type === 'success' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+              color: backupStatus.type === 'success' ? '#10b981' : '#ef4444',
+              border: `1px solid ${backupStatus.type === 'success' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`
+            }}>
+              <span>{backupStatus.type === 'success' ? '✅ ' : '❌ '}{backupStatus.text}</span>
+              <button 
+                onClick={() => setBackupStatus({ type: '', text: '' })}
+                style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: '16px' }}
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {/* Intro Card */}
+          <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '16px', background: 'rgba(14, 165, 233, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px' }}>
+              🛡️
+            </div>
+            <div style={{ flex: 1 }}>
+              <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 800, margin: '0 0 6px 0' }}>
+                Veri Güvenliği ve Yedekleme Merkezi
+              </h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: 0, lineHeight: 1.5 }}>
+                Sitenizdeki tüm kayıtlı kullanıcıları, turnuvaları, maç geçmişlerini, kura sonuçlarını ve gelen mesajları tek tıkla bilgisayarınıza indirebilir; gerektiğinde saniyeler içinde geri yükleyebilirsiniz.
+              </p>
+            </div>
+          </div>
+
+          {/* Action Cards Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+            
+            {/* Card 1: Yedek İndir */}
+            <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '20px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                  <span style={{ fontSize: '24px' }}>📥</span>
+                  <h4 style={{ fontFamily: 'var(--font-title)', fontSize: '18px', fontWeight: 700, margin: 0 }}>
+                    Veritabanı Yedeğini İndir
+                  </h4>
+                </div>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '13px', lineHeight: 1.5, marginBottom: '16px' }}>
+                  Şu anki güncel veritabanını eksiksiz olarak standart <code>.json</code> dosyası formatında bilgisayarınıza kaydeder.
+                </p>
+
+                <div style={{ background: 'var(--bg-color)', padding: '12px 16px', borderRadius: '8px', border: '1px solid var(--panel-border)', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Kayıtlı Oyuncu:</span>
+                    <strong>{users.length} kişi</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Turnuva Sayısı:</span>
+                    <strong>{tournaments.length} adet</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Masa Başvuruları:</span>
+                    <strong>{registrations.length} başvuru</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Gelen Mesajlar:</span>
+                    <strong>{messages.length} mesaj</strong>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={handleDownloadBackup}
+                disabled={isDownloadingBackup}
+                className="btn-primary"
+                style={{ width: '100%', justifyContent: 'center', padding: '12px', fontSize: '14px' }}
+              >
+                {isDownloadingBackup ? '⏳ Hazırlanıyor...' : '📥 Yedeği Şimdi İndir (.json)'}
+              </button>
+            </div>
+
+            {/* Card 2: Yedeği Geri Yükle */}
+            <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '20px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                  <span style={{ fontSize: '24px' }}>📤</span>
+                  <h4 style={{ fontFamily: 'var(--font-title)', fontSize: '18px', fontWeight: 700, margin: 0 }}>
+                    Yedeği Geri Yükle
+                  </h4>
+                </div>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '13px', lineHeight: 1.5, marginBottom: '16px' }}>
+                  Daha önce indirdiğiniz bir <code>.json</code> yedek dosyasını seçerek sitenin tüm kullanıcılarını ve turnuvalarını geri yükleyebilirsiniz.
+                </p>
+
+                <div style={{ background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '12px 16px', borderRadius: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  ⚠️ <strong style={{ color: '#ef4444' }}>Önemli Not:</strong> Yükleme yaptığınızda mevcut canlı veritabanı seçtiğiniz dosyadaki verilerle güncellenir.
+                </div>
+              </div>
+
+              <div>
+                <input
+                  type="file"
+                  ref={restoreFileInputRef}
+                  onChange={handleFileSelectForRestore}
+                  accept=".json,application/json"
+                  style={{ display: 'none' }}
+                />
+                <button
+                  onClick={() => {
+                    if (restoreFileInputRef.current) restoreFileInputRef.current.click();
+                  }}
+                  disabled={isRestoringBackup}
+                  className="btn-secondary"
+                  style={{ width: '100%', justifyContent: 'center', padding: '12px', fontSize: '14px', borderColor: 'var(--accent-primary)', color: 'var(--text-primary)' }}
+                >
+                  {isRestoringBackup ? '⏳ Yükleniyor...' : '📂 Yedek Dosyası Seç (.json)'}
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Information & Best Practices */}
+          <div className="glass-panel" style={{ padding: '20px', background: 'rgba(14, 165, 233, 0.03)', border: '1px solid rgba(14, 165, 233, 0.2)' }}>
+            <h4 style={{ fontSize: '15px', fontWeight: 700, margin: '0 0 10px 0', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              💡 Verilerinizi Koruma Tavsiyeleri
+            </h4>
+            <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+              <li><strong>Büyük Turnuvalardan Sonra:</strong> Turnuva bittiğinde ve şampiyon belirlendiğinde tek tıkla yedek indirmeniz önerilir.</li>
+              <li><strong>Sitede Güncelleme Yapılmadan Önce:</strong> Yeni bir özellik eklenmeden önce yedek almak her zaman en güvenli yoldur.</li>
+              <li><strong>Sunucu Yenilenirse:</strong> Render gibi bulut servisleri yeniden başladığında elinizdeki en güncel JSON yedeğini "Yedeği Geri Yükle" butonuyla yükleyerek 1 saniyede her şeyi eski haline getirebilirsiniz.</li>
+            </ul>
+          </div>
+
         </div>
       )}
 

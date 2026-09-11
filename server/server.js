@@ -560,6 +560,32 @@ app.put('/api/spam-reports/:id/resolve', (req, res) => {
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: "Rapor güncellenirken hata oluştu." });
+// Admin: Veritabanı Tam Yedeğini İndir (JSON)
+app.get('/api/admin/backup', (req, res) => {
+  try {
+    const data = db.backupDB();
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename=ozdersatranc_yedek_${new Date().toISOString().split('T')[0]}.json`);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: "Yedek oluşturulurken bir hata oluştu." });
+  }
+});
+
+// Admin: Veritabanı Yedeğini Geri Yükle (JSON)
+app.post('/api/admin/restore', (req, res) => {
+  try {
+    const backupData = req.body;
+    if (!backupData || typeof backupData !== 'object') {
+      return res.status(400).json({ error: "Geçersiz veya boş yedek verisi." });
+    }
+    const result = db.restoreDB(backupData);
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
+    }
+    res.json({ success: true, message: "Veritabanı başarıyla geri yüklendi!", data: result.data });
+  } catch (error) {
+    res.status(500).json({ error: "Yedek geri yüklenirken sunucu hatası oluştu." });
   }
 });
 

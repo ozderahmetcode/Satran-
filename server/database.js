@@ -1224,5 +1224,42 @@ module.exports = {
   getAnalytics: () => {
     const db = readDB();
     return db.analytics || {};
+  },
+
+  backupDB: () => {
+    return readDB();
+  },
+
+  restoreDB: (backupData) => {
+    if (!backupData || typeof backupData !== 'object') {
+      return { error: "Geçersiz veya bozuk yedek verisi." };
+    }
+    
+    // Güvenli şablon ile birleştir
+    const restored = {
+      ...defaultData,
+      ...backupData,
+      stats: { ...defaultData.stats, ...(backupData.stats || {}) },
+      leaders: { ...defaultData.leaders, ...(backupData.leaders || {}) },
+      analytics: { ...defaultData.analytics, ...(backupData.analytics || {}) }
+    };
+
+    if (!Array.isArray(restored.users)) restored.users = [];
+    if (!Array.isArray(restored.tournaments)) restored.tournaments = [];
+    if (!Array.isArray(restored.registrations)) restored.registrations = [];
+    if (!Array.isArray(restored.messages)) restored.messages = [];
+    if (!Array.isArray(restored.matchRequests)) restored.matchRequests = [];
+    if (!Array.isArray(restored.directMessages)) restored.directMessages = [];
+    if (!Array.isArray(restored.spamReports)) restored.spamReports = [];
+
+    // İstatistik ve liderlik tablosunu yeniden hesapla
+    updateLeaderboards(restored);
+
+    const ok = writeDB(restored);
+    if (!ok) {
+      return { error: "Yedek dosyaya yazılamadı." };
+    }
+    return { success: true, data: restored };
   }
 };
+
