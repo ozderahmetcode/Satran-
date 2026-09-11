@@ -1,8 +1,9 @@
 import React from 'react';
 
-export default function Home({ stats, leaders, setCurrentPage }) {
+export default function Home({ stats, leaders, tournaments = [], setCurrentPage }) {
   const topThree = leaders?.champions?.slice(0, 3) || [];
   const hasChampions = topThree.length > 0;
+  const featuredTour = tournaments && tournaments.length > 0 ? tournaments[0] : null;
 
   return (
     <div className="animate-fade-in" style={{ padding: '40px 0', display: 'flex', flexDirection: 'column', gap: '80px' }}>
@@ -107,11 +108,30 @@ export default function Home({ stats, leaders, setCurrentPage }) {
         gap: '40px',
         alignItems: 'center'
       }}>
-        <div className="glass-panel" style={{ padding: '0', overflow: 'hidden', height: '360px', position: 'relative', borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)' }}>
+        <div 
+          className="glass-panel" 
+          onClick={() => setCurrentPage('event')}
+          style={{ 
+            padding: '0', 
+            overflow: 'hidden', 
+            height: '360px', 
+            position: 'relative', 
+            borderRadius: '20px', 
+            border: 'none', 
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+            cursor: 'pointer'
+          }}
+        >
+          <img 
+            src={featuredTour?.imageUrl || '/event_default.jpg'} 
+            alt={featuredTour?.title || "Satranç Buluşması"} 
+            onError={(e) => { e.currentTarget.src = '/event_default.jpg'; }}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
           <div style={{
             position: 'absolute',
             inset: 0,
-            background: 'linear-gradient(to bottom, transparent 30%, #ffffff 90%)',
+            background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 50%, transparent 100%)',
             zIndex: 1
           }} />
           <div style={{
@@ -131,32 +151,12 @@ export default function Home({ stats, leaders, setCurrentPage }) {
               textTransform: 'uppercase',
               boxShadow: '0 4px 6px -1px rgba(14, 165, 233, 0.3)'
             }}>Etkinlik Detayları</span>
-            <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '28px', fontWeight: 800, marginTop: '16px', color: 'var(--text-primary)' }}>
-              X Cafe Sosyal Satranç Buluşmaları
+            <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '26px', fontWeight: 800, marginTop: '12px', color: '#ffffff' }}>
+              {featuredTour?.title || 'X Cafe Sosyal Satranç Buluşmaları'}
             </h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '15px', marginTop: '6px', fontWeight: 600 }}>
-              📍 Ümraniye X Cafe
+            <p style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '15px', marginTop: '6px', fontWeight: 600 }}>
+              📍 {featuredTour?.location || 'Ümraniye X Cafe'} • 📅 {featuredTour?.date || '15.08.2026'}
             </p>
-          </div>
-          <div style={{
-            width: '100%',
-            height: '100%',
-            background: 'radial-gradient(circle, var(--accent-secondary) 0%, #f1f5f9 100%)',
-            opacity: 0.1,
-            position: 'absolute'
-          }} />
-          <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '100%',
-            fontSize: '180px',
-            opacity: 0.1,
-            userSelect: 'none',
-            color: 'var(--accent-primary)',
-            transform: 'translateY(-30px)'
-          }}>
-            👑
           </div>
         </div>
 

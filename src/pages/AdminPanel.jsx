@@ -411,7 +411,8 @@ export default function AdminPanel({
     location: 'Ümraniye X Cafe',
     fee: '300 TL',
     maxQuota: '20',
-    totalRounds: '5'
+    totalRounds: '5',
+    imageUrl: '/event_default.jpg'
   });
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState({ type: '', text: '' });
@@ -581,7 +582,8 @@ export default function AdminPanel({
       fee: tour.fee || '',
       maxQuota: tour.maxQuota || '20',
       totalRounds: tour.totalRounds || '5',
-      status: tour.status || 'active'
+      status: tour.status || 'active',
+      imageUrl: tour.imageUrl || '/event_default.jpg'
     });
   };
 
@@ -1465,9 +1467,12 @@ export default function AdminPanel({
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Tur Sayısı</label>
                   <select value={formData.totalRounds} onChange={(e) => setFormData({ ...formData, totalRounds: e.target.value })} style={{ width: '100%', background: '#0d121e', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }}>
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => <option key={n} value={n}>{n} Tur</option>)}
                   </select>
                 </div>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Etkinlik Görsel URL (Opsiyonel)</label>
+                <input type="text" placeholder="/event_default.jpg veya https://..." value={formData.imageUrl || ''} onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })} style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }} />
               </div>
               <button type="submit" disabled={loading} className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>Etkinlik Yayınla</button>
             </form>
@@ -1789,6 +1794,17 @@ export default function AdminPanel({
                     <option value="completed">🏆 Tamamlandı</option>
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Etkinlik Görsel URL (Opsiyonel)</label>
+                <input
+                  type="text"
+                  placeholder="/event_default.jpg veya https://..."
+                  value={editFormData.imageUrl || ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, imageUrl: e.target.value })}
+                  style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }}
+                />
               </div>
 
               <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>

@@ -211,6 +211,7 @@ export default function App() {
           <Home 
             stats={data.stats} 
             leaders={data.leaders} 
+            tournaments={data.tournaments}
             setCurrentPage={setCurrentPage} 
           />
         );

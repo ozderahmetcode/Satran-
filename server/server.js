@@ -702,13 +702,22 @@ app.post('/api/tournaments/:id/guest', (req, res) => {
 
 app.post('/api/tournaments', (req, res) => {
   try {
-    const { title, date, time, location, fee, maxQuota, totalRounds } = req.body;
+    const { title, date, time, location, fee, maxQuota, totalRounds, imageUrl } = req.body;
 
     if (!title || !date || !time || !location || !maxQuota) {
       return res.status(400).json({ error: "Lütfen zorunlu alanları doldurun." });
     }
 
-    const tournaments = db.createTournament({ title, date, time, location, fee: fee || "Ücretsiz", maxQuota: parseInt(maxQuota), totalRounds: totalRounds || 5 });
+    const tournaments = db.createTournament({ 
+      title, 
+      date, 
+      time, 
+      location, 
+      fee: fee || "Ücretsiz", 
+      maxQuota: parseInt(maxQuota), 
+      totalRounds: totalRounds || 5,
+      imageUrl: imageUrl || "/event_default.jpg"
+    });
     res.status(201).json({ success: true, tournaments });
   } catch (error) {
     res.status(500).json({ error: "Turnuva oluşturulurken hata oluştu." });
@@ -719,7 +728,7 @@ app.post('/api/tournaments', (req, res) => {
 app.put('/api/tournaments/:id', (req, res) => {
   try {
     const { id } = req.params;
-    const { title, date, time, location, fee, maxQuota, totalRounds, status } = req.body;
+    const { title, date, time, location, fee, maxQuota, totalRounds, status, imageUrl } = req.body;
 
     const result = db.updateTournament(id, {
       title,
@@ -729,7 +738,8 @@ app.put('/api/tournaments/:id', (req, res) => {
       fee,
       maxQuota,
       totalRounds,
-      status
+      status,
+      imageUrl
     });
 
     if (result.error) {

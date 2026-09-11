@@ -111,23 +111,37 @@ export default function EventDetail({ tournaments, registrations, users = [], cu
               (tour.rounds && tour.rounds.length >= tour.totalRounds && tour.rounds.length > 0 && !tour.rounds[tour.rounds.length - 1]?.pairings?.some(p => p.result === 'pending'));
 
             return (
-              <div key={tour.id} className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '16px', justifyContent: 'space-between' }}>
-                <div>
+              <div key={tour.id} className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '16px', justifyContent: 'space-between', padding: '0', overflow: 'hidden' }}>
+                <div style={{ position: 'relative', height: '170px', width: '100%', overflow: 'hidden' }}>
+                  <img 
+                    src={tour.imageUrl || '/event_default.jpg'} 
+                    alt={tour.title} 
+                    onError={(e) => { e.currentTarget.src = '/event_default.jpg'; }}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 60%)' }} />
                   <span style={{
+                    position: 'absolute',
+                    top: '12px',
+                    left: '12px',
                     background: tour.status === 'cancelled' 
                       ? '#ef4444' 
                       : isTourFinished 
-                      ? 'rgba(0,0,0,0.05)'
+                      ? 'rgba(0,0,0,0.6)'
                       : 'var(--accent-primary)',
-                    color: tour.status === 'cancelled' || !isTourFinished ? '#fff' : 'var(--text-secondary)',
-                    padding: '4px 8px',
+                    color: '#fff',
+                    padding: '4px 10px',
                     borderRadius: '6px',
                     fontSize: '11px',
-                    fontWeight: 700
+                    fontWeight: 700,
+                    backdropFilter: 'blur(4px)'
                   }}>
                     {tour.status === 'cancelled' ? 'İPTAL EDİLDİ' : isTourFinished ? 'TAMAMLANDI' : 'KAYITLAR AÇIK'}
                   </span>
-                  <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', marginTop: '12px', fontWeight: 700 }}>
+                </div>
+
+                <div style={{ padding: '0 20px' }}>
+                  <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 700 }}>
                     {tour.title}
                   </h3>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '8px' }}>
@@ -136,7 +150,7 @@ export default function EventDetail({ tournaments, registrations, users = [], cu
                   </p>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', borderTop: '1px solid var(--panel-border)', paddingTop: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0 20px 20px 20px', borderTop: '1px solid var(--panel-border)', paddingTop: '16px' }}>
                   <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
                     Kontenjan: <strong>{regs.length} / {tour.maxQuota}</strong>
                   </span>

@@ -42,7 +42,8 @@ const defaultData = {
       status: "active",
       maxQuota: 20,
       rounds: [],
-      totalRounds: 5
+      totalRounds: 5,
+      imageUrl: "/event_default.jpg"
     }
   ],
   registrations: [],
@@ -152,6 +153,14 @@ function readDB() {
         }
         if (typeof u.visitCount !== 'number') {
           u.visitCount = 0;
+          changed = true;
+        }
+      });
+    }
+    if (Array.isArray(parsed.tournaments)) {
+      parsed.tournaments.forEach(t => {
+        if (!t.imageUrl) {
+          t.imageUrl = '/event_default.jpg';
           changed = true;
         }
       });
@@ -840,6 +849,7 @@ module.exports = {
     const tournament = {
       id: nextId,
       ...newTour,
+      imageUrl: newTour.imageUrl || '/event_default.jpg',
       champion: "Bekleniyor...",
       status: "active",
       rounds: [],
@@ -866,7 +876,8 @@ module.exports = {
       fee: updates.fee !== undefined ? updates.fee : current.fee,
       maxQuota: updates.maxQuota !== undefined ? parseInt(updates.maxQuota) : current.maxQuota,
       totalRounds: updates.totalRounds !== undefined ? parseInt(updates.totalRounds) : current.totalRounds,
-      status: updates.status !== undefined ? updates.status : current.status
+      status: updates.status !== undefined ? updates.status : current.status,
+      imageUrl: updates.imageUrl !== undefined ? updates.imageUrl : (current.imageUrl || '/event_default.jpg')
     };
 
     writeDB(db);
