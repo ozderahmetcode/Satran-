@@ -5,37 +5,37 @@ const nodemailer = require('nodemailer');
  * Gerçek SMTP (Gmail, Yandex, Özel Domain) ve Sıfır Konfigürasyon Akıllı Yedekleme (Fallback) Modu
  */
 
-// SMTP Ortam Değişkenleri
-const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
-const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587');
-const SMTP_SECURE = process.env.SMTP_SECURE === 'true' || SMTP_PORT === 465;
-const SMTP_USER = process.env.SMTP_USER || '';
-const SMTP_PASS = process.env.SMTP_PASS || '';
-const SMTP_FROM = process.env.SMTP_FROM || (SMTP_USER ? `"OZDER Satranç Topluluğu" <${SMTP_USER}>` : '"OZDER Satranç" <destek@ozdersatranc.com>');
-
 // SMTP Konfigürasyonu tanımlı mı?
 function isSmtpConfigured() {
-  return Boolean(SMTP_USER && SMTP_PASS && SMTP_USER.trim().length > 0 && SMTP_PASS.trim().length > 0);
+  const user = (process.env.SMTP_USER || '').trim();
+  const pass = (process.env.SMTP_PASS || '').replace(/\s+/g, '').trim();
+  return Boolean(user && pass && user.length > 3 && pass.length > 6);
 }
 
-// Transporter Örneği (Yalnızca kimlik bilgileri varsa oluşturulur)
-let transporter = null;
-if (isSmtpConfigured()) {
+// Transporter Örneği (Dinamik Oluşturucu)
+let cachedTransporter = null;
+function getTransporter() {
+  if (cachedTransporter) return cachedTransporter;
+  if (!isSmtpConfigured()) return null;
+
+  const host = process.env.SMTP_HOST || 'smtp.gmail.com';
+  const port = parseInt(process.env.SMTP_PORT || '587');
+  const user = (process.env.SMTP_USER || '').trim();
+  const pass = (process.env.SMTP_PASS || '').replace(/\s+/g, '').trim();
+  const secure = process.env.SMTP_SECURE === 'true' || port === 465;
+
   try {
-    transporter = nodemailer.createTransport({
-      host: SMTP_HOST,
-      port: SMTP_PORT,
-      secure: SMTP_SECURE,
-      auth: {
-        user: SMTP_USER,
-        pass: SMTP_PASS
-      },
-      tls: {
-        rejectUnauthorized: false
-      }
+    cachedTransporter = nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      auth: { user, pass },
+      tls: { rejectUnauthorized: false }
     });
+    return cachedTransporter;
   } catch (err) {
     console.warn('[E-Posta Servisi] Transporter oluşturulamadı:', err.message);
+    return null;
   }
 }
 
@@ -47,6 +47,8 @@ if (isSmtpConfigured()) {
  * @returns {Promise<{success: boolean, sent: boolean, code?: string, reason?: string}>}
  */
 async function sendPasswordResetEmail(toEmail, recipientName, resetCode) {
+  const transporter = getTransporter();
+
   // SMTP henüz ayarlanmamışsa güvenli fallback motoru çalışır
   if (!isSmtpConfigured() || !transporter) {
     console.log(`[E-Posta Fallback] SMTP henüz yapılandırılmadı. ${toEmail} (${recipientName}) için doğrulama kodu üretildi: [ ${resetCode} ]`);
@@ -58,6 +60,8 @@ async function sendPasswordResetEmail(toEmail, recipientName, resetCode) {
       reason: 'SMTP sunucu ayarları henüz girilmediği için yerel doğrulama motoru devrede.'
     };
   }
+
+  const fromAddress = process.env.SMTP_FROM || `"OZDER Satranç Topluluğu" <${process.env.SMTP_USER || 'destek@ozdersatranc.com'}>`;
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -107,7 +111,7 @@ async function sendPasswordResetEmail(toEmail, recipientName, resetCode) {
 
   try {
     const info = await transporter.sendMail({
-      from: SMTP_FROM,
+      from: fromAddress,
       to: toEmail,
       subject: `OZDER Satranç - Şifre Sıfırlama Kodu: ${resetCode}`,
       text: `Merhaba ${recipientName},\n\nOZDER Satranç şifre sıfırlama kodunuz: ${resetCode}\n\nBu kod 15 dakika geçerlidir.`,
