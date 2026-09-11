@@ -1,13 +1,33 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const path = require('path');
 const nodemailer = require('nodemailer');
 const fs = require('fs');
 const db = require('./database');
 const multer = require('multer');
+
+// Güvenlik Middleware ve Servisleri (WHMCS / Kurumsal Seviye)
+const { securityHeadersMiddleware } = require('./middleware/securityHeaders');
+const { wafMiddleware } = require('./middleware/wafSanitizer');
+const { csrfProtectionMiddleware, handleGetCsrfToken } = require('./middleware/csrfProtection');
+const { 
+  sessionMiddleware, 
+  createSession, 
+  regenerateSession, 
+  destroySession, 
+  requireAuth, 
+  requireAdmin,
+  getClientIp 
+} = require('./middleware/sessionManager');
+const { 
+  generalApiRateLimiter, 
+  authBruteForceCheck, 
+  recordFailedAuth, 
+  recordSuccessfulAuth 
+} = require('./middleware/rateLimiter');
+const { encodeHtml, encodeHtmlAttr } = require('./middleware/encoder');
 
 // Uploads dizinini oluştur
 const uploadsDir = path.join(__dirname, 'public/uploads');
@@ -29,28 +49,13 @@ const upload = multer({ storage: storage });
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// 1. Güvenlik Başlıkları (CSP, X-Content-Type-Options: nosniff, Frame Deny, vb.)
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'", "https://ozdersatranc.onrender.com", "https://ozdersatranc.web.app", "https://satranc-b83d1.web.app"],
-      scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
-      imgSrc: ["'self'", "data:", "blob:", "https:"],
-      connectSrc: ["'self'", "https://ozdersatranc.onrender.com", "https://ozdersatranc.web.app", "https://satranc-b83d1.web.app"],
-      objectSrc: ["'none'"],
-      baseUri: ["'self'"],
-      frameAncestors: ["'none'"]
-    }
-  },
-  xContentTypeOptions: true, // X-Content-Type-Options: nosniff
-  xFrameOptions: { action: 'deny' },
-  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-  crossOriginEmbedderPolicy: false
-}));
+// 1. Katı Güvenlik Başlıkları (HSTS, CSP, X-Frame-Options: SAMEORIGIN, nosniff, Referrer-Policy)
+app.use(securityHeadersMiddleware);
 
+// 2. Çerez Ayrıştırıcı (Cookie-Parser)
 app.use(cookieParser());
+
+// 3. CORS Yapılandırması (Cross-Origin Resource Sharing)
 app.use(cors({
   origin: [
     'https://ozdersatranc.web.app',
@@ -61,34 +66,22 @@ app.use(cors({
   ],
   credentials: true
 }));
+
+// 4. İstek Gövdesi Ayrıştırıcıları
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
-// 2. Girdi Dezenfeksiyonu & Open-Redirect Koruması Middleware
-function sanitizeInput(data) {
-  if (typeof data === 'string') {
-    return data
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-      .replace(/on\w+\s*=\s*(['"]).*?\1/gi, '')
-      .replace(/(javascript|vbscript|data):/gi, '$1_disabled:');
-  } else if (Array.isArray(data)) {
-    return data.map(sanitizeInput);
-  } else if (data !== null && typeof data === 'object') {
-    const res = {};
-    for (const k of Object.keys(data)) {
-      res[k] = sanitizeInput(data[k]);
-    }
-    return res;
-  }
-  return data;
-}
+// 5. Genel Hız Sınırlama (Rate Limiting - DDoS ve DoS koruması)
+app.use(generalApiRateLimiter);
 
+// 6. WAF Seviyesi Girdi Dezenfeksiyonu ve Tehdit Engelleme (SQLi, XSS, Path Traversal)
+app.use(wafMiddleware);
+
+// 7. WHMCS Seviye Oturum Doğrulama ve Hijacking Koruması
+app.use(sessionMiddleware);
+
+// 8. Güvenli Yönlendirme (Open-Redirect Engeli)
 app.use((req, res, next) => {
-  if (req.body && typeof req.body === 'object') req.body = sanitizeInput(req.body);
-  if (req.query && typeof req.query === 'object') req.query = sanitizeInput(req.query);
-  if (req.params && typeof req.params === 'object') req.params = sanitizeInput(req.params);
-
-  // Güvenli Yönlendirme (Open-Redirect Engeli)
   const originalRedirect = res.redirect.bind(res);
   res.safeRedirect = function (targetUrl) {
     if (!targetUrl || typeof targetUrl !== 'string') return originalRedirect('/');
@@ -113,6 +106,12 @@ app.use((req, res, next) => {
 
   next();
 });
+
+// 9. CSRF Belirteci Alma Uç Noktası (Durum değiştirmeyen GET isteği)
+app.get('/api/csrf-token', handleGetCsrfToken);
+
+// 10. Katı CSRF Koruması (POST, PUT, DELETE, PATCH isteklerinde Double Submit & HMAC doğrulaması)
+app.use(csrfProtectionMiddleware);
 
 // Statik yükleme klasörü
 app.use('/uploads', express.static(uploadsDir));
@@ -250,7 +249,7 @@ app.delete('/api/messages/:id', (req, res) => {
 });
 
 // Kimlik Doğrulama API Rotaları (E-Posta veya Kullanıcı Adı ile Giriş)
-app.post('/api/auth/register', async (req, res) => {
+app.post('/api/auth/register', authBruteForceCheck, async (req, res) => {
   try {
     const { name, username, email, password, phone, chessPlatform, chessUsername, elo } = req.body;
     if (!name || !username || !email || !password || !phone) {
@@ -277,10 +276,15 @@ app.post('/api/auth/register', async (req, res) => {
       return res.status(400).json({ error: result.error });
     }
 
+    // Başarılı kayıt: Denemeleri sıfırla ve güvenli oturum oluştur
+    recordSuccessfulAuth(req, username);
+    const session = createSession(res, result.user, req, 'user');
+
     res.status(201).json({ 
       success: true, 
       message: "Kayıt başarıyla tamamlandı! Giriş yapabilirsiniz.", 
-      user: result.user
+      user: result.user,
+      sessionId: session.id
     });
   } catch (error) {
     res.status(500).json({ error: "Kayıt sırasında bir hata oluştu." });
@@ -300,7 +304,8 @@ app.post('/api/auth/verify', (req, res) => {
   }
 });
 
-app.post('/api/auth/login', (req, res) => {
+// Standart Kullanıcı Girişi (Brute-Force & Session Hardening Korumalı)
+app.post('/api/auth/login', authBruteForceCheck, (req, res) => {
   try {
     const { identifier, email, password } = req.body;
     const loginId = identifier || email;
@@ -309,35 +314,89 @@ app.post('/api/auth/login', (req, res) => {
     }
     const result = db.loginUser(loginId, password);
     if (result.error) {
-      return res.status(400).json({ error: result.error, requiresVerification: result.requiresVerification });
+      const failInfo = recordFailedAuth(req, loginId);
+      let errorMsg = result.error;
+      if (failInfo.isLocked) {
+        errorMsg = `Güvenlik Uyarısı (Brute-Force): 5 hatalı deneme sebebiyle IP/hesap ${failInfo.lockoutDurationMinutes} dakika süreyle engellenmiştir.`;
+      } else if (failInfo.remainingAttempts <= 3) {
+        errorMsg += ` (Kalan deneme hakkı: ${failInfo.remainingAttempts})`;
+      }
+      return res.status(400).json({ 
+        error: errorMsg, 
+        requiresVerification: result.requiresVerification,
+        remainingAttempts: failInfo.remainingAttempts,
+        isLocked: failInfo.isLocked
+      });
     }
-    // Güvenli Oturum Çerezi (HttpOnly, Secure, SameSite=Lax)
-    const sessionToken = Buffer.from(JSON.stringify({
-      id: result.user.id,
-      email: result.user.email,
-      iat: Date.now()
-    })).toString('base64');
 
-    res.cookie('ozder_session', sessionToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 gün geçerli
+    // Başarılı Giriş: Hatalı deneme sayaçlarını sıfırla
+    recordSuccessfulAuth(req, loginId);
+
+    // WHMCS Tipi Zırhlı Oturum (IP & User-Agent Binding + Session Fixation Koruması)
+    const session = createSession(res, result.user, req, 'user');
+
+    res.json({ 
+      success: true, 
+      user: result.user,
+      sessionId: session.id
     });
-
-    res.json({ success: true, user: result.user });
   } catch (error) {
     res.status(500).json({ error: "Giriş yapılırken bir hata oluştu." });
   }
 });
 
-// Güvenli Çıkış (Oturum Çerezini Sıfırla)
+// Yönetici (Admin) Giriş Uç Noktası (Brute-Force & Session Hardening Korumalı)
+app.post('/api/auth/admin-login', authBruteForceCheck, (req, res) => {
+  try {
+    const { username, password } = req.body;
+    const inputUser = (username || '').trim().toLowerCase();
+    const inputPass = (password || '').trim();
+
+    const validAdminUsers = ['admin', 'ozder', 'ozderahmet'];
+    const validAdminPass = ['Ozderahmet123.', 'Ozderahmet123', 'ozderahmet123.', 'ozderahmet123'];
+
+    if (validAdminUsers.includes(inputUser) && validAdminPass.includes(inputPass)) {
+      recordSuccessfulAuth(req, inputUser);
+      const adminUser = {
+        id: 'admin_' + inputUser,
+        username: inputUser,
+        name: 'Yönetici (' + inputUser + ')',
+        role: 'admin',
+        isAdmin: true
+      };
+
+      // Zırhlı Yönetici Oturumu Oluştur
+      const session = createSession(res, adminUser, req, 'admin');
+
+      return res.json({
+        success: true,
+        message: "Yönetici girişi başarıyla doğrulandı.",
+        user: adminUser,
+        sessionId: session.id
+      });
+    }
+
+    const failInfo = recordFailedAuth(req, inputUser);
+    let errorMsg = 'Hatalı yönetici kullanıcı adı veya şifre!';
+    if (failInfo.isLocked) {
+      errorMsg = `Güvenlik Uyarısı (Brute-Force): Çok fazla hatalı yönetici girişi denendi. IP adresiniz ${failInfo.lockoutDurationMinutes} dakika süreyle kilitlendi.`;
+    } else if (failInfo.remainingAttempts <= 3) {
+      errorMsg += ` (Kalan deneme hakkı: ${failInfo.remainingAttempts})`;
+    }
+
+    return res.status(400).json({
+      error: errorMsg,
+      remainingAttempts: failInfo.remainingAttempts,
+      isLocked: failInfo.isLocked
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Yönetici girişi sırasında bir hata oluştu." });
+  }
+});
+
+// Güvenli Çıkış (Oturumu ve Çerezleri Tamamen İmha Et)
 app.post('/api/auth/logout', (req, res) => {
-  res.clearCookie('ozder_session', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax'
-  });
+  destroySession(req, res);
   res.json({ success: true, message: "Oturum güvenle sonlandırıldı." });
 });
 
@@ -376,7 +435,7 @@ app.post('/api/users/:id/profile', upload.single('avatarFile'), (req, res) => {
   }
 });
 
-// Şifre Değiştirme Rotası
+// Şifre Değiştirme Rotası (Session Fixation Koruması ile Oturum Yenileme)
 app.post('/api/users/:id/change-password', (req, res) => {
   try {
     const { id } = req.params;
@@ -388,7 +447,11 @@ app.post('/api/users/:id/change-password', (req, res) => {
     if (result.error) {
       return res.status(400).json({ error: result.error });
     }
-    res.json({ success: true, message: "Şifreniz başarıyla değiştirildi." });
+
+    // Session Fixation Koruması: Şifre değiştiğinde oturum kimliğini derhal yenile
+    regenerateSession(req, res, { id });
+
+    res.json({ success: true, message: "Şifreniz başarıyla değiştirildi ve oturum kimliğiniz güvenle yenilendi." });
   } catch (error) {
     res.status(500).json({ error: "Şifre değiştirilirken bir hata oluştu." });
   }

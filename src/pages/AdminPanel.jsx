@@ -311,23 +311,44 @@ export default function AdminPanel({
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState({ type: '', text: '' });
 
-  const handleLogin = (e) => {
+  const handleAdminAuth = async (e) => {
     e.preventDefault();
     const validAdminUsers = ['admin', 'ozder', 'ozderahmet'];
     const validAdminPass = ['Ozderahmet123.', 'Ozderahmet123', 'ozderahmet123.', 'ozderahmet123'];
     const inputUser = (username || '').trim().toLowerCase();
     const inputPass = (password || '').trim();
 
-    if (validAdminUsers.includes(inputUser) && validAdminPass.includes(inputPass)) {
-      setIsAuthenticated(true);
-      setAuthError('');
-      try {
-        sessionStorage.setItem('ozder_admin_authenticated', 'true');
-      } catch (e) {}
-    } else {
+    try {
+      const response = await fetch('/api/auth/admin-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: inputUser, password: inputPass })
+      });
+      const result = await response.json();
+      if (response.ok) {
+        setIsAuthenticated(true);
+        setAuthError('');
+        try {
+          sessionStorage.setItem('ozder_admin_authenticated', 'true');
+        } catch (err) {}
+        return;
+      } else {
+        setAuthError(result.error || 'Hatalı kullanıcı adı veya şifre! Lütfen tekrar deneyin.');
+        return;
+      }
+    } catch (err) {
+      if (validAdminUsers.includes(inputUser) && validAdminPass.includes(inputPass)) {
+        setIsAuthenticated(true);
+        setAuthError('');
+        try {
+          sessionStorage.setItem('ozder_admin_authenticated', 'true');
+        } catch (e) {}
+        return;
+      }
       setAuthError('Hatalı kullanıcı adı veya şifre! Lütfen tekrar deneyin.');
     }
   };
+  const handleLogin = handleAdminAuth;
 
   const handleDeleteUser = async (tournamentId, userId) => {
     if (!window.confirm("Bu katılımcı kaydını turnuvadan silmek istediğinize emin misiniz?")) return;

@@ -79,12 +79,31 @@ export default function Auth({ onLoginSuccess, onGoToAdmin }) {
     const validAdminPass = ['Ozderahmet123.', 'Ozderahmet123', 'ozderahmet123.', 'ozderahmet123'];
     const inputUser = loginIdentifier.trim().toLowerCase();
     const inputPass = loginPassword.trim();
-    if (validAdminUsers.includes(inputUser) && validAdminPass.includes(inputPass)) {
+
+    if (validAdminUsers.includes(inputUser)) {
       try {
-        sessionStorage.setItem('ozder_admin_authenticated', 'true');
-      } catch (e) {}
-      if (onGoToAdmin) onGoToAdmin();
-      return;
+        const adminRes = await fetch('/api/auth/admin-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: inputUser, password: inputPass })
+        });
+        const adminData = await adminRes.json();
+        if (adminRes.ok) {
+          sessionStorage.setItem('ozder_admin_authenticated', 'true');
+          if (onGoToAdmin) onGoToAdmin();
+          return;
+        } else {
+          setErrorMsg(adminData.error || 'Yönetici girişi başarısız.');
+          setLoading(false);
+          return;
+        }
+      } catch (err) {
+        if (validAdminPass.includes(inputPass)) {
+          sessionStorage.setItem('ozder_admin_authenticated', 'true');
+          if (onGoToAdmin) onGoToAdmin();
+          return;
+        }
+      }
     }
 
     try {
