@@ -38,7 +38,7 @@ export default function Auth({ onLoginSuccess, onGoToAdmin }) {
     setInfoMsg('');
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 8000);
+    const timer = setTimeout(() => controller.abort(), 40000);
 
     try {
       const response = await fetch('/api/auth/forgot-password', {
@@ -422,7 +422,7 @@ export default function Auth({ onLoginSuccess, onGoToAdmin }) {
                 />
               </div>
               <button type="submit" disabled={loading} className="btn-primary" style={{ justifyContent: 'center', marginTop: '6px' }}>
-                {loading ? 'Kod Oluşturuluyor...' : 'Kurtarma Kodu Gönder'}
+                {loading ? 'E-Posta Gönderiliyor...' : 'Kurtarma Kodu Gönder'}
               </button>
             </form>
           ) : (

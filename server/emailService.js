@@ -22,10 +22,13 @@ function getTransporter() {
   const pass = (process.env.SMTP_PASS || '').replace(/\s+/g, '').trim();
 
   try {
-    // Gmail resmi servis önayarı: port 465 SSL kullanarak bulut blokajlarını aşar
+    // Gmail resmi servis önayarı: port 465 SSL ve bağlantı havuzu
     cachedTransporter = nodemailer.createTransport({
       service: 'gmail',
-      auth: { user, pass }
+      auth: { user, pass },
+      pool: true,
+      maxConnections: 3,
+      maxMessages: 100
     });
     return cachedTransporter;
   } catch (err) {
@@ -101,13 +104,19 @@ async function sendPasswordResetEmail(toEmail, recipientName, resetCode) {
   `;
 
   try {
-    const info = await transporter.sendMail({
+    const sendPromise = transporter.sendMail({
       from: fromAddress,
       to: toEmail,
       subject: `OZDER Satranç - Şifre Sıfırlama Kodu: ${resetCode}`,
       text: `Merhaba ${recipientName},\n\nOZDER Satranç şifre sıfırlama kodunuz: ${resetCode}\n\nBu kod 15 dakika geçerlidir.`,
       html: htmlContent
     });
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('E-posta sunucusu zaman aşımına uğradı (25s).')), 25000)
+    );
+
+    const info = await Promise.race([sendPromise, timeoutPromise]);
 
     console.log(`[E-Posta Başarılı] ${toEmail} adresine e-posta gönderildi. Mesaj ID: ${info.messageId}`);
     return {
