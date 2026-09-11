@@ -25,7 +25,9 @@ const {
   generalApiRateLimiter, 
   authBruteForceCheck, 
   recordFailedAuth, 
-  recordSuccessfulAuth 
+  recordSuccessfulAuth,
+  unblockIp,
+  getBlockedIps 
 } = require('./middleware/rateLimiter');
 const { encodeHtml, encodeHtmlAttr } = require('./middleware/encoder');
 
@@ -759,6 +761,75 @@ app.post('/api/admin/restore', (req, res) => {
     res.json({ success: true, message: "Veritabanı başarıyla geri yüklendi!", data: result.data });
   } catch (error) {
     res.status(500).json({ error: "Yedek geri yüklenirken sunucu hatası oluştu." });
+  }
+});
+
+// ================= SİBER GÜVENLİK VE SALDIRI GÜNLÜĞÜ (WAF / IDS) APİ =================
+// Güvenlik Günlüklerini ve Kilitli IP'leri Getir
+app.get('/api/admin/security-logs', (req, res) => {
+  try {
+    const logs = db.getSecurityLogs();
+    const blockedIps = getBlockedIps();
+
+    // İstatistik özeti oluştur
+    const byType = {};
+    logs.forEach(l => {
+      byType[l.type] = (byType[l.type] || 0) + 1;
+    });
+
+    res.json({
+      success: true,
+      logs,
+      blockedIps,
+      stats: {
+        totalThreats: logs.length,
+        blockedIpCount: blockedIps.length,
+        byType,
+        lastThreat: logs[0] || null
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Güvenlik kayıtları alınamadı." });
+  }
+});
+
+// Güvenlik Günlüklerini Temizle
+app.delete('/api/admin/security-logs', (req, res) => {
+  try {
+    const logs = db.clearSecurityLogs();
+    res.json({ success: true, message: "Tüm güvenlik kayıtları temizlendi.", logs });
+  } catch (error) {
+    res.status(500).json({ error: "Kayıtlar temizlenirken hata oluştu." });
+  }
+});
+
+// Tekil Güvenlik Kaydını Sil
+app.delete('/api/admin/security-logs/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const logs = db.deleteSecurityLog(id);
+    res.json({ success: true, logs });
+  } catch (error) {
+    res.status(500).json({ error: "Kayıt silinirken hata oluştu." });
+  }
+});
+
+// Kilitli Bir IP'nin Engelini Manuel Kaldır
+app.post('/api/admin/unblock-ip', (req, res) => {
+  try {
+    const { ip } = req.body;
+    if (!ip) {
+      return res.status(400).json({ error: "IP adresi belirtilmelidir." });
+    }
+    const unblocked = unblockIp(ip);
+    const blockedIps = getBlockedIps();
+    res.json({ 
+      success: true, 
+      message: unblocked ? `${ip} adresinin engeli kaldırıldı.` : `${ip} adresi kilitli listesinde bulunamadı.`, 
+      blockedIps 
+    });
+  } catch (error) {
+    res.status(500).json({ error: "IP engeli kaldırılırken hata oluştu." });
   }
 });
 

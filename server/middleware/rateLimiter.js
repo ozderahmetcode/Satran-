@@ -2,6 +2,7 @@
  * Brute-Force ve Hız Sınırlama (Rate Limiting) Servisi
  * IP ve Kullanıcı Bazlı Kilitlenme Mekanizması (5 Hatalı Deneme -> 15 Dakika Engel)
  */
+const db = require('../database');
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 dakika
@@ -127,6 +128,18 @@ function recordFailedAuth(req, identifier = '') {
   if (ipData.count >= MAX_FAILED_ATTEMPTS) {
     ipData.lockedUntil = now + LOCKOUT_DURATION;
     console.warn(`[BRUTE-FORCE BLOKAJI] ${ip} IP adresi 5 hatalı deneme sonrası 15 dakika kilitlendi!`);
+
+    // Yönetici paneli için veritabanına kaydet
+    db.recordSecurityLog({
+      type: 'BRUTE_FORCE_SALDIRISI',
+      severity: 'HIGH',
+      ip: ip,
+      userAgent: req.headers['user-agent'] || 'Bilinmiyor',
+      method: req.method,
+      path: req.originalUrl || req.url,
+      details: `Kaba Kuvvet (Brute-Force) Girişimi: '${cleanId || 'Belirtilmedi'}' için 5 hatalı şifre denemesi yapıldı. IP adresi 15 dakika kilitlendi.`,
+      threatPayload: `Hedef Kullanıcı/E-posta: ${cleanId || 'Belirtilmedi'} | Toplam Hatalı Deneme: ${ipData.count}`
+    });
   }
   ipFailures.set(ip, ipData);
 
@@ -167,11 +180,43 @@ function recordSuccessfulAuth(req, identifier = '') {
   }
 }
 
+/**
+ * Belirli bir IP adresinin engelini manuel kaldırır (Yönetici yetkisi)
+ */
+function unblockIp(ip) {
+  if (!ip) return false;
+  const clean = String(ip).trim().replace(/^::ffff:/, '');
+  const existed = ipFailures.has(clean);
+  ipFailures.delete(clean);
+  return existed;
+}
+
+/**
+ * Şu anda kilitli olan tüm IP adreslerini listeler
+ */
+function getBlockedIps() {
+  const now = Date.now();
+  const list = [];
+  for (const [ip, data] of ipFailures.entries()) {
+    if (data.lockedUntil && now < data.lockedUntil) {
+      list.push({
+        ip,
+        count: data.count,
+        lockedUntil: data.lockedUntil,
+        remainingSeconds: Math.ceil((data.lockedUntil - now) / 1000)
+      });
+    }
+  }
+  return list;
+}
+
 module.exports = {
   generalApiRateLimiter,
   authBruteForceCheck,
   recordFailedAuth,
   recordSuccessfulAuth,
+  unblockIp,
+  getBlockedIps,
   MAX_FAILED_ATTEMPTS,
   LOCKOUT_DURATION
 };

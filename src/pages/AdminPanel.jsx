@@ -26,7 +26,112 @@ export default function AdminPanel({
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
-  const [activeTab, setActiveTab] = useState('users'); // users | analytics | registrations | events | tournaments | messages | spam | backup
+  const [activeTab, setActiveTab] = useState('users'); // users | analytics | registrations | events | tournaments | messages | spam | backup | security
+
+  // Siber Güvenlik (WAF / IDS / Hack Girişimleri) State'leri
+  const [securityLogs, setSecurityLogs] = useState([]);
+  const [blockedIps, setBlockedIps] = useState([]);
+  const [securityStats, setSecurityStats] = useState({ totalThreats: 0, blockedIpCount: 0, byType: {}, lastThreat: null });
+  const [loadingSecurity, setLoadingSecurity] = useState(false);
+  const [securitySearchTerm, setSecuritySearchTerm] = useState('');
+  const [selectedThreatType, setSelectedThreatType] = useState('all');
+  const [securityStatusMsg, setSecurityStatusMsg] = useState({ type: '', text: '' });
+  const [expandedLogId, setExpandedLogId] = useState(null);
+
+  const fetchSecurityLogs = async () => {
+    try {
+      setLoadingSecurity(true);
+      const res = await fetch('/api/admin/security-logs');
+      if (res.ok) {
+        const data = await res.json();
+        setSecurityLogs(data.logs || []);
+        setBlockedIps(data.blockedIps || []);
+        setSecurityStats(data.stats || { totalThreats: 0, blockedIpCount: 0, byType: {} });
+      }
+    } catch (err) {
+      console.error('Güvenlik kayıtları yüklenirken hata:', err);
+    } finally {
+      setLoadingSecurity(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchSecurityLogs();
+      const secInterval = setInterval(fetchSecurityLogs, 15000);
+      return () => clearInterval(secInterval);
+    }
+  }, [isAuthenticated]);
+
+  const handleClearSecurityLogs = async () => {
+    if (!window.confirm("Tüm siber güvenlik ve hack saldırı kayıtlarını temizlemek istediğinize emin misiniz?")) return;
+    try {
+      const res = await fetch('/api/admin/security-logs', { method: 'DELETE' });
+      if (res.ok) {
+        setSecurityLogs([]);
+        setSecurityStats(prev => ({ ...prev, totalThreats: 0, byType: {} }));
+        setSecurityStatusMsg({ type: 'success', text: 'Tüm güvenlik kayıtları başarıyla temizlendi.' });
+        setTimeout(() => setSecurityStatusMsg({ type: '', text: '' }), 3500);
+      }
+    } catch (err) {
+      alert("Kayıtlar silinirken hata oluştu.");
+    }
+  };
+
+  const handleDeleteSingleSecurityLog = async (id) => {
+    try {
+      const res = await fetch(`/api/admin/security-logs/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setSecurityLogs(prev => prev.filter(l => l.id !== id));
+        setSecurityStats(prev => ({ ...prev, totalThreats: Math.max(0, prev.totalThreats - 1) }));
+      }
+    } catch (err) {
+      alert("Kayıt silinemedi.");
+    }
+  };
+
+  const handleUnblockIp = async (ip) => {
+    if (!window.confirm(`${ip} adresinin engelini kaldırmak istediğinize emin misiniz?`)) return;
+    try {
+      const res = await fetch('/api/admin/unblock-ip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ip })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setBlockedIps(data.blockedIps || []);
+        setSecurityStats(prev => ({ ...prev, blockedIpCount: data.blockedIps?.length || 0 }));
+        setSecurityStatusMsg({ type: 'success', text: data.message });
+        setTimeout(() => setSecurityStatusMsg({ type: '', text: '' }), 3500);
+      }
+    } catch (err) {
+      alert("IP engeli kaldırılırken hata oluştu.");
+    }
+  };
+
+  const handleExportSecurityReport = () => {
+    try {
+      const report = {
+        raporAdi: "OZDER Siber Güvenlik ve Hack Girişimleri Raporu",
+        olusturulmaTarihi: new Date().toISOString(),
+        istatistikler: securityStats,
+        kilitliIpler: blockedIps,
+        guvenlikKayitlari: securityLogs
+      };
+      const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ozder_guvenlik_saldiri_raporu_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert("Rapor indirilemedi.");
+    }
+  };
 
   // Veritabanı Yedekleme & Geri Yükleme State'leri
   const restoreFileInputRef = useRef(null);
@@ -695,6 +800,32 @@ export default function AdminPanel({
             <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Turnuva masa başvuruları</div>
           </div>
         </div>
+
+        <div 
+          onClick={() => setActiveTab('security')}
+          className="glass-panel" 
+          style={{ 
+            padding: '20px', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '16px', 
+            cursor: 'pointer',
+            border: (securityStats.totalThreats || 0) > 0 ? '1px solid rgba(239, 68, 68, 0.4)' : undefined, 
+            background: (securityStats.totalThreats || 0) > 0 ? 'rgba(239, 68, 68, 0.05)' : undefined 
+          }}
+          title="Siber Güvenlik ve Hack Günlüğünü Görüntüle"
+        >
+          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: (securityStats.totalThreats || 0) > 0 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>
+            🛡️
+          </div>
+          <div>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 }}>ENGELLENEN SALDIRI</div>
+            <div style={{ fontSize: '26px', fontWeight: 800, color: (securityStats.totalThreats || 0) > 0 ? '#ef4444' : '#10b981' }}>{securityStats.totalThreats || 0}</div>
+            <div style={{ fontSize: '11px', color: (securityStats.blockedIpCount || 0) > 0 ? '#ef4444' : '#10b981' }}>
+              {(securityStats.blockedIpCount || 0) > 0 ? `${securityStats.blockedIpCount} IP engellendi` : 'WAF & Oturum Zırhı Aktif'}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Admin Tabs */}
@@ -707,6 +838,7 @@ export default function AdminPanel({
           { id: 'tournaments', label: 'Eşleştirme Sistemi ♟️' },
           { id: 'messages', label: `Gelen Mesajlar (${messages.length}) ✉️` },
           { id: 'spam', label: `Spam & Şikayetler (${spamReports.filter(s => s.status === 'pending').length} bekleyen) ⚠️` },
+          { id: 'security', label: `🛡️ Hack & Güvenlik (${securityStats.totalThreats || 0})` },
           { id: 'backup', label: '💾 Veritabanı & Yedekleme' }
         ].map(tab => (
           <button
@@ -2646,6 +2778,405 @@ export default function AdminPanel({
               <li><strong>Sunucu Yenilenirse:</strong> Render gibi bulut servisleri yeniden başladığında elinizdeki en güncel JSON yedeğini "Yedeği Geri Yükle" butonuyla yükleyerek 1 saniyede her şeyi eski haline getirebilirsiniz.</li>
             </ul>
           </div>
+
+        </div>
+      )}
+
+      {/* Tab Content: Siber Güvenlik, WAF ve Hack Girişimleri Günlüğü */}
+      {activeTab === 'security' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          
+          {/* Status Message */}
+          {securityStatusMsg.text && (
+            <div style={{
+              padding: '14px 20px',
+              borderRadius: '10px',
+              fontWeight: 600,
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: securityStatusMsg.type === 'success' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+              color: securityStatusMsg.type === 'success' ? '#10b981' : '#ef4444',
+              border: `1px solid ${securityStatusMsg.type === 'success' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`
+            }}>
+              <span>{securityStatusMsg.type === 'success' ? '✅ ' : '❌ '}{securityStatusMsg.text}</span>
+              <button 
+                onClick={() => setSecurityStatusMsg({ type: '', text: '' })}
+                style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: '16px' }}
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {/* Header Banner */}
+          <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px', border: '1px solid rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.03)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: 'rgba(239, 68, 68, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px' }}>
+                🛡️
+              </div>
+              <div>
+                <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 800, margin: '0 0 6px 0', color: 'var(--text-primary)' }}>
+                  Siber Güvenlik Duvarı (WAF / IDS) & Canlı Saldırı Günlüğü
+                </h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: 0, lineHeight: 1.5 }}>
+                  Sitenize yönelik engellenen tüm SQL Injection, XSS, Oturum Kaçırma (Hijacking), Kaba Kuvvet (Brute-Force) ve CSRF saldırılarının tam IP, tarayıcı ve saldırı yükü dökümleri.
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <button
+                onClick={fetchSecurityLogs}
+                disabled={loadingSecurity}
+                className="btn-secondary"
+                style={{ padding: '8px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                title="Günlüğü Yenile"
+              >
+                🔄 {loadingSecurity ? 'Taranıyor...' : 'Yenile'}
+              </button>
+
+              <button
+                onClick={handleExportSecurityReport}
+                disabled={securityLogs.length === 0}
+                className="btn-secondary"
+                style={{ padding: '8px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                title="Güvenlik Raporunu JSON Olarak İndir"
+              >
+                📥 Rapor İndir
+              </button>
+
+              <button
+                onClick={handleClearSecurityLogs}
+                disabled={securityLogs.length === 0}
+                className="btn-secondary"
+                style={{ padding: '8px 16px', fontSize: '13px', borderColor: 'rgba(239, 68, 68, 0.4)', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '6px' }}
+                title="Tüm Kayıtları Temizle"
+              >
+                🗑️ Kayıtları Temizle
+              </button>
+            </div>
+          </div>
+
+          {/* Quick Metrics Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+            <div className="glass-panel" style={{ padding: '18px', borderLeft: '4px solid #ef4444' }}>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600 }}>ENGELLENEN SALDIRI</div>
+              <div style={{ fontSize: '26px', fontWeight: 800, color: '#ef4444', margin: '4px 0' }}>
+                {securityStats.totalThreats || 0}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>WAF & Filtre tarafından durduruldu</div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '18px', borderLeft: '4px solid #f59e0b' }}>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600 }}>KİLİTLİ IP SAYISI</div>
+              <div style={{ fontSize: '26px', fontWeight: 800, color: '#f59e0b', margin: '4px 0' }}>
+                {securityStats.blockedIpCount || 0}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>15 dakikalık kilit altındaki IP'ler</div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '18px', borderLeft: '4px solid #3b82f6' }}>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600 }}>CSRF & OTURUM ZIRHI</div>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: '#3b82f6', margin: '6px 0' }}>
+                WHMCS STANDARDI
+              </div>
+              <div style={{ fontSize: '11px', color: '#10b981' }}>IP + UA Binding Aktif</div>
+            </div>
+
+            <div className="glass-panel" style={{ padding: '18px', borderLeft: '4px solid #10b981' }}>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600 }}>WAF GÜVENLİK DURUMU</div>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: '#10b981', margin: '6px 0' }}>
+                🛡️ %100 KORUMADA
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>SQLi / XSS / Traversal Filtresi</div>
+            </div>
+          </div>
+
+          {/* Currently Blocked IPs Panel (if any) */}
+          {blockedIps.length > 0 && (
+            <div className="glass-panel" style={{ padding: '20px', border: '1px solid rgba(239, 68, 68, 0.4)', background: 'rgba(239, 68, 68, 0.05)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontSize: '20px' }}>⛔</span>
+                  <strong style={{ color: '#ef4444', fontSize: '15px' }}>
+                    Şu Anda Kilitlenmiş / Yasaklanmış IP Adresleri ({blockedIps.length})
+                  </strong>
+                </div>
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  5 başarısız giriş denemesi sonrası sistem tarafından 15 dakika boyunca kilitlenmiştir
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
+                {blockedIps.map(b => (
+                  <div key={b.ip} style={{ background: 'var(--card-bg)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '8px', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '14px', color: '#ef4444' }}>
+                        🌐 {b.ip}
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                        Hatalı Deneme: {b.count} | Kalan Süre: ~{Math.ceil(b.remainingSeconds / 60)} dakika ({b.remainingSeconds} sn)
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleUnblockIp(b.ip)}
+                      className="btn-secondary"
+                      style={{ padding: '6px 12px', fontSize: '11px', borderColor: '#10b981', color: '#10b981' }}
+                      title="Engeli Derhal Kaldır"
+                    >
+                      Engeli Kaldır
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Search & Filter Toolbar */}
+          <div className="glass-panel" style={{ padding: '16px', display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', gap: '12px', flex: 1, minWidth: '260px' }}>
+              <input
+                type="text"
+                value={securitySearchTerm}
+                onChange={(e) => setSecuritySearchTerm(e.target.value)}
+                placeholder="🔍 IP Adresi, Endpoint, Metot veya Saldırı Kalıbı ara..."
+                className="input-field"
+                style={{ flex: 1, margin: 0, padding: '10px 14px', fontSize: '13px' }}
+              />
+
+              <select
+                value={selectedThreatType}
+                onChange={(e) => setSelectedThreatType(e.target.value)}
+                className="input-field"
+                style={{ width: '200px', margin: 0, padding: '10px 14px', fontSize: '13px' }}
+              >
+                <option value="all">Tüm Tehdit Türleri ({securityLogs.length})</option>
+                <option value="SQL_INJECTION">SQL Injection</option>
+                <option value="XSS_ATTACK">XSS Saldırısı</option>
+                <option value="OTURUM_KAÇIRMA">Oturum Kaçırma (Hijack)</option>
+                <option value="BRUTE_FORCE_SALDIRISI">Kaba Kuvvet (Brute-Force)</option>
+                <option value="CSRF_">CSRF İhlalleri</option>
+                <option value="PATH_TRAVERSAL">Dizin Atlama (Traversal)</option>
+              </select>
+            </div>
+
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+              Gösterilen: <strong>
+                {securityLogs
+                  .filter(log => {
+                    const matchType = selectedThreatType === 'all' || 
+                      (selectedThreatType.endsWith('_') ? log.type.startsWith(selectedThreatType) : log.type === selectedThreatType);
+                    const q = securitySearchTerm.trim().toLowerCase();
+                    const matchSearch = !q || 
+                      (log.ip && log.ip.toLowerCase().includes(q)) ||
+                      (log.path && log.path.toLowerCase().includes(q)) ||
+                      (log.threatPayload && log.threatPayload.toLowerCase().includes(q)) ||
+                      (log.details && log.details.toLowerCase().includes(q));
+                    return matchType && matchSearch;
+                  }).length}
+              </strong> / {securityLogs.length} Olay
+            </div>
+          </div>
+
+          {/* Incidents Table / Feed */}
+          {securityLogs.length === 0 ? (
+            <div className="glass-panel" style={{ padding: '60px 20px', textAlign: 'center' }}>
+              <div style={{ fontSize: '48px', marginBottom: '14px' }}>🟢</div>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 8px 0', color: '#10b981' }}>
+                Harika! Hiçbir Hack veya Tehdit Girişimi Bulunmuyor
+              </h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '14px', maxWidth: '540px', margin: '0 auto', lineHeight: 1.5 }}>
+                Web Uygulama Güvenlik Duvarı (WAF), Oturum Kaçırma (Hijacking) dedektörleri ve Kaba Kuvvet (Brute-Force) kalkanları 7/24 devrede. Sitede şüpheli bir işlem denendiğinde IP ve saldırı bilgileri anında burada belirecektir.
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {securityLogs
+                .filter(log => {
+                  const matchType = selectedThreatType === 'all' || 
+                    (selectedThreatType.endsWith('_') ? log.type.startsWith(selectedThreatType) : log.type === selectedThreatType);
+                  const q = securitySearchTerm.trim().toLowerCase();
+                  const matchSearch = !q || 
+                    (log.ip && log.ip.toLowerCase().includes(q)) ||
+                    (log.path && log.path.toLowerCase().includes(q)) ||
+                    (log.threatPayload && log.threatPayload.toLowerCase().includes(q)) ||
+                    (log.details && log.details.toLowerCase().includes(q));
+                  return matchType && matchSearch;
+                })
+                .map((log) => {
+                  const isExpanded = expandedLogId === log.id;
+                  const isBlocked = blockedIps.some(b => b.ip === log.ip);
+
+                  // Tehdit badge renkleri
+                  let badgeBg = 'rgba(239, 68, 68, 0.15)';
+                  let badgeColor = '#ef4444';
+                  let typeLabel = log.type;
+
+                  if (log.type === 'SQL_INJECTION') {
+                    badgeBg = 'rgba(239, 68, 68, 0.2)';
+                    badgeColor = '#ef4444';
+                    typeLabel = '🛑 SQL INJECTION';
+                  } else if (log.type === 'XSS_ATTACK') {
+                    badgeBg = 'rgba(249, 115, 22, 0.2)';
+                    badgeColor = '#f97316';
+                    typeLabel = '⚡ XSS SALDIRISI';
+                  } else if (log.type === 'OTURUM_KAÇIRMA') {
+                    badgeBg = 'rgba(168, 85, 247, 0.2)';
+                    badgeColor = '#a855f7';
+                    typeLabel = '🚨 OTURUM KAÇIRMA (HIJACK)';
+                  } else if (log.type === 'BRUTE_FORCE_SALDIRISI') {
+                    badgeBg = 'rgba(245, 158, 11, 0.2)';
+                    badgeColor = '#f59e0b';
+                    typeLabel = '🔒 KABA KUVVET (BRUTE-FORCE)';
+                  } else if (log.type.startsWith('CSRF_')) {
+                    badgeBg = 'rgba(59, 130, 246, 0.2)';
+                    badgeColor = '#3b82f6';
+                    typeLabel = '🛡️ CSRF İHLALİ';
+                  } else if (log.type === 'PATH_TRAVERSAL') {
+                    badgeBg = 'rgba(236, 72, 153, 0.2)';
+                    badgeColor = '#ec4899';
+                    typeLabel = '📁 DİZİN ATLAMA';
+                  }
+
+                  return (
+                    <div 
+                      key={log.id} 
+                      className="glass-panel" 
+                      style={{ 
+                        padding: '18px 20px', 
+                        borderLeft: `4px solid ${badgeColor}`,
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        gap: '12px',
+                        background: 'rgba(255, 255, 255, 0.02)'
+                      }}
+                    >
+                      {/* Top Row: Type, IP, Date, Actions */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                          <span style={{ 
+                            padding: '4px 10px', 
+                            borderRadius: '6px', 
+                            fontSize: '11px', 
+                            fontWeight: 800, 
+                            background: badgeBg, 
+                            color: badgeColor,
+                            letterSpacing: '0.5px'
+                          }}>
+                            {typeLabel}
+                          </span>
+
+                          <span style={{ 
+                            fontFamily: 'monospace', 
+                            fontWeight: 700, 
+                            fontSize: '13px', 
+                            color: 'var(--text-primary)',
+                            background: 'rgba(255,255,255,0.05)',
+                            padding: '3px 8px',
+                            borderRadius: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                          }}>
+                            🌐 {log.ip}
+                            {isBlocked && (
+                              <span style={{ fontSize: '10px', background: '#ef4444', color: '#fff', padding: '1px 5px', borderRadius: '3px' }}>
+                                KİLİTLENDİ
+                              </span>
+                            )}
+                          </span>
+
+                          <span style={{ 
+                            fontSize: '11px', 
+                            fontWeight: 700, 
+                            color: 'var(--text-secondary)',
+                            background: 'rgba(255,255,255,0.04)',
+                            padding: '3px 8px',
+                            borderRadius: '4px'
+                          }}>
+                            {log.method} {log.path}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                            🕒 {new Date(log.timestamp).toLocaleString('tr-TR')}
+                          </span>
+
+                          <button
+                            onClick={() => handleDeleteSingleSecurityLog(log.id)}
+                            className="btn-secondary"
+                            style={{ padding: '4px 8px', fontSize: '11px', color: 'var(--text-secondary)' }}
+                            title="Bu Kaydı Sil"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Details Row */}
+                      <div style={{ fontSize: '13px', color: 'var(--text-primary)', lineHeight: 1.5 }}>
+                        <strong>Açıklama:</strong> {log.details}
+                      </div>
+
+                      {/* Threat Payload Box (Exact hack code/payload injected by attacker) */}
+                      {log.threatPayload && (
+                        <div style={{ background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '10px 14px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                            <span style={{ fontSize: '11px', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase' }}>
+                              ⚠️ Tespit Edilen Zararlı Yük (Saldırı Kodu / Parametresi):
+                            </span>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(log.threatPayload);
+                                alert("Zararlı yük panoya kopyalandı!");
+                              }}
+                              style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '11px' }}
+                            >
+                              📋 Kopyala
+                            </button>
+                          </div>
+                          <code style={{ color: '#ef4444', fontFamily: 'monospace', fontSize: '12px', wordBreak: 'break-all', display: 'block' }}>
+                            {log.threatPayload}
+                          </code>
+                        </div>
+                      )}
+
+                      {/* User Agent / Browser info toggle */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '4px' }}>
+                        <button
+                          onClick={() => setExpandedLogId(isExpanded ? null : log.id)}
+                          style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', fontSize: '12px', padding: 0 }}
+                        >
+                          {isExpanded ? '▲ Tarayıcı / Cihaz Bilgisini Gizle' : '▼ Tarayıcı / User-Agent Detayını Göster'}
+                        </button>
+
+                        {isBlocked && (
+                          <button
+                            onClick={() => handleUnblockIp(log.ip)}
+                            style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}
+                          >
+                            🔓 Bu IP'nin Engelini Kaldır
+                          </button>
+                        )}
+                      </div>
+
+                      {isExpanded && (
+                        <div style={{ background: 'rgba(0,0,0,0.2)', padding: '10px 14px', borderRadius: '6px', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                          <div><strong>Saldırgan Tarayıcı (User-Agent):</strong></div>
+                          <div style={{ fontFamily: 'monospace', marginTop: '4px', wordBreak: 'break-all', color: 'var(--text-primary)' }}>
+                            {log.userAgent}
+                          </div>
+                        </div>
+                      )}
+
+                    </div>
+                  );
+                })}
+            </div>
+          )}
 
         </div>
       )}

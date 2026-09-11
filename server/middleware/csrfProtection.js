@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const db = require('../database');
 
 /**
  * Katı CSRF (Cross-Site Request Forgery) Koruma Servisi
@@ -101,8 +102,23 @@ function csrfProtectionMiddleware(req, res, next) {
     req.headers['x-xsrf-token'] ||
     req.body?._csrf;
 
+  const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || 'Bilinmiyor';
+  const userAgent = req.headers['user-agent'] || 'Bilinmiyor';
+
   if (!clientToken) {
-    console.warn(`[CSRF REDDİ] ${req.ip} - ${req.method} ${req.originalUrl} isteğinde CSRF token bulunamadı.`);
+    console.warn(`[CSRF REDDİ] ${clientIp} - ${req.method} ${req.originalUrl} isteğinde CSRF token bulunamadı.`);
+
+    db.recordSecurityLog({
+      type: 'CSRF_EKSİK',
+      severity: 'MEDIUM',
+      ip: clientIp,
+      userAgent,
+      method: req.method,
+      path: req.originalUrl || req.url,
+      details: 'Durum değiştiren işlemde (POST/PUT/DELETE) zorunlu CSRF güvenlik tokeni bulunamadı.',
+      threatPayload: 'EKSİK_TOKEN'
+    });
+
     return res.status(403).json({
       error: "Erişim Engellendi (403 Forbidden): CSRF güvenlik belirteci eksik.",
       code: "CSRF_TOKEN_MISSING"
@@ -116,7 +132,19 @@ function csrfProtectionMiddleware(req, res, next) {
   // 1. Kriptografik imza doğrulaması
   const isValidSignature = verifyCsrfToken(clientToken, sessionId);
   if (!isValidSignature) {
-    console.warn(`[CSRF REDDİ] ${req.ip} - ${req.method} ${req.originalUrl} isteğinde geçersiz CSRF imzası tespit edildi.`);
+    console.warn(`[CSRF REDDİ] ${clientIp} - ${req.method} ${req.originalUrl} isteğinde geçersiz CSRF imzası tespit edildi.`);
+
+    db.recordSecurityLog({
+      type: 'CSRF_SAHTE_TOKEN',
+      severity: 'HIGH',
+      ip: clientIp,
+      userAgent,
+      method: req.method,
+      path: req.originalUrl || req.url,
+      details: 'Sahte veya kriptografik imzası bozulmuş/geçersiz CSRF tokeni tespit edildi.',
+      threatPayload: String(clientToken).substring(0, 100)
+    });
+
     return res.status(403).json({
       error: "Erişim Engellendi (403 Forbidden): CSRF güvenlik belirteci doğrulanamadı veya sahte.",
       code: "CSRF_TOKEN_INVALID"
@@ -125,7 +153,19 @@ function csrfProtectionMiddleware(req, res, next) {
 
   // 2. Eğer cookie token mevcutsa birebir eşleşme şartı
   if (cookieToken && cookieToken !== clientToken) {
-    console.warn(`[CSRF REDDİ] ${req.ip} - Cookie token ile header token eşleşmedi.`);
+    console.warn(`[CSRF REDDİ] ${clientIp} - Cookie token ile header token eşleşmedi.`);
+
+    db.recordSecurityLog({
+      type: 'CSRF_UYUŞMAZLIK',
+      severity: 'HIGH',
+      ip: clientIp,
+      userAgent,
+      method: req.method,
+      path: req.originalUrl || req.url,
+      details: 'Double-submit çerez tokeni ile HTTP başlığındaki token uyuşmuyor.',
+      threatPayload: `Header: ${String(clientToken).substring(0, 30)}... | Cookie: ${String(cookieToken).substring(0, 30)}...`
+    });
+
     return res.status(403).json({
       error: "Erişim Engellendi (403 Forbidden): CSRF belirteci çerez ile uyuşmuyor.",
       code: "CSRF_TOKEN_MISMATCH"

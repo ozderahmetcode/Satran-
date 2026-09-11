@@ -38,6 +38,7 @@ const defaultData = {
   matchRequests: [],
   directMessages: [],
   spamReports: [],
+  securityLogs: [],
   analytics: {
     totalTimeSpentSeconds: 0,
     totalVisits: 0,
@@ -100,6 +101,10 @@ function readDB() {
     }
     if (!Array.isArray(parsed.spamReports)) {
       parsed.spamReports = [];
+      changed = true;
+    }
+    if (!Array.isArray(parsed.securityLogs)) {
+      parsed.securityLogs = [];
       changed = true;
     }
     if (!parsed.analytics || typeof parsed.analytics !== 'object') {
@@ -1252,6 +1257,7 @@ module.exports = {
     if (!Array.isArray(restored.matchRequests)) restored.matchRequests = [];
     if (!Array.isArray(restored.directMessages)) restored.directMessages = [];
     if (!Array.isArray(restored.spamReports)) restored.spamReports = [];
+    if (!Array.isArray(restored.securityLogs)) restored.securityLogs = [];
 
     // İstatistik ve liderlik tablosunu yeniden hesapla
     updateLeaderboards(restored);
@@ -1261,6 +1267,71 @@ module.exports = {
       return { error: "Yedek dosyaya yazılamadı." };
     }
     return { success: true, data: restored };
+  },
+
+  // ================= SİBER GÜVENLİK VE SALDIRI GÜNLÜĞÜ (WAF / IDS) =================
+  recordSecurityLog: ({ type, ip, userAgent, method, path, details, threatPayload, severity = 'HIGH' }) => {
+    try {
+      const db = readDB();
+      if (!Array.isArray(db.securityLogs)) {
+        db.securityLogs = [];
+      }
+
+      let cleanPayload = '';
+      if (typeof threatPayload === 'string') {
+        cleanPayload = threatPayload.substring(0, 1000);
+      } else if (threatPayload !== undefined && threatPayload !== null) {
+        try {
+          cleanPayload = JSON.stringify(threatPayload).substring(0, 1000);
+        } catch (e) {
+          cleanPayload = String(threatPayload).substring(0, 1000);
+        }
+      }
+
+      const logEntry = {
+        id: 'sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+        timestamp: new Date().toISOString(),
+        type: type || 'GENEL_GÜVENLİK_İHLALİ',
+        severity: severity || 'HIGH', // CRITICAL, HIGH, MEDIUM, LOW
+        ip: ip || 'Bilinmiyor',
+        userAgent: userAgent || 'Bilinmiyor',
+        method: (method || 'GET').toUpperCase(),
+        path: path || '/',
+        details: details || '',
+        threatPayload: cleanPayload
+      };
+
+      // En yeni kayıt en başta (Maksimum 500 kayıt tut)
+      db.securityLogs.unshift(logEntry);
+      if (db.securityLogs.length > 500) {
+        db.securityLogs = db.securityLogs.slice(0, 500);
+      }
+
+      writeDB(db);
+      return logEntry;
+    } catch (err) {
+      console.error('[DB Güvenlik Kaydı Hatası]:', err);
+      return null;
+    }
+  },
+
+  getSecurityLogs: () => {
+    const db = readDB();
+    return db.securityLogs || [];
+  },
+
+  clearSecurityLogs: () => {
+    const db = readDB();
+    db.securityLogs = [];
+    writeDB(db);
+    return [];
+  },
+
+  deleteSecurityLog: (id) => {
+    const db = readDB();
+    db.securityLogs = (db.securityLogs || []).filter(log => log.id !== id);
+    writeDB(db);
+    return db.securityLogs;
   }
 };
 

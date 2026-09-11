@@ -2,6 +2,7 @@
  * WAF (Web Application Firewall) Seviyesi Girdi Dezenfeksiyonu ve Tehdit Engelleme
  * SQL Injection, XSS, Path Traversal ve Zararlı Yük Taraması
  */
+const db = require('../database');
 
 // SQL Injection Kalıpları (Tautology, Union, Stacked Queries, Veritabanı Fonksiyonları, Yorum Satırları)
 const SQLI_PATTERNS = [
@@ -129,12 +130,26 @@ function inspectAndSanitize(target, currentPath = '') {
  */
 function wafMiddleware(req, res, next) {
   const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || req.socket.remoteAddress;
+  const userAgent = req.headers['user-agent'] || 'Bilinmiyor';
 
   // 1. Query parametrelerini denetle
   if (req.query && Object.keys(req.query).length > 0) {
     const qResult = inspectAndSanitize(req.query, 'query');
     if (qResult.violation) {
       console.warn(`[WAF ENGELİ] ${clientIp} IP adresinden ${req.method} ${req.originalUrl} isteğinde ${qResult.violation.type} tespit edildi! Alan: ${qResult.violation.key}`);
+      
+      // Yönetici paneli için veritabanına kaydet
+      db.recordSecurityLog({
+        type: qResult.violation.type,
+        severity: qResult.violation.type === 'SQL_INJECTION' ? 'CRITICAL' : 'HIGH',
+        ip: clientIp,
+        userAgent,
+        method: req.method,
+        path: req.originalUrl || req.url,
+        details: `URL Sorgusunda (Query) ${qResult.violation.type} tespit edildi. Parametre: ${qResult.violation.key}`,
+        threatPayload: qResult.violation.pattern || req.query[qResult.violation.key]
+      });
+
       return res.status(400).json({
         error: "Güvenlik Engeli (WAF): İstek geçersiz veya potansiyel zararlı karakterler barındırıyor.",
         code: "WAF_BLOCKED",
@@ -150,6 +165,18 @@ function wafMiddleware(req, res, next) {
     const pResult = inspectAndSanitize(req.params, 'params');
     if (pResult.violation) {
       console.warn(`[WAF ENGELİ] ${clientIp} IP adresinden URL parametresinde ${pResult.violation.type} tespit edildi! Alan: ${pResult.violation.key}`);
+
+      db.recordSecurityLog({
+        type: pResult.violation.type,
+        severity: pResult.violation.type === 'SQL_INJECTION' ? 'CRITICAL' : 'HIGH',
+        ip: clientIp,
+        userAgent,
+        method: req.method,
+        path: req.originalUrl || req.url,
+        details: `URL Parametresinde ${pResult.violation.type} tespit edildi. Alan: ${pResult.violation.key}`,
+        threatPayload: pResult.violation.pattern || req.params[pResult.violation.key]
+      });
+
       return res.status(400).json({
         error: "Güvenlik Engeli (WAF): İstek parametresi geçersiz.",
         code: "WAF_BLOCKED",
@@ -167,6 +194,18 @@ function wafMiddleware(req, res, next) {
       const bResult = inspectAndSanitize(req.body, 'body');
       if (bResult.violation) {
         console.warn(`[WAF ENGELİ] ${clientIp} IP adresinden istek gövdesinde ${bResult.violation.type} tespit edildi! Alan: ${bResult.violation.key}`);
+
+        db.recordSecurityLog({
+          type: bResult.violation.type,
+          severity: bResult.violation.type === 'SQL_INJECTION' ? 'CRITICAL' : 'HIGH',
+          ip: clientIp,
+          userAgent,
+          method: req.method,
+          path: req.originalUrl || req.url,
+          details: `İstek Gövdesinde (Body) ${bResult.violation.type} tespit edildi. Alan: ${bResult.violation.key}`,
+          threatPayload: bResult.violation.pattern || req.body[bResult.violation.key]
+        });
+
         return res.status(400).json({
           error: "Güvenlik Engeli (WAF): Gönderilen veride güvenlik ihlali tespit edildi.",
           code: "WAF_BLOCKED",

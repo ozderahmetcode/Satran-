@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const db = require('../database');
 
 /**
  * WHMCS Tipi Oturum ve Hesap Zırhlama (Session Hardening)
@@ -192,6 +193,18 @@ function sessionMiddleware(req, res, next) {
     console.warn(`[GÜVENLİK ALARMI] Oturum Kaçırma (Session Hijacking) tespit edildi!`);
     console.warn(`Kullanıcı: ${session.userId} | Beklenen IP: ${session.ip}, Gelen IP: ${currentIp}`);
     console.warn(`Beklenen UA Hash: ${session.userAgentHash}, Gelen UA Hash: ${currentUaHash}`);
+
+    // Yönetici paneline ayrıntılı hack/oturum kaçırma kaydı yaz
+    db.recordSecurityLog({
+      type: 'OTURUM_KAÇIRMA',
+      severity: 'CRITICAL',
+      ip: currentIp,
+      userAgent: req.headers['user-agent'] || 'Bilinmiyor',
+      method: req.method,
+      path: req.originalUrl || req.url,
+      details: `Oturum Kaçırma (Session Hijacking): Oturum sahibi IP (${session.ip}) ile gelen IP (${currentIp}) veya tarayıcı User-Agent bilgisi uyuşmadı. Oturum derhal sonlandırıldı.`,
+      threatPayload: `Kullanıcı ID: ${session.userId} (${session.username}) | Beklenen IP: ${session.ip} | Beklenen UA: ${session.userAgentHash?.substring(0, 16)}... | Gelen UA: ${currentUaHash?.substring(0, 16)}...`
+    });
 
     // Oturumu derhal imha et
     sessionStore.delete(sessionId);
