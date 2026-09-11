@@ -18,6 +18,8 @@
   "author": "özder",
   "license": "ISC",
   "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cloudinary": "^1.41.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dompurify": "^3.4.15",
@@ -26,6 +28,7 @@
     "helmet": "^8.3.0",
     "mongodb": "^7.6.0",
     "multer": "^2.3.0",
+    "multer-storage-cloudinary": "^4.0.0",
     "nodemailer": "^6.9.14"
   },
   "devDependencies": {

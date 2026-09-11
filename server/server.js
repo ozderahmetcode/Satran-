@@ -39,20 +39,22 @@ const {
 } = require('./middleware/rateLimiter');
 const { encodeHtml, encodeHtmlAttr } = require('./middleware/encoder');
 
-// Uploads dizinini oluştur
-const uploadsDir = path.join(__dirname, 'public/uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
+// Cloudinary Yapılandırması
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadsDir);
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'ozder_avatars',
+    allowedFormats: ['jpg', 'png', 'jpeg', 'webp'],
   },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
 });
 const upload = multer({ storage: storage });
 
@@ -306,7 +308,7 @@ app.post('/api/auth/register', authBruteForceCheck, async (req, res) => {
       return res.status(400).json({ error: "Telefon numarası formatı geçersizdir." });
     }
 
-    const result = db.registerUser({ 
+    const result = await db.registerUser({ 
       name, 
       username, 
       email, 
@@ -350,14 +352,14 @@ app.post('/api/auth/verify', (req, res) => {
 });
 
 // Standart Kullanıcı Girişi (Brute-Force & Session Hardening Korumalı)
-app.post('/api/auth/login', authBruteForceCheck, (req, res) => {
+app.post('/api/auth/login', authBruteForceCheck, async (req, res) => {
   try {
     const { identifier, email, password } = req.body;
     const loginId = identifier || email;
     if (!loginId || !password) {
       return res.status(400).json({ error: "Lütfen kullanıcı adı / e-posta ve şifrenizi girin." });
     }
-    const result = db.loginUser(loginId, password);
+    const result = await db.loginUser(loginId, password);
     if (result.error) {
       const failInfo = recordFailedAuth(req, loginId);
       let errorMsg = result.error;
@@ -453,7 +455,7 @@ app.post('/api/auth/forgot-password', authBruteForceCheck, async (req, res) => {
       return res.status(400).json({ error: "Lütfen kayıtlı e-posta adresinizi veya kullanıcı adınızı girin." });
     }
 
-    const result = db.createPasswordResetCode(identifier.trim());
+    const result = await db.createPasswordResetCode(identifier.trim());
     if (result.error) {
       return res.status(400).json({ error: result.error });
     }
@@ -502,14 +504,14 @@ app.post('/api/auth/forgot-password', authBruteForceCheck, async (req, res) => {
 });
 
 // Yeni Şifre Belirleme (Kodu Doğrula ve Şifreyi Güncelle)
-app.post('/api/auth/reset-password', authBruteForceCheck, (req, res) => {
+app.post('/api/auth/reset-password', authBruteForceCheck, async (req, res) => {
   try {
     const { identifier, code, newPassword } = req.body;
     if (!identifier || !code || !newPassword) {
       return res.status(400).json({ error: "Lütfen tüm alanları (kullanıcı adı/e-posta, 6 haneli kod ve yeni şifre) doldurun." });
     }
 
-    const result = db.verifyAndResetPassword(identifier, code, newPassword);
+    const result = await db.verifyAndResetPassword(identifier, code, newPassword);
     if (result.error) {
       return res.status(400).json({ error: result.error });
     }
@@ -525,14 +527,14 @@ app.post('/api/auth/reset-password', authBruteForceCheck, (req, res) => {
 });
 
 // Profil ve Kullanıcı Ayarları
-app.post('/api/users/:id/profile', upload.single('avatarFile'), (req, res) => {
+app.post('/api/users/:id/profile', upload.single('avatarFile'), async (req, res) => {
   try {
     const { id } = req.params;
     const { name, email, phone, chessPlatform, chessUsername, bio, matchmakingSettings } = req.body;
     
     let avatarUrl = req.body.avatarUrl; // Keep existing if not changed
     if (req.file) {
-      avatarUrl = '/uploads/' + req.file.filename;
+      avatarUrl = req.file.path; // Cloudinary'den gelen kalıcı URL
     }
     
     let parsedSettings = undefined;
@@ -540,7 +542,7 @@ app.post('/api/users/:id/profile', upload.single('avatarFile'), (req, res) => {
       parsedSettings = JSON.parse(matchmakingSettings);
     }
     
-    const result = db.updateUserProfile(id, { 
+    const result = await db.updateUserProfile(id, { 
       name, 
       email, 
       phone, 
@@ -560,14 +562,14 @@ app.post('/api/users/:id/profile', upload.single('avatarFile'), (req, res) => {
 });
 
 // Şifre Değiştirme Rotası (Session Fixation Koruması ile Oturum Yenileme)
-app.post('/api/users/:id/change-password', (req, res) => {
+app.post('/api/users/:id/change-password', async (req, res) => {
   try {
     const { id } = req.params;
     const { currentPassword, newPassword } = req.body;
     if (!currentPassword || !newPassword) {
       return res.status(400).json({ error: "Mevcut şifre ve yeni şifre alanları zorunludur." });
     }
-    const result = db.changePassword(id, currentPassword, newPassword);
+    const result = await db.changePassword(id, currentPassword, newPassword);
     if (result.error) {
       return res.status(400).json({ error: result.error });
     }

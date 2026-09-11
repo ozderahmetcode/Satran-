@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { MongoClient } = require('mongodb');
+const bcrypt = require('bcrypt');
 
 // Render.com Kalıcı Disk ve Yerel Geliştirme Dizin Algılama
 const RENDER_DISK = process.env.RENDER_DISK_PATH || (fs.existsSync('/var/data') ? '/var/data' : null);
@@ -500,7 +501,7 @@ module.exports = {
     return db.messages;
   },
   
-  registerUser: (newUser) => {
+  registerUser: async (newUser) => {
     const db = readDB();
     const cleanEmail = (newUser.email || '').trim().toLowerCase();
     const cleanUsername = (newUser.username || '').trim().toLowerCase();
@@ -525,6 +526,7 @@ module.exports = {
     const user = {
       id: uniqueUserId,
       ...newUser,
+      password: await bcrypt.hash(newUser.password, 10),
       username: cleanUsername,
       email: cleanEmail,
       chessPlatform: newUser.chessPlatform || 'chess.com',
@@ -562,7 +564,7 @@ module.exports = {
     return { success: true };
   },
 
-  loginUser: (identifier, password) => {
+  loginUser: async (identifier, password) => {
     const db = readDB();
     const cleanId = (identifier || '').trim().toLowerCase();
     
@@ -573,7 +575,15 @@ module.exports = {
     );
 
     if (!user) return { error: "Hatalı e-posta/kullanıcı adı veya kullanıcı bulunamadı." };
-    if (user.password !== password) return { error: "Şifre yanlış." };
+    const isMatch = await bcrypt.compare(password, user.password).catch(() => false);
+    if (!isMatch) {
+      if (user.password === password) {
+        user.password = await bcrypt.hash(password, 10);
+        writeDB(db);
+      } else {
+        return { error: "Şifre yanlış." };
+      }
+    }
     return { 
       success: true, 
       user: { 
@@ -591,22 +601,23 @@ module.exports = {
     };
   },
 
-  changePassword: (userId, currentPassword, newPassword) => {
+  changePassword: async (userId, currentPassword, newPassword) => {
     const db = readDB();
     const user = db.users.find(u => String(u.id) === String(userId));
     if (!user) return { error: "Kullanıcı bulunamadı." };
-    if (user.password !== currentPassword) {
+    const isMatch = await bcrypt.compare(currentPassword, user.password).catch(() => false);
+    if (!isMatch && user.password !== currentPassword) {
       return { error: "Mevcut şifrenizi yanlış girdiniz." };
     }
     if (!newPassword || newPassword.length < 4) {
       return { error: "Yeni şifre en az 4 karakterden oluşmalıdır." };
     }
-    user.password = newPassword;
+    user.password = await bcrypt.hash(newPassword, 10);
     writeDB(db);
     return { success: true };
   },
 
-  updateUserProfile: (userId, updates) => {
+  updateUserProfile: async (userId, updates) => {
     const db = readDB();
     let userIndex = db.users.findIndex(u => String(u.id) === String(userId));
     
@@ -620,7 +631,7 @@ module.exports = {
         username: updates.username || `user_${Date.now().toString(36)}`,
         name: updates.name || "Satranç Oyuncusu",
         email: updates.email || `${userId}@ozderchess.com`,
-        password: 'password_auto',
+        password: await bcrypt.hash('password_auto', 10),
         phone: updates.phone || '05555555555',
         chessPlatform: updates.chessPlatform || 'chess.com',
         chessUsername: updates.chessUsername || '',
@@ -1555,7 +1566,7 @@ module.exports = {
     };
   },
 
-  verifyAndResetPassword: (identifier, code, newPassword) => {
+  verifyAndResetPassword: async (identifier, code, newPassword) => {
     const db = readDB();
     const cleanId = (identifier || '').trim().toLowerCase();
     const cleanCode = (code || '').trim();
@@ -1595,7 +1606,7 @@ module.exports = {
     }
 
     // Şifreyi güncelle ve kodu kullanıldı olarak işaretle
-    user.password = newPassword;
+    user.password = await bcrypt.hash(newPassword, 10);
     resetRecord.used = true;
 
     // Başarılı sıfırlama güvenlik günlüğü
