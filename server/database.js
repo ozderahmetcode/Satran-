@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { MongoClient } = require('mongodb');
 
 // Render.com Kalıcı Disk ve Yerel Geliştirme Dizin Algılama
 const RENDER_DISK = process.env.RENDER_DISK_PATH || (fs.existsSync('/var/data') ? '/var/data' : null);
@@ -10,6 +11,8 @@ const SNAPSHOTS_DIR = path.join(DATA_DIR, 'auto_backups');
 
 let memoryCache = null;
 let writeCounter = 0;
+let mongoClient = null;
+let mongoDb = null;
 
 // Sıfırdan başlayacak temiz veritabanı şablonu (OZDER satranç topluluğu)
 const defaultData = {
@@ -130,6 +133,7 @@ function getWeekString(d = new Date()) {
 }
 
 function readDB() {
+  if (memoryCache) return memoryCache;
   initDB();
   try {
     const data = fs.readFileSync(DB_FILE, 'utf-8');
@@ -206,6 +210,17 @@ function readDB() {
 }
 
 function writeDB(data) {
+  memoryCache = data;
+  
+  // Asenkron olarak MongoDB'ye kaydet
+  if (mongoDb) {
+    mongoDb.collection('app_state').updateOne(
+      { _id: 'main_db' },
+      { $set: { data: data } },
+      { upsert: true }
+    ).catch(err => console.error('[MongoDB] Senkronizasyon hatası:', err));
+  }
+
   initDB();
   try {
     const rawData = JSON.stringify(data, null, 2);
@@ -428,6 +443,42 @@ function updateLeaderboards(db) {
 }
 
 module.exports = {
+  connectToMongo: async () => {
+    const uri = process.env.MONGODB_URI;
+    if (!uri) {
+      console.log('[MongoDB] MONGODB_URI bulunamadı, sadece yerel db.json kullanılacak.');
+      readDB(); // Yerel dosyadan yükle
+      return;
+    }
+    try {
+      console.log('[MongoDB] Atlas kümesine bağlanılıyor...');
+      mongoClient = new MongoClient(uri);
+      await mongoClient.connect();
+      mongoDb = mongoClient.db('ozderchess');
+      console.log('[MongoDB] Bağlantı başarılı!');
+      
+      const collection = mongoDb.collection('app_state');
+      const doc = await collection.findOne({ _id: 'main_db' });
+      
+      if (doc && doc.data) {
+        memoryCache = doc.data;
+        console.log('[MongoDB] Veriler buluttan hafızaya başarıyla yüklendi.');
+      } else {
+        console.log('[MongoDB] Bulutta veri bulunamadı. Yerel veriler buluta aktarılıyor...');
+        const localData = readDB();
+        await collection.updateOne(
+          { _id: 'main_db' },
+          { $set: { data: localData } },
+          { upsert: true }
+        );
+        console.log('[MongoDB] Yerel veriler buluta aktarıldı.');
+      }
+    } catch (err) {
+      console.error('[MongoDB] Bağlantı veya okuma hatası:', err);
+      readDB(); // Hata durumunda yerel fallback
+    }
+  },
+
   getData: () => readDB(),
 
   saveMessage: (newMessage) => {

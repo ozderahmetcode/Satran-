@@ -984,7 +984,11 @@ function startKeepAliveWorker() {
   }, PING_INTERVAL);
 }
 
-app.listen(PORT, () => {
-  console.log(`Sunucu http://localhost:${PORT} portunda aktif.`);
-  startKeepAliveWorker();
+db.connectToMongo().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Sunucu http://localhost:${PORT} portunda aktif.`);
+    startKeepAliveWorker();
+  });
+}).catch(err => {
+  console.error("Başlangıç hatası:", err);
 });
