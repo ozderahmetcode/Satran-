@@ -626,10 +626,31 @@ export default function Matchmaking({
                     </div>
                     
                     <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{p.name}</h3>
-                    {p.chessUsername && (
-                      <span style={{ fontSize: '12px', color: 'var(--accent-primary)', fontWeight: 600, marginTop: '2px' }}>
-                        @{p.chessUsername}
-                      </span>
+                    {p.chessUsername ? (
+                      <a
+                        href={p.chessPlatform === 'lichess' ? `https://lichess.org/@/${p.chessUsername}` : `https://www.chess.com/member/${p.chessUsername}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontSize: '12px',
+                          color: p.chessPlatform === 'lichess' ? '#4b5563' : '#15803d',
+                          background: p.chessPlatform === 'lichess' ? 'rgba(107, 114, 128, 0.12)' : 'rgba(22, 163, 74, 0.12)',
+                          padding: '3px 10px',
+                          borderRadius: '8px',
+                          textDecoration: 'none',
+                          fontWeight: 700,
+                          marginTop: '4px'
+                        }}
+                        title={`${p.chessPlatform === 'lichess' ? 'Lichess' : 'Chess.com'} Profiline Git`}
+                      >
+                        <span>{p.chessPlatform === 'lichess' ? '♘ Lichess' : '♟️ Chess.com'}</span>
+                        <span>@{p.chessUsername} ↗</span>
+                      </a>
+                    ) : (
+                      <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>Satranç hesabı belirtilmemiş</span>
                     )}
                     
                     {/* Preference Tags */}
@@ -981,7 +1002,27 @@ export default function Matchmaking({
                       <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         {activeChatUser.name}
                         {activeChatUser.chessUsername && (
-                          <span style={{ fontSize: '12px', color: 'var(--accent-primary)', fontWeight: 600 }}>@{activeChatUser.chessUsername}</span>
+                          <a
+                            href={activeChatUser.chessPlatform === 'lichess' ? `https://lichess.org/@/${activeChatUser.chessUsername}` : `https://www.chess.com/member/${activeChatUser.chessUsername}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              fontSize: '11px',
+                              color: activeChatUser.chessPlatform === 'lichess' ? '#4b5563' : '#15803d',
+                              background: activeChatUser.chessPlatform === 'lichess' ? 'rgba(107, 114, 128, 0.1)' : 'rgba(22, 163, 74, 0.1)',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              textDecoration: 'none',
+                              fontWeight: 700,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                            title={`${activeChatUser.chessPlatform === 'lichess' ? 'Lichess' : 'Chess.com'} Profiline Git`}
+                          >
+                            <span>{activeChatUser.chessPlatform === 'lichess' ? '♘ Lichess:' : '♟️ Chess.com:'}</span>
+                            <span>@{activeChatUser.chessUsername} ↗</span>
+                          </a>
                         )}
                       </h4>
                       <div style={{ fontSize: '12px', color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>

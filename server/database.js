@@ -537,6 +537,7 @@ module.exports = {
     if (updates.name !== undefined) user.name = updates.name;
     if (updates.email !== undefined) user.email = updates.email;
     if (updates.phone !== undefined) user.phone = updates.phone;
+    if (updates.chessPlatform !== undefined) user.chessPlatform = updates.chessPlatform;
     if (updates.chessUsername !== undefined) user.chessUsername = updates.chessUsername;
     if (updates.elo !== undefined) user.elo = parseInt(updates.elo);
     if (updates.verified !== undefined) user.verified = Boolean(updates.verified);

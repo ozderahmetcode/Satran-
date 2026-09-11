@@ -241,6 +241,38 @@ export default function Database({ leaders, tournaments, users = [], registratio
     };
   }, [leaders, tournaments, users, registrations]);
 
+  const renderChessBadge = (playerName) => {
+    const matchedUser = users?.find(u => u.name === playerName || u.chessUsername === playerName || u.username === playerName);
+    if (!matchedUser || !matchedUser.chessUsername) return null;
+    const platform = matchedUser.chessPlatform === 'lichess' ? 'lichess' : 'chess.com';
+    const chUser = matchedUser.chessUsername;
+    const url = platform === 'lichess' ? `https://lichess.org/@/${chUser}` : `https://www.chess.com/member/${chUser}`;
+    return (
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '3px',
+          fontSize: '11px',
+          color: platform === 'lichess' ? '#4b5563' : '#15803d',
+          background: platform === 'lichess' ? 'rgba(107, 114, 128, 0.1)' : 'rgba(22, 163, 74, 0.1)',
+          padding: '2px 6px',
+          borderRadius: '5px',
+          textDecoration: 'none',
+          fontWeight: 600,
+          marginLeft: '6px'
+        }}
+        title={`${platform === 'lichess' ? 'Lichess' : 'Chess.com'} Profilini İncele`}
+      >
+        <span>{platform === 'lichess' ? '♘' : '♟️'}</span>
+        <span>@{chUser} ↗</span>
+      </a>
+    );
+  };
+
   if (selectedTournament) {
     const tour = tournaments.find(t => t.id === selectedTournament);
     const standings = calculateStandings(tour);
@@ -306,7 +338,8 @@ export default function Database({ leaders, tournaments, users = [], registratio
                         {idx === 0 ? '🥇 1' : idx === 1 ? '🥈 2' : idx === 2 ? '🥉 3' : idx + 1}
                       </td>
                       <td style={{ padding: '16px', fontWeight: 600, color: idx === 0 ? 'var(--accent-secondary)' : 'inherit' }}>
-                        {player.name}
+                        <span style={{ verticalAlign: 'middle' }}>{player.name}</span>
+                        {renderChessBadge(player.name)}
                       </td>
                       <td style={{ padding: '16px', color: 'var(--text-secondary)' }}>{player.rating}</td>
                       <td style={{ padding: '16px', fontWeight: 'bold', color: 'var(--accent-primary)' }}>{player.points}</td>
@@ -406,7 +439,9 @@ export default function Database({ leaders, tournaments, users = [], registratio
             ) : (
               filterLeaders(effectiveLeaders.champions).map((player, idx) => (
                 <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '15px', borderBottom: '1px solid var(--panel-border)', paddingBottom: '8px' }}>
-                  <span style={{ fontWeight: 600 }}>{idx + 1}. {player.name}</span>
+                  <span style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center' }}>
+                    {idx + 1}. {player.name} {renderChessBadge(player.name)}
+                  </span>
                   <span style={{ color: 'var(--accent-secondary)', fontWeight: 'bold' }}>{player.points} ELO ({player.titles} Kupa)</span>
                 </div>
               ))
@@ -425,7 +460,9 @@ export default function Database({ leaders, tournaments, users = [], registratio
             ) : (
               filterLeaders(effectiveLeaders.activePlayers).map((player, idx) => (
                 <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '15px', borderBottom: '1px solid var(--panel-border)', paddingBottom: '8px' }}>
-                  <span style={{ fontWeight: 600 }}>{idx + 1}. {player.name}</span>
+                  <span style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center' }}>
+                    {idx + 1}. {player.name} {renderChessBadge(player.name)}
+                  </span>
                   <span style={{ color: 'var(--accent-primary)', fontWeight: 'bold' }}>{player.matches} Maç {player.winRate && `(${player.winRate})`}</span>
                 </div>
               ))
@@ -444,7 +481,9 @@ export default function Database({ leaders, tournaments, users = [], registratio
             ) : (
               filterLeaders(effectiveLeaders.highestWinRates).map((player, idx) => (
                 <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '15px', borderBottom: '1px solid var(--panel-border)', paddingBottom: '8px' }}>
-                  <span style={{ fontWeight: 600 }}>{idx + 1}. {player.name}</span>
+                  <span style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center' }}>
+                    {idx + 1}. {player.name} {renderChessBadge(player.name)}
+                  </span>
                   <span style={{ color: '#059669', fontWeight: 'bold' }}>{player.rate} ELO</span>
                 </div>
               ))
@@ -463,7 +502,9 @@ export default function Database({ leaders, tournaments, users = [], registratio
             ) : (
               filterLeaders(effectiveLeaders.winStreaks).map((player, idx) => (
                 <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '15px', borderBottom: '1px solid var(--panel-border)', paddingBottom: '8px' }}>
-                  <span style={{ fontWeight: 600 }}>{idx + 1}. {player.name}</span>
+                  <span style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center' }}>
+                    {idx + 1}. {player.name} {renderChessBadge(player.name)}
+                  </span>
                   <span style={{ color: '#0284c7', fontWeight: 'bold' }}>{player.streak} Galibiyet</span>
                 </div>
               ))

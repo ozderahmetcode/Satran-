@@ -291,8 +291,8 @@ app.post('/api/users/:id/change-password', (req, res) => {
 app.put('/api/users/:id', (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, phone, chessUsername, elo, verified } = req.body;
-    const result = db.adminUpdateUser(id, { name, email, phone, chessUsername, elo, verified });
+    const { name, email, phone, chessPlatform, chessUsername, elo, verified } = req.body;
+    const result = db.adminUpdateUser(id, { name, email, phone, chessPlatform, chessUsername, elo, verified });
     if (result.error) {
       return res.status(400).json({ error: result.error });
     }

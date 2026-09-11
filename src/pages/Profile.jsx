@@ -429,10 +429,33 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
               </span>
             )}
           </div>
-          <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginTop: '8px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginTop: '8px', flexWrap: 'wrap' }}>
             <span style={{ background: 'rgba(2, 132, 199, 0.1)', color: 'var(--accent-primary)', padding: '4px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: 700 }}>
               📈 ELO: {currentUser.elo || 1500}
             </span>
+            {currentUser.chessUsername && (
+              <a
+                href={currentUser.chessPlatform === 'lichess' ? `https://lichess.org/@/${currentUser.chessUsername}` : `https://www.chess.com/member/${currentUser.chessUsername}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  background: currentUser.chessPlatform === 'lichess' ? 'rgba(107, 114, 128, 0.12)' : 'rgba(22, 163, 74, 0.12)',
+                  color: currentUser.chessPlatform === 'lichess' ? '#4b5563' : '#15803d',
+                  padding: '4px 12px',
+                  borderRadius: '20px',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+                title={`${currentUser.chessPlatform === 'lichess' ? 'Lichess' : 'Chess.com'} Profilini Aç`}
+              >
+                <span>{currentUser.chessPlatform === 'lichess' ? '♘ Lichess' : '♟️ Chess.com'}</span>
+                <span>@{currentUser.chessUsername} ↗</span>
+              </a>
+            )}
             <span style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: 600 }}>
               ♟️ {myTournaments.length} Turnuva
             </span>

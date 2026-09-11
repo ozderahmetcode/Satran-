@@ -75,7 +75,11 @@ export default function Auth({ onLoginSuccess, onGoToAdmin }) {
     setInfoMsg('');
 
     // Yönetici Bilgileri Girildiyse Doğrudan Yönetim Paneline Yönlendir
-    if (loginIdentifier.trim() === 'ozder' && loginPassword === 'Ozderahmet123.') {
+    const validAdminUsers = ['admin', 'ozder', 'ozderahmet'];
+    const validAdminPass = ['Ozderahmet123.', 'Ozderahmet123', 'ozderahmet123.', 'ozderahmet123'];
+    const inputUser = loginIdentifier.trim().toLowerCase();
+    const inputPass = loginPassword.trim();
+    if (validAdminUsers.includes(inputUser) && validAdminPass.includes(inputPass)) {
       try {
         sessionStorage.setItem('ozder_admin_authenticated', 'true');
       } catch (e) {}
@@ -233,7 +237,7 @@ export default function Auth({ onLoginSuccess, onGoToAdmin }) {
             <input
               type="text"
               required
-              placeholder="Örn: Ahmet Özder"
+              placeholder="Örn: Alperen Köse"
               value={registerData.name}
               onChange={(e) => setRegisterData({ ...registerData, name: e.target.value })}
               style={{ width: '100%', background: '#fff', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }}

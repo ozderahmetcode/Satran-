@@ -135,6 +135,7 @@ export default function AdminPanel({
     name: '',
     email: '',
     phone: '',
+    chessPlatform: 'chess.com',
     chessUsername: '',
     elo: 1500,
     verified: true
@@ -146,6 +147,7 @@ export default function AdminPanel({
       name: u.name || '',
       email: u.email || '',
       phone: u.phone || '',
+      chessPlatform: u.chessPlatform || 'chess.com',
       chessUsername: u.chessUsername || '',
       elo: u.elo || 1500,
       verified: u.verified !== false
@@ -310,7 +312,12 @@ export default function AdminPanel({
 
   const handleLogin = (e) => {
     e.preventDefault();
-    if (username === 'ozder' && password === 'Ozderahmet123.') {
+    const validAdminUsers = ['admin', 'ozder', 'ozderahmet'];
+    const validAdminPass = ['Ozderahmet123.', 'Ozderahmet123', 'ozderahmet123.', 'ozderahmet123'];
+    const inputUser = (username || '').trim().toLowerCase();
+    const inputPass = (password || '').trim();
+
+    if (validAdminUsers.includes(inputUser) && validAdminPass.includes(inputPass)) {
       setIsAuthenticated(true);
       setAuthError('');
       try {
@@ -546,7 +553,7 @@ export default function AdminPanel({
           <input
             type="text"
             required
-            placeholder="Yönetici Kullanıcı Adı"
+            placeholder="Yönetici Adı (admin, ozder, ozderahmet)"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '12px 16px', color: 'var(--text-primary)', outline: 'none', textAlign: 'center' }}
@@ -865,7 +872,31 @@ export default function AdminPanel({
                           <td style={{ padding: '12px 10px', color: 'var(--text-primary)' }}>{u.email}</td>
                           <td style={{ padding: '12px 10px', color: 'var(--text-secondary)' }}>{u.phone || '-'}</td>
                           <td style={{ padding: '12px 10px' }}>
-                            <span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>@{u.chessUsername || '-'}</span>
+                            {u.chessUsername ? (
+                              <a
+                                href={u.chessPlatform === 'lichess' ? `https://lichess.org/@/${u.chessUsername}` : `https://www.chess.com/member/${u.chessUsername}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  fontSize: '12px',
+                                  color: u.chessPlatform === 'lichess' ? '#4b5563' : '#15803d',
+                                  background: u.chessPlatform === 'lichess' ? 'rgba(107, 114, 128, 0.1)' : 'rgba(22, 163, 74, 0.1)',
+                                  padding: '3px 8px',
+                                  borderRadius: '6px',
+                                  textDecoration: 'none',
+                                  fontWeight: 600
+                                }}
+                                title={`${u.chessPlatform === 'lichess' ? 'Lichess' : 'Chess.com'} Profiline Git`}
+                              >
+                                <span>{u.chessPlatform === 'lichess' ? '♘ Lichess' : '♟️ Chess.com'}</span>
+                                <span>@{u.chessUsername} ↗</span>
+                              </a>
+                            ) : (
+                              <span style={{ color: 'var(--text-secondary)' }}>-</span>
+                            )}
                           </td>
                           <td style={{ padding: '12px 10px' }}>
                             <span style={{ fontWeight: 700, color: 'var(--accent-secondary)' }}>{u.elo || 1500}</span>
@@ -1206,7 +1237,29 @@ export default function AdminPanel({
                                 </span>
                               )}
                             </div>
-                            <div style={{ fontSize: '12px', color: 'var(--accent-primary)' }}>@{matchedUser.chessUsername} ({matchedUser.elo || 1500} ELO)</div>
+                            {matchedUser.chessUsername ? (
+                              <div style={{ marginTop: '3px' }}>
+                                <a
+                                  href={matchedUser.chessPlatform === 'lichess' ? `https://lichess.org/@/${matchedUser.chessUsername}` : `https://www.chess.com/member/${matchedUser.chessUsername}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{
+                                    fontSize: '11px',
+                                    color: matchedUser.chessPlatform === 'lichess' ? '#4b5563' : '#15803d',
+                                    textDecoration: 'none',
+                                    fontWeight: 600,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '3px'
+                                  }}
+                                >
+                                  {matchedUser.chessPlatform === 'lichess' ? '♘ Lichess:' : '♟️ Chess.com:'} @{matchedUser.chessUsername} ↗
+                                </a>
+                                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginLeft: '6px' }}>({matchedUser.elo || 1500} ELO)</span>
+                              </div>
+                            ) : (
+                              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>({matchedUser.elo || 1500} ELO)</div>
+                            )}
                           </td>
                           <td style={{ padding: '12px 8px', color: 'var(--accent-secondary)' }}>{matchedTour.title}</td>
                           <td style={{ padding: '12px 8px', color: 'var(--text-secondary)' }}>{matchedUser.phone}</td>
@@ -1678,7 +1731,18 @@ export default function AdminPanel({
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Platform</label>
+                  <select
+                    value={editUserFormData.chessPlatform || 'chess.com'}
+                    onChange={(e) => setEditUserFormData({ ...editUserFormData, chessPlatform: e.target.value })}
+                    style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none', fontWeight: 600, fontSize: '13px' }}
+                  >
+                    <option value="chess.com">Chess.com</option>
+                    <option value="lichess">Lichess</option>
+                  </select>
+                </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Satranç Kullanıcı Adı</label>
                   <input

@@ -315,7 +315,9 @@ export default function EventDetail({ tournaments, registrations, users = [], cu
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '200px', overflowY: 'auto' }}>
                 {regs.map((reg, idx) => {
                   const displayName = reg.name || "Katılımcı";
-                  const displayUsername = reg.chessUsername || "";
+                  const matchedUser = users?.find(u => String(u.id) === String(reg.userId));
+                  const chessPlatform = reg.chessPlatform || matchedUser?.chessPlatform || 'chess.com';
+                  const chessUsername = reg.chessUsername || matchedUser?.chessUsername;
 
                   return (
                     <div key={idx} style={{
@@ -328,9 +330,30 @@ export default function EventDetail({ tournaments, registrations, users = [], cu
                       border: '1px solid var(--panel-border)'
                     }}>
                       <div>
-                        <span style={{ fontSize: '14px', fontWeight: 600 }}>{idx + 1}. {displayName}</span>
-                        {displayUsername && (
-                          <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>@{displayUsername}</div>
+                        <div style={{ fontSize: '14px', fontWeight: 600 }}>{idx + 1}. {displayName}</div>
+                        {chessUsername && (
+                          <a
+                            href={chessPlatform === 'lichess' ? `https://lichess.org/@/${chessUsername}` : `https://www.chess.com/member/${chessUsername}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontSize: '11px',
+                              color: chessPlatform === 'lichess' ? '#4b5563' : '#15803d',
+                              background: chessPlatform === 'lichess' ? 'rgba(107, 114, 128, 0.1)' : 'rgba(22, 163, 74, 0.1)',
+                              padding: '2px 7px',
+                              borderRadius: '6px',
+                              textDecoration: 'none',
+                              fontWeight: 600,
+                              marginTop: '3px'
+                            }}
+                            title={`${chessPlatform === 'lichess' ? 'Lichess' : 'Chess.com'} Profiline Git`}
+                          >
+                            <span>{chessPlatform === 'lichess' ? '♘ Lichess:' : '♟️ Chess.com:'}</span>
+                            <span>@{chessUsername} ↗</span>
+                          </a>
                         )}
                       </div>
                       <span style={{ fontSize: '12px', color: 'var(--accent-primary)', fontWeight: 600 }}>Aktif</span>
