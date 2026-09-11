@@ -33,10 +33,10 @@ export default function Contact() {
     <div className="animate-fade-in" style={{ padding: '40px 0', display: 'flex', flexDirection: 'column', gap: '48px' }}>
       <section style={{ textAlign: 'center' }}>
         <h1 style={{ fontFamily: 'var(--font-title)', fontSize: '38px', fontWeight: 800 }}>
-          📞 İletişim & Konum Bilgileri
+          📞 İletişim & Sosyal Medya
         </h1>
         <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>
-          Bizimle iletişime geçin, turnuva sponsorluğu veya topluluk buluşmaları hakkında bilgi alın.
+          Bizimle iletişime geçin, turnuva veya topluluk hakkında bilgi alın.
         </p>
       </section>
 
@@ -48,25 +48,57 @@ export default function Contact() {
         {/* Contact Info Card */}
         <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '22px', fontWeight: 700, color: 'var(--accent-secondary)' }}>
-            📍 Buluşma Noktamız
+            🌐 Sosyal Medya & İletişim
           </h3>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             <div>
-              <h4 style={{ fontFamily: 'var(--font-title)', fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>Adres</h4>
-              <p style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>X Cafe (Ümraniye)</p>
+              <strong style={{ color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px' }}>
+                <span style={{ fontSize: '20px' }}>📸</span> Sosyal Medya (Instagram):
+              </strong>
+              <div style={{ marginTop: '8px' }}>
+                <a 
+                  href="https://instagram.com/ozdersatranc" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    color: '#e1306c',
+                    textDecoration: 'none',
+                    fontWeight: 700,
+                    fontSize: '15px',
+                    background: 'rgba(225, 48, 108, 0.08)',
+                    padding: '10px 16px',
+                    borderRadius: '10px',
+                    border: '1px solid rgba(225, 48, 108, 0.25)',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <span>@ozdersatranc ↗</span>
+                </a>
+              </div>
             </div>
+
             <div>
-              <strong style={{ color: 'var(--text-primary)' }}>Adres:</strong>
-              <p style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>İstiklal Mahallesi, Anafartalar Caddesi, Ümraniye / İstanbul</p>
-            </div>
-            <div>
-              <strong style={{ color: 'var(--text-primary)' }}>E-posta:</strong>
-              <p style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>iletisim@ozderchess.com</p>
-            </div>
-            <div>
-              <strong style={{ color: 'var(--text-primary)' }}>Telefon / WhatsApp:</strong>
-              <p style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>+90 555 555 55 55</p>
+              <strong style={{ color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px' }}>
+                <span style={{ fontSize: '20px' }}>✉️</span> E-posta:
+              </strong>
+              <div style={{ marginTop: '8px' }}>
+                <a 
+                  href="mailto:ozderahmetcode@gmail.com"
+                  style={{
+                    color: 'var(--accent-primary)',
+                    textDecoration: 'none',
+                    fontWeight: 600,
+                    fontSize: '15px',
+                    display: 'inline-block'
+                  }}
+                >
+                  ozderahmetcode@gmail.com
+                </a>
+              </div>
             </div>
           </div>
         </div>

@@ -121,8 +121,8 @@ export default function Terms() {
         </p>
         <div style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>
           <strong>Şirket Yetkilisi:</strong> Ahmet Özder<br />
-          <strong>E-posta:</strong> iletisim@ozderchess.com<br />
-          <strong>Web:</strong> https://ozderchess.com
+          <strong>E-posta:</strong> ozderahmetcode@gmail.com<br />
+          <strong>Web:</strong> https://ozdersatranc.web.app
         </div>
       </section>
 

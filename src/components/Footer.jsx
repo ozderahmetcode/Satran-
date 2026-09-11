@@ -44,7 +44,7 @@ export default function Footer({ setCurrentPage }) {
           color: 'var(--text-secondary)',
           fontSize: '13px'
         }}>
-          © 2026 OZDER. Tüm hakları saklıdır. Ümraniye X Cafe iş birliğiyle.
+          © 2026 OZDER. Tüm hakları saklıdır.
         </div>
       </div>
     </footer>
