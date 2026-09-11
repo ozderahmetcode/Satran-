@@ -1,4 +1,11 @@
 require('dotenv').config();
+const dns = require('dns');
+
+// Docker / Render / Linux ortamlarında IPv6 siyah delik zaman aşımlarını engelle
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
+}
+
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
@@ -201,17 +208,6 @@ function getActiveUsersCount() {
   };
 }
 
-// Nodemailer SMTP Yapılandırması
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: process.env.SMTP_SECURE === 'true',
-  auth: {
-    user: process.env.SMTP_USER || '',
-    pass: process.env.SMTP_PASS || ''
-  }
-});
-
 // Render.com Uyanık Tutma ve Sağlık Kontrol Uç Noktası
 app.get('/api/health', (req, res) => {
   res.json({
@@ -227,6 +223,16 @@ app.get('/api/health', (req, res) => {
       configured: emailService.isSmtpConfigured()
     }
   });
+});
+
+// SMTP Bağlantı Teşhis Uç Noktası
+app.get('/api/health/smtp', async (req, res) => {
+  try {
+    const diagnostic = await emailService.testSmtpConnection();
+    res.json(diagnostic);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // API Rotaları

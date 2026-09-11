@@ -1,53 +1,55 @@
 const nodemailer = require('nodemailer');
+const dns = require('dns');
+
+// Docker / Render / Linux ortamında IPv6 siyah delik (blackhole) zaman aşımını engellemek için
+// DNS çözümlemesini zorunlu IPv4 (IPv4-first) olarak ayarla.
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
+}
 
 /**
  * E-Posta Servisi (OZDER Satranç Topluluğu)
- * Doğrudan Gmail SSL Servisi ile %100 Güvenilir E-Posta Gönderimi
+ * IPv4 Zorlamalı, Akıllı Port Fallback'li (465 SSL -> 587 STARTTLS) E-Posta Motoru
  */
 
-// SMTP Konfigürasyonu tanımlı mı?
 function isSmtpConfigured() {
   const user = (process.env.SMTP_USER || '').trim();
   const pass = (process.env.SMTP_PASS || '').replace(/\s+/g, '').trim();
   return Boolean(user && pass && user.length > 3 && pass.length > 6);
 }
 
-// Transporter Örneği (Dinamik Oluşturucu - Gmail Resmi SSL Servisi)
-let cachedTransporter = null;
-function getTransporter() {
-  if (cachedTransporter) return cachedTransporter;
-  if (!isSmtpConfigured()) return null;
-
+/**
+ * Belirtilen port ve güvenlik ayarları ile tek kullanımlık (stateless/taze) Transporter oluşturur.
+ * Havuz (pool: true) yerine doğrudan soket kullanımı container ortamlarında ölü soket kilitlenmelerini önler.
+ */
+function createDirectTransport(port, secure) {
   const user = (process.env.SMTP_USER || '').trim();
   const pass = (process.env.SMTP_PASS || '').replace(/\s+/g, '').trim();
 
-  try {
-    // Gmail resmi servis önayarı: port 465 SSL ve bağlantı havuzu
-    cachedTransporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user, pass },
-      pool: true,
-      maxConnections: 3,
-      maxMessages: 100
-    });
-    return cachedTransporter;
-  } catch (err) {
-    console.error('[E-Posta Servisi] Transporter oluşturulamadı:', err.message);
-    return null;
-  }
+  return nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: port,
+    secure: secure,
+    auth: { user, pass },
+    family: 4, // Linux container ortamında IPv4'e zorla
+    connectionTimeout: 6000, // 6 saniye bağlantı zaman aşımı
+    greetingTimeout: 6000,   // 6 saniye karşılama zaman aşımı
+    socketTimeout: 8000,     // 8 saniye soket zaman aşımı
+    tls: {
+      rejectUnauthorized: false
+    }
+  });
 }
 
 /**
- * Şifre Sıfırlama E-Postası Gönder
+ * Şifre Sıfırlama E-Postası Gönder (Akıllı Port Failover ile)
  * @param {string} toEmail Alıcı e-posta adresi
  * @param {string} recipientName Alıcı adı
  * @param {string} resetCode 6 haneli güvenlik kodu
  * @returns {Promise<{success: boolean, sent?: boolean, messageId?: string, error?: string}>}
  */
 async function sendPasswordResetEmail(toEmail, recipientName, resetCode) {
-  const transporter = getTransporter();
-
-  if (!isSmtpConfigured() || !transporter) {
+  if (!isSmtpConfigured()) {
     console.error(`[E-Posta Hatası] SMTP yapılandırılmamış. Gönderilemedi: ${toEmail}`);
     return {
       success: false,
@@ -55,7 +57,8 @@ async function sendPasswordResetEmail(toEmail, recipientName, resetCode) {
     };
   }
 
-  const fromAddress = process.env.SMTP_FROM || `"OZDER Satranç Topluluğu" <${process.env.SMTP_USER}>`;
+  const user = (process.env.SMTP_USER || '').trim();
+  const fromAddress = process.env.SMTP_FROM || `"OZDER Satranç Topluluğu" <${user}>`;
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -103,37 +106,83 @@ async function sendPasswordResetEmail(toEmail, recipientName, resetCode) {
     </html>
   `;
 
+  const mailOptions = {
+    from: fromAddress,
+    to: toEmail,
+    subject: `OZDER Satranç - Şifre Sıfırlama Kodu: ${resetCode}`,
+    text: `Merhaba ${recipientName},\n\nOZDER Satranç şifre sıfırlama kodunuz: ${resetCode}\n\nBu kod 15 dakika geçerlidir.`,
+    html: htmlContent
+  };
+
+  // 1. Önce Port 465 (SSL) ile dene
   try {
-    const sendPromise = transporter.sendMail({
-      from: fromAddress,
-      to: toEmail,
-      subject: `OZDER Satranç - Şifre Sıfırlama Kodu: ${resetCode}`,
-      text: `Merhaba ${recipientName},\n\nOZDER Satranç şifre sıfırlama kodunuz: ${resetCode}\n\nBu kod 15 dakika geçerlidir.`,
-      html: htmlContent
-    });
-
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('E-posta sunucusu zaman aşımına uğradı (25s).')), 25000)
-    );
-
-    const info = await Promise.race([sendPromise, timeoutPromise]);
-
-    console.log(`[E-Posta Başarılı] ${toEmail} adresine e-posta gönderildi. Mesaj ID: ${info.messageId}`);
+    console.log(`[E-Posta] Port 465 (SSL/IPv4) ile gönderiliyor: ${toEmail}`);
+    const transport465 = createDirectTransport(465, true);
+    const info = await transport465.sendMail(mailOptions);
+    console.log(`[E-Posta Başarılı - Port 465] ${toEmail} adresine e-posta ulaştı. ID: ${info.messageId}`);
     return {
       success: true,
       sent: true,
       messageId: info.messageId
     };
-  } catch (error) {
-    console.error(`[E-Posta Gönderim Hatası] ${toEmail}:`, error.message);
-    return {
-      success: false,
-      error: error.message
-    };
+  } catch (err465) {
+    console.warn(`[E-Posta Uyarısı] Port 465 başarısız oldu (${err465.message}). Port 587 (STARTTLS) deneniyor...`);
+    
+    // 2. Port 465 başarısız olursa hemen Port 587 (STARTTLS) ile dene
+    try {
+      console.log(`[E-Posta] Port 587 (STARTTLS/IPv4) ile deneniyor: ${toEmail}`);
+      const transport587 = createDirectTransport(587, false);
+      const info = await transport587.sendMail(mailOptions);
+      console.log(`[E-Posta Başarılı - Port 587] ${toEmail} adresine e-posta ulaştı. ID: ${info.messageId}`);
+      return {
+        success: true,
+        sent: true,
+        messageId: info.messageId
+      };
+    } catch (err587) {
+      console.error(`[E-Posta Hatası - Port 587 de başarısız] ${toEmail}:`, err587.message);
+      return {
+        success: false,
+        error: `E-posta gönderimi başarısız oldu (465: ${err465.message}, 587: ${err587.message})`
+      };
+    }
   }
+}
+
+/**
+ * Teşhis Fonksiyonu: SMTP Bağlantısını ve Portları Test Et
+ */
+async function testSmtpConnection() {
+  const results = {
+    isConfigured: isSmtpConfigured(),
+    user: process.env.SMTP_USER || null,
+    port465: null,
+    port587: null
+  };
+
+  if (!results.isConfigured) return results;
+
+  try {
+    const t465 = createDirectTransport(465, true);
+    await t465.verify();
+    results.port465 = 'OK';
+  } catch (err) {
+    results.port465 = err.message;
+  }
+
+  try {
+    const t587 = createDirectTransport(587, false);
+    await t587.verify();
+    results.port587 = 'OK';
+  } catch (err) {
+    results.port587 = err.message;
+  }
+
+  return results;
 }
 
 module.exports = {
   isSmtpConfigured,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  testSmtpConnection
 };
