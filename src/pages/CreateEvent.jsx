@@ -6,6 +6,7 @@ export default function CreateEvent({ onAddTournament, setCurrentPage }) {
     date: '',
     time: '',
     location: 'Ümraniye X Cafe',
+    locationUrl: '',
     fee: '300 TL',
     maxQuota: '20'
   });
@@ -140,13 +141,46 @@ export default function CreateEvent({ onAddTournament, setCurrentPage }) {
 
         <div>
           <label style={{ display: 'block', fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 500 }}>
-            Mekan Konumu *
+            Mekan Konumu / Kafe Adı *
           </label>
           <input
             type="text"
             required
+            placeholder="Örn: Kadıköy, Motto Pub"
             value={formData.location}
             onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+            style={{
+              width: '100%',
+              background: 'var(--bg-color)',
+              border: '1px solid var(--panel-border)',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              color: 'var(--text-primary)', outline: 'none'
+            }}
+          />
+        </div>
+
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <label style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: 500 }}>
+              📍 Google Haritalar Konum Linki (Opsiyonel)
+            </label>
+            {formData.location && (
+              <a 
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(formData.location)}`}
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={{ fontSize: '12px', color: 'var(--accent-primary)', textDecoration: 'none', fontWeight: 600 }}
+              >
+                🔍 Google Maps'te Aç ↗
+              </a>
+            )}
+          </div>
+          <input
+            type="url"
+            placeholder="Örn: https://maps.app.goo.gl/... veya https://google.com/maps/place/..."
+            value={formData.locationUrl}
+            onChange={(e) => setFormData({ ...formData, locationUrl: e.target.value })}
             style={{
               width: '100%',
               background: 'var(--bg-color)',

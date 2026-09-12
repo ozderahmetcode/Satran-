@@ -90,13 +90,21 @@ export default function EventDetail({ tournaments, registrations, users = [], cu
     }
   };
 
+  // Google Maps URL üretici (Eğer özel link girilmişse onu kullanır, yoksa kafe adına göre Google Maps araması açar)
+  const getLocationMapUrl = (t) => {
+    if (t.locationUrl && (t.locationUrl.startsWith('http://') || t.locationUrl.startsWith('https://'))) {
+      return t.locationUrl;
+    }
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(t.location || '')}`;
+  };
+
   // Turnuva Seçilmediyse: Liste Görünümü
   if (!selectedTournamentId) {
     return (
-      <div className="animate-fade-in" style={{ padding: '40px 0', display: 'flex', flexDirection: 'column', gap: '32px' }}>
-        <div style={{ textAlign: 'center' }}>
-          <h1 style={{ fontFamily: 'var(--font-title)', fontSize: '36px', fontWeight: 800 }}>
-            🏆 Satranç Buluşmalarımız
+      <div className="animate-fade-in" style={{ padding: '20px 0', display: 'flex', flexDirection: 'column', gap: '32px' }}>
+        <div style={{ textAlign: 'center', maxWidth: '700px', margin: '0 auto' }}>
+          <h1 style={{ fontFamily: 'var(--font-title)', fontSize: '32px', fontWeight: 800 }}>
+            Satranç Buluşmaları & Turnuvalar
           </h1>
           <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>
             Katılmak istediğiniz etkinliği seçerek detayları görüntüleyin ve kaydolun.
@@ -109,6 +117,7 @@ export default function EventDetail({ tournaments, registrations, users = [], cu
             const isTourFinished = tour.status === 'completed' || 
               (tour.champion && tour.champion !== 'Bekleniyor...') ||
               (tour.rounds && tour.rounds.length >= tour.totalRounds && tour.rounds.length > 0 && !tour.rounds[tour.rounds.length - 1]?.pairings?.some(p => p.result === 'pending'));
+            const mapUrl = getLocationMapUrl(tour);
 
             return (
               <div key={tour.id} className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '16px', justifyContent: 'space-between', padding: '0', overflow: 'hidden' }}>
@@ -144,10 +153,30 @@ export default function EventDetail({ tournaments, registrations, users = [], cu
                   <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '20px', fontWeight: 700 }}>
                     {tour.title}
                   </h3>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '8px' }}>
-                    📅 {tour.date} • 🕒 {tour.time} <br />
-                    📍 {tour.location}
-                  </p>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div>📅 {tour.date} • 🕒 {tour.time}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <span>📍</span>
+                      <a 
+                        href={mapUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        title="Google Haritalar'da Aç"
+                        style={{
+                          color: 'var(--accent-primary)',
+                          textDecoration: 'underline',
+                          textUnderlineOffset: '3px',
+                          fontWeight: 700,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        {tour.location} ↗
+                      </a>
+                    </div>
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0 20px 20px 20px', borderTop: '1px solid var(--panel-border)', paddingTop: '16px' }}>
@@ -225,9 +254,37 @@ export default function EventDetail({ tournaments, registrations, users = [], cu
         <h1 style={{ fontFamily: 'var(--font-title)', fontSize: '32px', fontWeight: 800, marginTop: '16px' }}>
           {tour.title}
         </h1>
-        <p style={{ color: 'var(--text-secondary)', marginTop: '8px', fontSize: '15px' }}>
-          📍 {tour.location} • 📅 {tour.date} • 🕒 {tour.time}
-        </p>
+        <div style={{ color: 'var(--text-secondary)', marginTop: '12px', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+          <span>📅 {tour.date}</span>
+          <span>🕒 {tour.time}</span>
+          <a
+            href={getLocationMapUrl(tour)}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Google Haritalar'da Konumu Aç"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 14px',
+              background: 'rgba(14, 165, 233, 0.1)',
+              border: '1px solid rgba(14, 165, 233, 0.3)',
+              borderRadius: '20px',
+              color: 'var(--accent-primary)',
+              textDecoration: 'none',
+              fontWeight: 700,
+              fontSize: '14px',
+              boxShadow: '0 2px 6px rgba(14, 165, 233, 0.1)',
+              transition: 'all 0.15s ease'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(14, 165, 233, 0.18)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(14, 165, 233, 0.1)'; }}
+          >
+            <span>📍</span>
+            <span>{tour.location}</span>
+            <span style={{ fontSize: '12px' }}>↗</span>
+          </a>
+        </div>
 
         {/* WhatsApp ve Bağlantı Paylaşım Çubuğu */}
         <div style={{
@@ -323,6 +380,42 @@ export default function EventDetail({ tournaments, registrations, users = [], cu
               <div>• ♟️ Format: 15+3 Dostluk Maçı (5 Tur)</div>
               <div>• ☕ Mekan ikramları katılım ücretine dahildir.</div>
             </div>
+          </div>
+
+          {/* Konum ve Yol Tarifi Kartı */}
+          <div className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '18px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>📍</span> Konum & Yol Tarifi
+            </h3>
+            <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+              {tour.location}
+            </p>
+            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0 }}>
+              Kafeye nasıl gideceğinizi görmek ve navigasyon başlatmak için haritada açın:
+            </p>
+            <a
+              href={getLocationMapUrl(tour)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                padding: '12px 18px',
+                borderRadius: '10px',
+                fontWeight: 700,
+                fontSize: '14px',
+                textDecoration: 'none',
+                background: '#f8fafc',
+                border: '1px solid var(--panel-border)',
+                color: 'var(--accent-primary)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+              }}
+            >
+              <span>🗺️</span> Google Haritalar'da Yol Tarifi Al ↗
+            </a>
           </div>
         </div>
 

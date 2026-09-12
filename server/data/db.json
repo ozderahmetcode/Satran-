@@ -18,13 +18,15 @@
       "title": "1. X Cafe Satranç Tanışma Buluşması",
       "date": "15.08.2026",
       "time": "15:00",
-      "location": "Ümraniye X Cafe",
+      "location": "Kadıköy, Motto Pub",
+      "locationUrl": "https://maps.app.goo.gl/9w1vN3vV9yUjV89r7",
       "fee": "300 TL",
       "champion": "Bekleniyor...",
       "status": "active",
       "maxQuota": 20,
       "rounds": [],
-      "totalRounds": 5
+      "totalRounds": 5,
+      "imageUrl": "/event_default.jpg"
     }
   ],
   "registrations": [],

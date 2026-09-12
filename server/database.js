@@ -849,6 +849,8 @@ module.exports = {
     const tournament = {
       id: nextId,
       ...newTour,
+      locationUrl: newTour.locationUrl || '',
+      mapEmbed: newTour.mapEmbed || '',
       imageUrl: newTour.imageUrl || '/event_default.jpg',
       champion: "Bekleniyor...",
       status: "active",
@@ -873,6 +875,8 @@ module.exports = {
       date: updates.date !== undefined ? updates.date : current.date,
       time: updates.time !== undefined ? updates.time : current.time,
       location: updates.location !== undefined ? updates.location : current.location,
+      locationUrl: updates.locationUrl !== undefined ? updates.locationUrl : (current.locationUrl || ''),
+      mapEmbed: updates.mapEmbed !== undefined ? updates.mapEmbed : (current.mapEmbed || ''),
       fee: updates.fee !== undefined ? updates.fee : current.fee,
       maxQuota: updates.maxQuota !== undefined ? parseInt(updates.maxQuota) : current.maxQuota,
       totalRounds: updates.totalRounds !== undefined ? parseInt(updates.totalRounds) : current.totalRounds,

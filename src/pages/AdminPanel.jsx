@@ -409,6 +409,8 @@ export default function AdminPanel({
     date: '',
     time: '',
     location: 'Ümraniye X Cafe',
+    locationUrl: '',
+    mapEmbed: '',
     fee: '300 TL',
     maxQuota: '20',
     totalRounds: '5',
@@ -493,10 +495,22 @@ export default function AdminPanel({
     setStatusMsg({ type: '', text: '' });
 
     try {
+      const bodyData = new FormData();
+      bodyData.append('title', formData.title);
+      bodyData.append('date', formData.date);
+      bodyData.append('time', formData.time);
+      bodyData.append('location', formData.location);
+      bodyData.append('locationUrl', formData.locationUrl || '');
+      bodyData.append('mapEmbed', formData.mapEmbed || '');
+      bodyData.append('fee', formData.fee);
+      bodyData.append('maxQuota', formData.maxQuota);
+      bodyData.append('totalRounds', formData.totalRounds);
+      if (formData.imageUrl) bodyData.append('imageUrl', formData.imageUrl);
+      if (createImageFile) bodyData.append('eventImageFile', createImageFile);
+
       const response = await fetch('/api/tournaments', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: bodyData
       });
       const result = await response.json();
 
@@ -508,10 +522,14 @@ export default function AdminPanel({
           date: '',
           time: '',
           location: 'Ümraniye X Cafe',
+          locationUrl: '',
+          mapEmbed: '',
           fee: '300 TL',
           maxQuota: '20',
-          totalRounds: '5'
+          totalRounds: '5',
+          imageUrl: '/event_default.jpg'
         });
+        setCreateImageFile(null);
       } else {
         setStatusMsg({ type: 'error', text: result.error || 'Hata oluştu.' });
       }
@@ -528,6 +546,8 @@ export default function AdminPanel({
     date: '',
     time: '',
     location: '',
+    locationUrl: '',
+    mapEmbed: '',
     fee: '',
     maxQuota: '',
     totalRounds: '',
@@ -581,6 +601,8 @@ export default function AdminPanel({
       date: tour.date || '',
       time: tour.time || '',
       location: tour.location || '',
+      locationUrl: tour.locationUrl || '',
+      mapEmbed: tour.mapEmbed || '',
       fee: tour.fee || '',
       maxQuota: tour.maxQuota || '20',
       totalRounds: tour.totalRounds || '5',
@@ -599,6 +621,8 @@ export default function AdminPanel({
       bodyData.append('date', editFormData.date);
       bodyData.append('time', editFormData.time);
       bodyData.append('location', editFormData.location);
+      bodyData.append('locationUrl', editFormData.locationUrl || '');
+      bodyData.append('mapEmbed', editFormData.mapEmbed || '');
       bodyData.append('fee', editFormData.fee);
       bodyData.append('maxQuota', editFormData.maxQuota);
       bodyData.append('totalRounds', editFormData.totalRounds);
@@ -1466,9 +1490,47 @@ export default function AdminPanel({
                 </div>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Konum *</label>
-                <input type="text" required value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }} />
+                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                  Mekan / Kafe Adı (Görünen Konum) *
+                </label>
+                <input 
+                  type="text" 
+                  required 
+                  placeholder="Örn: Kadıköy, Motto Pub"
+                  value={formData.location} 
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })} 
+                  style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }} 
+                />
               </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                    📍 Google Haritalar Konum Linki (Opsiyonel)
+                  </label>
+                  {formData.location && (
+                    <a 
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(formData.location)}`}
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      style={{ fontSize: '12px', color: 'var(--accent-primary)', textDecoration: 'none', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      🔍 Google Maps'te Bu Kafeyi Aç ↗
+                    </a>
+                  )}
+                </div>
+                <input 
+                  type="url" 
+                  placeholder="Örn: https://maps.app.goo.gl/... veya https://google.com/maps/place/..."
+                  value={formData.locationUrl} 
+                  onChange={(e) => setFormData({ ...formData, locationUrl: e.target.value })} 
+                  style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }} 
+                />
+                <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                  💡 Google Haritalar'dan "Paylaş" diyerek kopyaladığınız linki buraya yapıştırabilirsiniz. Boş bırakırsanız otomatik olarak kafe adına göre Google Maps araması oluşturulur.
+                </p>
+              </div>
+
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Ücret</label>
@@ -1481,6 +1543,7 @@ export default function AdminPanel({
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Tur Sayısı</label>
                   <select value={formData.totalRounds} onChange={(e) => setFormData({ ...formData, totalRounds: e.target.value })} style={{ width: '100%', background: '#0d121e', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }}>
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => <option key={n} value={n}>{n} Tur</option>)}
                   </select>
                 </div>
               </div>
@@ -1778,14 +1841,45 @@ export default function AdminPanel({
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Konum *</label>
+                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                  Mekan / Kafe Adı (Görünen Konum) *
+                </label>
                 <input
                   type="text"
                   required
+                  placeholder="Örn: Kadıköy, Motto Pub"
                   value={editFormData.location}
                   onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })}
                   style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }}
                 />
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                    📍 Google Haritalar Konum Linki (Opsiyonel)
+                  </label>
+                  {editFormData.location && (
+                    <a 
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(editFormData.location)}`}
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      style={{ fontSize: '12px', color: 'var(--accent-primary)', textDecoration: 'none', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      🔍 Google Maps'te Bu Kafeyi Aç ↗
+                    </a>
+                  )}
+                </div>
+                <input
+                  type="url"
+                  placeholder="Örn: https://maps.app.goo.gl/... veya https://google.com/maps/place/..."
+                  value={editFormData.locationUrl}
+                  onChange={(e) => setEditFormData({ ...editFormData, locationUrl: e.target.value })}
+                  style={{ width: '100%', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '8px', padding: '10px', color: 'var(--text-primary)', outline: 'none' }}
+                />
+                <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                  💡 Google Haritalar'dan "Paylaş" ile aldığınız konumu buraya yapıştırabilirsiniz.
+                </p>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>

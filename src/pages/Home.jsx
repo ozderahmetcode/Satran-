@@ -154,9 +154,27 @@ export default function Home({ stats, leaders, tournaments = [], setCurrentPage 
             <h3 style={{ fontFamily: 'var(--font-title)', fontSize: '26px', fontWeight: 800, marginTop: '12px', color: '#ffffff' }}>
               {featuredTour?.title || 'X Cafe Sosyal Satranç Buluşmaları'}
             </h3>
-            <p style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '15px', marginTop: '6px', fontWeight: 600 }}>
-              📍 {featuredTour?.location || 'Ümraniye X Cafe'} • 📅 {featuredTour?.date || '15.08.2026'}
-            </p>
+            <div style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '15px', marginTop: '6px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <a 
+                href={featuredTour?.locationUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(featuredTour?.location || 'Ümraniye X Cafe')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                title="Google Haritalar'da Aç"
+                style={{ 
+                  color: '#ffffff', 
+                  textDecoration: 'underline', 
+                  textUnderlineOffset: '3px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                📍 {featuredTour?.location || 'Ümraniye X Cafe'} ↗
+              </a>
+              <span>•</span>
+              <span>📅 {featuredTour?.date || '15.08.2026'}</span>
+            </div>
           </div>
         </div>
 

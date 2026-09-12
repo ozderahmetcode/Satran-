@@ -702,7 +702,7 @@ app.post('/api/tournaments/:id/guest', (req, res) => {
 
 app.post('/api/tournaments', upload.single('eventImageFile'), (req, res) => {
   try {
-    const { title, date, time, location, fee, maxQuota, totalRounds } = req.body;
+    const { title, date, time, location, locationUrl, mapEmbed, fee, maxQuota, totalRounds } = req.body;
 
     if (!title || !date || !time || !location || !maxQuota) {
       return res.status(400).json({ error: "Lütfen zorunlu alanları doldurun." });
@@ -727,6 +727,8 @@ app.post('/api/tournaments', upload.single('eventImageFile'), (req, res) => {
       date, 
       time, 
       location, 
+      locationUrl: locationUrl || '',
+      mapEmbed: mapEmbed || '',
       fee: fee || "Ücretsiz", 
       maxQuota: parseInt(maxQuota), 
       totalRounds: totalRounds || 5,
@@ -742,7 +744,7 @@ app.post('/api/tournaments', upload.single('eventImageFile'), (req, res) => {
 app.put('/api/tournaments/:id', upload.single('eventImageFile'), (req, res) => {
   try {
     const { id } = req.params;
-    const { title, date, time, location, fee, maxQuota, totalRounds, status } = req.body;
+    const { title, date, time, location, locationUrl, mapEmbed, fee, maxQuota, totalRounds, status } = req.body;
 
     let finalImageUrl = req.body.imageUrl;
     if (req.file) {
@@ -760,6 +762,8 @@ app.put('/api/tournaments/:id', upload.single('eventImageFile'), (req, res) => {
       date,
       time,
       location,
+      locationUrl,
+      mapEmbed,
       fee,
       maxQuota,
       totalRounds,
