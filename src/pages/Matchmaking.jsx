@@ -951,9 +951,11 @@ export default function Matchmaking({
                           <span style={{ fontWeight: 800, fontSize: '14px', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {fullPartner.name}
                           </span>
-                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700 }}>
-                            {fullPartner.elo || 1500} ELO
-                          </span>
+                          {registrations.some(r => String(r.userId) === String(partnerId)) && (
+                            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700 }}>
+                              {fullPartner.elo || 1500} ELO
+                            </span>
+                          )}
                         </div>
                         <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '2px 0 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {lastMsg ? lastMsg.text : '💬 Sohbete başla...'}
@@ -1031,7 +1033,9 @@ export default function Matchmaking({
                       </h4>
                       <div style={{ fontSize: '12px', color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
-                        {activeChatUser.elo || 1500} ELO • Oyun Eşleşmesi
+                        {registrations.some(r => String(r.userId) === String(activeChatUser.id)) 
+                          ? `${activeChatUser.elo || 1500} ELO • Oyun Eşleşmesi` 
+                          : 'Oyun Eşleşmesi'}
                       </div>
                     </div>
                   </div>

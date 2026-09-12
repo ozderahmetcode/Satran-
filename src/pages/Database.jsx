@@ -207,7 +207,15 @@ export default function Database({ leaders, tournaments, users = [], registratio
     }
 
     // 3. EN YÜKSEK ELO PUANI (Sadece turnuvaya kaydolmuş veya en az 1 maç oynamış oyuncular)
-    let highestWinRates = leaders?.highestWinRates && leaders.highestWinRates.length > 0 ? leaders.highestWinRates : [];
+    let highestWinRates = leaders?.highestWinRates && leaders.highestWinRates.length > 0 
+      ? leaders.highestWinRates.filter(p => {
+          const u = users.find(usr => usr.name === p.name || usr.chessUsername === p.name || usr.username === p.name);
+          const uid = u ? String(u.id) : null;
+          const hasReg = uid ? registrations.some(r => String(r.userId) === uid) : false;
+          return (p.matches && p.matches > 0) || hasReg;
+        }) 
+      : [];
+
     if (highestWinRates.length === 0) {
       const activeOrRegPool = allPlayers.filter(p => p.matchesPlayed > 0 || registrations.some(r => String(r.userId) === p.id));
       highestWinRates = activeOrRegPool
