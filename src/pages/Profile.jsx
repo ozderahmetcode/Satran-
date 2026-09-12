@@ -431,9 +431,11 @@ export default function Profile({ currentUser, registrations, tournaments, onUpd
             )}
           </div>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginTop: '8px', flexWrap: 'wrap' }}>
-            <span style={{ background: 'rgba(2, 132, 199, 0.1)', color: 'var(--accent-primary)', padding: '4px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: 700 }}>
-              📈 ELO: {currentUser.elo || 1500}
-            </span>
+            {(myRegistrations.length > 0 || stats.gamesPlayed > 0) && (
+              <span style={{ background: 'rgba(2, 132, 199, 0.1)', color: 'var(--accent-primary)', padding: '4px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: 700 }}>
+                📈 ELO: {currentUser.elo || 1500}
+              </span>
+            )}
             {currentUser.chessUsername && (
               <a
                 href={sanitizeUrl(currentUser.chessPlatform === 'lichess' ? `https://lichess.org/@/${sanitizeChessUsername(currentUser.chessUsername)}` : `https://www.chess.com/member/${sanitizeChessUsername(currentUser.chessUsername)}`)}

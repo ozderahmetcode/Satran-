@@ -276,6 +276,7 @@ export default function App() {
           <Matchmaking 
             currentUser={currentUser} 
             users={data.users} 
+            registrations={data.registrations}
             matchRequests={data.matchRequests || []}
             directMessages={data.directMessages || []}
             onGoToAuth={() => setCurrentPage('auth')} 

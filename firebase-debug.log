@@ -1,17 +1,22 @@
-[debug] [2026-09-11T21:41:30.704Z] ----------------------------------------------------------------------
-[debug] [2026-09-11T21:41:30.706Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\ozder\AppData\Local\npm-cache\_npx\7750544ccf494d8b\node_modules\firebase-tools\lib\bin\firebase.js deploy --only hosting
-[debug] [2026-09-11T21:41:30.706Z] CLI Version:   15.30.0
-[debug] [2026-09-11T21:41:30.706Z] Platform:      win32
-[debug] [2026-09-11T21:41:30.706Z] Node Version:  v24.14.1
-[debug] [2026-09-11T21:41:30.706Z] Detected Agent: antigravity
-[debug] [2026-09-11T21:41:30.706Z] Time:          Sat Sep 12 2026 00:41:30 GMT+0300 (Türkiye Standart Saati)
-[debug] [2026-09-11T21:41:30.707Z] ----------------------------------------------------------------------
+[debug] [2026-09-12T00:20:29.304Z] ----------------------------------------------------------------------
+[debug] [2026-09-12T00:20:29.307Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\ozder\AppData\Local\npm-cache\_npx\7750544ccf494d8b\node_modules\firebase-tools\lib\bin\firebase.js deploy --only hosting
+[debug] [2026-09-12T00:20:29.307Z] CLI Version:   15.30.0
+[debug] [2026-09-12T00:20:29.307Z] Platform:      win32
+[debug] [2026-09-12T00:20:29.307Z] Node Version:  v24.14.1
+[debug] [2026-09-12T00:20:29.308Z] Detected Agent: antigravity
+[debug] [2026-09-12T00:20:29.308Z] Time:          Sat Sep 12 2026 03:20:29 GMT+0300 (Türkiye Standart Saati)
+[debug] [2026-09-12T00:20:29.308Z] ----------------------------------------------------------------------
 [debug] 
-[debug] [2026-09-11T21:41:32.904Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-09-11T21:41:32.905Z] > authorizing via signed-in user (ozderahmetcode@gmail.com)
-[debug] [2026-09-11T21:41:32.905Z] [iam] checking project satranc-b83d1 for permissions ["firebase.projects.get","firebasehosting.sites.update"]
-[debug] [2026-09-11T21:41:32.918Z] Checked if tokens are valid: true, expires at: 1789166322525
-[debug] [2026-09-11T21:41:32.918Z] Checked if tokens are valid: true, expires at: 1789166322525
-[debug] [2026-09-11T21:41:32.919Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/satranc-b83d1:testIamPermissions [none]
-[debug] [2026-09-11T21:41:32.919Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/satranc-b83d1:testIamPermissions  x-goog-user-project=satranc-b83d1
-[debug] [2026-09-11T21:41:32.920Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/satranc-b83d1:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-09-12T00:20:32.028Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-09-12T00:20:32.028Z] > authorizing via signed-in user (ozderahmetcode@gmail.com)
+[debug] [2026-09-12T00:20:32.029Z] [iam] checking project satranc-b83d1 for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2026-09-12T00:20:32.069Z] Checked if tokens are valid: false, expires at: 1789166322525
+[debug] [2026-09-12T00:20:32.070Z] Checked if tokens are valid: false, expires at: 1789166322525
+[debug] [2026-09-12T00:20:32.070Z] > refreshing access token with scopes: []
+[debug] [2026-09-12T00:20:32.075Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-09-12T00:20:32.075Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-09-12T00:20:32.320Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-09-12T00:20:32.320Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-09-12T00:20:32.334Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/satranc-b83d1:testIamPermissions [none]
+[debug] [2026-09-12T00:20:32.334Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/satranc-b83d1:testIamPermissions  x-goog-user-project=satranc-b83d1
+[debug] [2026-09-12T00:20:32.335Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/satranc-b83d1:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}

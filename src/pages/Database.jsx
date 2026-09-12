@@ -206,12 +206,11 @@ export default function Database({ leaders, tournaments, users = [], registratio
         }));
     }
 
-    // 3. EN YÜKSEK ELO PUANI
+    // 3. EN YÜKSEK ELO PUANI (Sadece turnuvaya kaydolmuş veya en az 1 maç oynamış oyuncular)
     let highestWinRates = leaders?.highestWinRates && leaders.highestWinRates.length > 0 ? leaders.highestWinRates : [];
     if (highestWinRates.length === 0) {
       const activeOrRegPool = allPlayers.filter(p => p.matchesPlayed > 0 || registrations.some(r => String(r.userId) === p.id));
-      const eloPool = activeOrRegPool.length > 0 ? activeOrRegPool : allPlayers;
-      highestWinRates = eloPool
+      highestWinRates = activeOrRegPool
         .sort((a, b) => (b.elo || 1500) - (a.elo || 1500))
         .slice(0, 5)
         .map(p => ({

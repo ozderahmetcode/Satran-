@@ -4,6 +4,7 @@ import { sanitizeUrl, sanitizeChessUsername } from '../utils/security';
 export default function Matchmaking({ 
   currentUser, 
   users = [], 
+  registrations = [],
   matchRequests = [], 
   directMessages = [], 
   onGoToAuth, 
@@ -592,10 +593,12 @@ export default function Matchmaking({
                       boxShadow: '0 8px 24px rgba(0,0,0,0.03)'
                     }}
                   >
-                    {/* ELO Badge */}
-                    <div style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(0,0,0,0.05)', padding: '6px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: 800, color: 'var(--text-secondary)' }}>
-                      ⚡ {p.elo || 1500} ELO
-                    </div>
+                    {/* ELO Badge (Sadece turnuvaya kaydolmuş/katılmış oyuncular için) */}
+                    {(registrations.some(r => String(r.userId) === String(p.id))) && (
+                      <div style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(0,0,0,0.05)', padding: '6px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: 800, color: 'var(--text-secondary)' }}>
+                        ⚡ {p.elo || 1500} ELO
+                      </div>
+                    )}
                     
                     {/* Large Avatar */}
                     <div style={{ 
